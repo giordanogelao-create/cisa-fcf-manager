@@ -240,7 +240,375 @@
   const num=(v)=>{const x=Number(String(v??'').replace(/\./g,'').replace(',','.'));return Number.isFinite(x)?x:0};
   const eur=(n)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n||0));
   const today=()=>new Date().toISOString().slice(0,10);
+  let pdfLibPromise = null;
+  let tesseractPromise = null;
 
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=src;
+      s.async=true;
+      s.onload=resolve;
+      s.onerror=()=>reject(new Error('Impossibile caricare script: '+src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensurePdfJs(){
+    if(window.pdfjsLib) return window.pdfjsLib;
+    if(!pdfLibPromise){
+      pdfLibPromise=(async()=>{
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.js');
+        if(!window.pdfjsLib) throw new Error('PDF.js non disponibile');
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js';
+        return window.pdfjsLib;
+      })();
+    }
+    return pdfLibPromise;
+  }
+
+  async function ensureTesseract(){
+    if(window.Tesseract) return window.Tesseract;
+    if(!tesseractPromise){
+      tesseractPromise=(async()=>{
+        await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+        if(!window.Tesseract) throw new Error('Tesseract non disponibile');
+        return window.Tesseract;
+      })();
+    }
+    return tesseractPromise;
+  }
+
+  function normalizeText(s){
+    return String(s||'')
+      .replace(/\u00a0/g,' ')
+      .replace(/[‐-‒–—]/g,'-')
+      .replace(/[“”]/g,'"')
+      .replace(/[‘’]/g,"'")
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  function normalizeForMatch(s){
+    return normalizeText(s)
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]/g,'');
+  }
+
+  function parseItalianAmount(raw){
+    const s=String(raw||'').replace(/[^\d,.-]/g,'').trim();
+    if(!s) return 0;
+    if(s.includes(',') && s.includes('.')){
+      return num(s.replace(/\./g,'').replace(',','.'));
+    }
+    if(s.includes(',')){
+      return num(s.replace(',','.'));
+    }
+    return num(s);
+  }
+
+  function toIsoDateGuess(raw){
+    const s=String(raw||'').trim();
+    if(!s) return '';
+    let m=s.match(/\b(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})\b/);
+    if(m) return `${m[3]}-${m[2]}-${m[1]}`;
+    m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+    return '';
+  }
+
+  function firstMatch(text, patterns){
+    for(const re of patterns){
+      const m=text.match(re);
+      if(m && m[1]) return m[1].trim();
+    }
+    return '';
+  }
+
+  function hasPnrrText(text){
+    const low=normalizeText(text).toLowerCase();
+    return low.includes('pnrr') || low.includes('p.n.r.r') || low.includes('next generation eu') || low.includes('nextgenerationeu');
+  }
+
+  function extractCup(text){
+    const m=normalizeText(text).match(/\b([A-Z0-9]{15})\b/g);
+    if(!m) return '';
+    return m.find(x=>/[A-Z]/.test(x) && /\d/.test(x)) || '';
+  }
+
+  function guessBeneficiaryFromText(text, beneficiaries){
+    const nt=normalizeForMatch(text);
+    let best=null;
+    let bestScore=0;
+
+    for(const b of (beneficiaries||[])){
+      const checks=[
+        b.ragione_sociale || '',
+        b.cup || '',
+        b.cf || '',
+        b.piva || ''
+      ].filter(Boolean);
+
+      let score=0;
+      for(const c of checks){
+        const token=normalizeForMatch(c);
+        if(!token) continue;
+        if(nt.includes(token)){
+          score += token.length > 10 ? 4 : 2;
+        }
+      }
+      if(score > bestScore){
+        best=b;
+        bestScore=score;
+      }
+    }
+    return best;
+  }
+
+  function guessSupplierFromText(text, suppliers){
+    const nt=normalizeForMatch(text);
+    let best=null;
+    let bestScore=0;
+
+    for(const s of (suppliers||[])){
+      const checks=[s.name||'', s.piva||'', s.cf||''].filter(Boolean);
+      let score=0;
+      for(const c of checks){
+        const token=normalizeForMatch(c);
+        if(!token) continue;
+        if(nt.includes(token)){
+          score += token.length > 8 ? 4 : 2;
+        }
+      }
+      if(score > bestScore){
+        best=s;
+        bestScore=score;
+      }
+    }
+    return best;
+  }
+
+  function guessInvestmentFromText(text, investments){
+    const nt=normalizeForMatch(text);
+    let best=null;
+    let bestScore=0;
+
+    for(const inv of (investments||[])){
+      const checks=[
+        inv.title || '',
+        inv.table_code || '',
+        inv.category_code || '',
+        inv.tag || ''
+      ].filter(Boolean);
+
+      let score=0;
+      for(const c of checks){
+        const token=normalizeForMatch(c);
+        if(token && nt.includes(token)) score += token.length > 8 ? 3 : 1;
+      }
+
+      if(score > bestScore){
+        best=inv;
+        bestScore=score;
+      }
+    }
+    return best;
+  }
+
+  async function extractPdfText(file){
+    const pdfjsLib=await ensurePdfJs();
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+
+    let textParts=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      const pageText=content.items.map(it=>it.str).join(' ');
+      textParts.push(pageText);
+    }
+    return normalizeText(textParts.join('\n'));
+  }
+
+  async function ocrPdfFile(file, maxPages=3){
+    const pdfjsLib=await ensurePdfJs();
+    const Tesseract=await ensureTesseract();
+
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+
+    let out=[];
+    const total=Math.min(pdf.numPages,maxPages);
+
+    for(let p=1;p<=total;p++){
+      const page=await pdf.getPage(p);
+      const viewport=page.getViewport({scale:2});
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      canvas.width=Math.ceil(viewport.width);
+      canvas.height=Math.ceil(viewport.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
+
+      const {data:{text}}=await Tesseract.recognize(canvas,'ita+eng');
+      out.push(text||'');
+      await sleep(50);
+    }
+
+    return normalizeText(out.join('\n'));
+  }
+
+  async function extractTextFromPdfWithFallback(file){
+    let text='';
+    let usedOcr=false;
+
+    try{
+      text=await extractPdfText(file);
+    }catch(err){
+      console.error(err);
+    }
+
+    const likelyScanned = !text || text.length < 80;
+    if(likelyScanned){
+      usedOcr=true;
+      text=await ocrPdfFile(file,3);
+    }
+
+    return { text: normalizeText(text), usedOcr };
+  }
+
+  function extractInvoiceFields(text){
+    const t=normalizeText(text);
+
+    const invoiceNumber=firstMatch(t,[
+      /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i,
+      /\b(?:documento)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i
+    ]);
+
+    const invoiceDate=toIsoDateGuess(firstMatch(t,[
+      /\b(?:data\s+fattura|fattura\s+del|data)\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+      /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+    ]));
+
+    const cup=extractCup(t);
+    const pnrr=hasPnrrText(t) ? firstMatch(t,[/(.{0,40}pnrr.{0,80})/i]) || 'PNRR rilevato nel documento' : '';
+
+    const total=parseItalianAmount(firstMatch(t,[
+      /\b(?:totale\s+fattura|totale\s+documento|importo\s+totale|totale)\s*[:\-]?\s*([0-9\.\,]+)/i
+    ]));
+
+    const vat=parseItalianAmount(firstMatch(t,[
+      /\b(?:iva)\s*(?:22|10|4)?%?\s*[:\-]?\s*([0-9\.\,]+)/i
+    ]));
+
+    let net=parseItalianAmount(firstMatch(t,[
+      /\b(?:imponibile|totale\s+imponibile)\s*[:\-]?\s*([0-9\.\,]+)/i
+    ]));
+
+    if(!net && total && vat >= 0) net = Math.max(0, Number((total - vat).toFixed(2)));
+
+    return {
+      invoice_number: invoiceNumber,
+      invoice_date: invoiceDate,
+      net_amount: net || 0,
+      vat_amount: vat || 0,
+      total_amount: total || Number((net + vat).toFixed(2)),
+      cup,
+      pnrr_text: pnrr
+    };
+  }
+
+  function extractPaymentFields(text){
+    const t=normalizeText(text);
+
+    const paymentDate=toIsoDateGuess(firstMatch(t,[
+      /\b(?:data\s+esecuzione|data\s+operazione|data\s+bonifico|data)\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+      /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+    ]));
+
+    const amount=parseItalianAmount(firstMatch(t,[
+      /\b(?:importo|totale|amount)\s*[:\-]?\s*([0-9\.\,]+)/i
+    ]));
+
+    const cro=firstMatch(t,[
+      /\b(?:cro|trn|transaction\s+id|id\s+operazione)\s*[:\-]?\s*([A-Z0-9\-]+)/i
+    ]);
+
+    const invoiceNumber=firstMatch(t,[
+      /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i
+    ]);
+
+    const cup=extractCup(t);
+    const pnrr=hasPnrrText(t) ? firstMatch(t,[/(.{0,40}pnrr.{0,80})/i]) || 'PNRR rilevato nel documento' : '';
+
+    let kind='Saldo';
+    const low=t.toLowerCase();
+    if(low.includes('acconto')) kind='Acconto';
+    else if(low.includes('saldo')) kind='Saldo';
+
+    return {
+      payment_date: paymentDate,
+      amount: amount || 0,
+      cro,
+      invoice_number: invoiceNumber,
+      kind,
+      cup,
+      pnrr_text: pnrr,
+      bank: firstMatch(t,[
+        /\b(?:banca|istituto)\s*[:\-]?\s*([A-ZÀ-Ú0-9 \.\-']{4,})/i
+      ])
+    };
+  }
+
+  async function getInvoiceImportContext(fid){
+    const [benQ,supQ,invQ]=await Promise.all([
+      sb.from('beneficiaries').select('id,ragione_sociale,cup,cf,piva').eq('filiera_id',fid),
+      sb.from('suppliers').select('id,beneficiary_id,name,piva,cf'),
+      sb.from('investments').select('id,beneficiary_id,title,table_code,category_code,tag')
+    ]);
+
+    return {
+      beneficiaries:(benQ.data||[]),
+      suppliers:(supQ.data||[]),
+      investments:(invQ.data||[])
+    };
+  }
+
+  async function getPaymentImportContext(fid){
+    const [benQ,payInvQ]=await Promise.all([
+      sb.from('beneficiaries').select('id,ragione_sociale,cup,cf,piva').eq('filiera_id',fid),
+      sb.from('invoices').select('id,beneficiary_id,invoice_number,invoice_date,net_amount,vat_amount,cup').eq('filiera_id',fid)
+    ]);
+
+    return {
+      beneficiaries:(benQ.data||[]),
+      invoices:(payInvQ.data||[])
+    };
+  }
+
+  function guessInvoiceForPayment(parsed, invoices, beneficiaryId){
+    const amount=num(parsed.amount);
+    const invNum=normalizeForMatch(parsed.invoice_number || '');
+
+    let candidates=(invoices||[]).filter(x=>!beneficiaryId || x.beneficiary_id===beneficiaryId);
+
+    if(invNum){
+      const exact=candidates.find(x=>normalizeForMatch(x.invoice_number||'')===invNum);
+      if(exact) return exact;
+    }
+
+    if(amount>0){
+      const exactAmount=candidates.find(x=>{
+        const tot = Number((num(x.net_amount)+num(x.vat_amount)).toFixed(2));
+        return Math.abs(tot-amount) < 0.01;
+      });
+      if(exactAmount) return exactAmount;
+    }
+
+    return null;
+  }
   const ACTIVE_FILIERA_KEY='fcf_active_filiera_full';
   const TAGS=['022','029','047','047bis','010','010bis'];
   const TABLES={
