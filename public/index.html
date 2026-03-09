@@ -629,109 +629,117 @@
   }
 
   // BENEFICIARI
-  function openBeneficiarioModal(b){
-    const isEdit=!!b;
-    const fid=activeFiliera();
-    if(!fid) return toast('Crea prima una filiera',true);
+function openBeneficiarioModal(b){
+  const isEdit=!!b;
+  const fid=activeFiliera();
+  if(!fid) return toast('Crea prima una filiera',true);
 
-    const sede=b?.sede_legale||{};
-    const sediOps=Array.isArray(b?.sedi_operative) ? b.sedi_operative : [];
+  const sede=b?.sede_legale||{};
+  const sediOps=Array.isArray(b?.sedi_operative) ? b.sedi_operative : [];
+  const sedeOp=sediOps[0]||{};
 
-    openM(
-      isEdit?'Modifica beneficiario':'Nuovo beneficiario',
-      `<div class="form">
-        <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
-          <select id="b_dim" class="input">
-            ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
-          </select>
-        </div>
+  openM(
+    isEdit?'Modifica beneficiario':'Nuovo beneficiario',
+    `<div class="form">
+      <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
+        <select id="b_dim" class="input">
+          ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
 
-        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
-        <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
-        <div></div>
+      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
+      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
+      <div></div>
 
-        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sedi operative</b></div>
-        <div class="full">
-          <label style="color:var(--muted);font-size:12px">JSON array sedi operative</label>
-          <textarea id="b_ops" class="input">${esc(JSON.stringify(sediOps,null,2))}</textarea>
-        </div>
-      </div>`,
-      `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-       <button class="btn" id="bc">Annulla</button>
-       <button class="btn pri" id="bs">Salva</button>`
-    );
+      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede operativa</b></div>
+      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="so_via" class="input" value="${esc(sedeOp.via||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">N. civico</label><input id="so_civ" class="input" value="${esc(sedeOp.civico||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="so_com" class="input" value="${esc(sedeOp.comune||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="so_prov" class="input" value="${esc(sedeOp.provincia||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Foglio</label><input id="so_fog" class="input" value="${esc(sedeOp.foglio||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Particella/e</label><input id="so_part" class="input" value="${esc(sedeOp.particella||sedeOp.particelle||'')}"></div>
+    </div>`,
+    `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+     <button class="btn" id="bc">Annulla</button>
+     <button class="btn pri" id="bs">Salva</button>`
+  );
 
-    $('#bc').onclick=closeM;
-    $('#bs').onclick=async()=>{
-      const payload={
-        filiera_id: fid,
-        ragione_sociale: $('#b_rs').value.trim(),
-        cf: $('#b_cf').value.trim(),
-        piva: $('#b_piva').value.trim(),
-        pec: $('#b_pec').value.trim(),
-        cup: $('#b_cup').value.trim(),
-        ateco: $('#b_ateco').value.trim(),
-        telefono: $('#b_tel').value.trim(),
-        email: $('#b_email').value.trim(),
-        referente: $('#b_ref').value.trim(),
-        dimensione: $('#b_dim').value,
-        sede_legale:{
-          via:$('#sl_via').value.trim(),
-          civico:$('#sl_civ').value.trim(),
-          comune:$('#sl_com').value.trim(),
-          provincia:$('#sl_prov').value.trim(),
-          cap:$('#sl_cap').value.trim()
-        },
-        sedi_operative:[]
-      };
-      if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
-      try{
-        payload.sedi_operative = JSON.parse($('#b_ops').value || '[]');
-        if(!Array.isArray(payload.sedi_operative)) throw new Error();
-      }catch{
-        return toast('Sedi operative non valide',true,'Inserisci un JSON array valido');
-      }
+  $('#bc').onclick=closeM;
+  $('#bs').onclick=async()=>{
+    const sedeOperativa={
+      via:$('#so_via').value.trim(),
+      civico:$('#so_civ').value.trim(),
+      comune:$('#so_com').value.trim(),
+      provincia:$('#so_prov').value.trim(),
+      foglio:$('#so_fog').value.trim(),
+      particella:$('#so_part').value.trim()
+    };
 
-      if(isEdit){
-        const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
-        if(error) return toast('Errore salvataggio',true,error.message);
-        await runIssueChecksForBeneficiary({...payload,id:b.id});
-        toast('Beneficiario aggiornato');
-      }else{
-        const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
-        if(error) return toast('Errore creazione',true,error.message);
-        await runIssueChecksForBeneficiary({...payload,id:data.id});
-        toast('Beneficiario creato');
-      }
+    const hasSedeOperativa=Object.values(sedeOperativa).some(v=>String(v||'').trim()!=='');
+    const payload={
+      filiera_id: fid,
+      ragione_sociale: $('#b_rs').value.trim(),
+      cf: $('#b_cf').value.trim(),
+      piva: $('#b_piva').value.trim(),
+      pec: $('#b_pec').value.trim(),
+      cup: $('#b_cup').value.trim(),
+      ateco: $('#b_ateco').value.trim(),
+      telefono: $('#b_tel').value.trim(),
+      email: $('#b_email').value.trim(),
+      referente: $('#b_ref').value.trim(),
+      dimensione: $('#b_dim').value,
+      sede_legale:{
+        via:$('#sl_via').value.trim(),
+        civico:$('#sl_civ').value.trim(),
+        comune:$('#sl_com').value.trim(),
+        provincia:$('#sl_prov').value.trim(),
+        cap:$('#sl_cap').value.trim()
+      },
+      sedi_operative: hasSedeOperativa ? [sedeOperativa] : []
+    };
+
+    if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
+
+    if(isEdit){
+      const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
+      if(error) return toast('Errore salvataggio',true,error.message);
+      await runIssueChecksForBeneficiary({...payload,id:b.id});
+      toast('Beneficiario aggiornato');
+    }else{
+      const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
+      if(error) return toast('Errore creazione',true,error.message);
+      await runIssueChecksForBeneficiary({...payload,id:data.id});
+      toast('Beneficiario creato');
+    }
+    closeM();
+    render();
+  };
+
+  if(isEdit){
+    $('#bdel').onclick=async()=>{
+      if(!confirm('Eliminare questo beneficiario?')) return;
+      await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
+      const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
+      if(error) return toast('Errore eliminazione',true,error.message);
+      toast('Beneficiario eliminato');
       closeM();
       render();
     };
-
-    if(isEdit){
-      $('#bdel').onclick=async()=>{
-        if(!confirm('Eliminare questo beneficiario?')) return;
-        await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
-        const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
-        if(error) return toast('Errore eliminazione',true,error.message);
-        toast('Beneficiario eliminato');
-        closeM();
-        render();
-      };
-    }
   }
+}
 
   async function renderBeneficiari(){
     const fid=activeFiliera();
