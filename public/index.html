@@ -614,11 +614,42 @@
     const totO=inv.reduce((a,x)=>a+num(x.own_funds),0);
 
     const byTable=['1A','2A','3A','4A','5A'].map(t=>({
-      t,
-      n:inv.filter(x=>x.table_code===t).length,
-      sum:inv.filter(x=>x.table_code===t).reduce((a,x)=>a+num(x.approved_amount),0)
-    }));
+  t,
+  n:inv.filter(x=>x.table_code===t).length,
+  sum:inv.filter(x=>x.table_code===t).reduce((a,x)=>a+num(x.approved_amount),0)
+}));
+const summaryRows = [];
+for(const t of ['1A','2A','3A','4A','5A']){
+  const cats = TABLES[t] || [];
+  for(const c of cats){
+    const items = inv.filter(x => x.table_code===t && x.category_code===c.code);
+    const approved = items.reduce((s,x)=>s+num(x.approved_amount),0);
+    const grant = items.reduce((s,x)=>s+num(x.grant_amount),0);
+    const loan = items.reduce((s,x)=>s+num(x.loan_amount),0);
+    const own = items.reduce((s,x)=>s+num(x.own_funds),0);
+    const realized = items.filter(x => (x.state||'')==='Rendicontato totale').length;
 
+    const tagCounts = {};
+    for(const it of items){
+      const tg = (it.tag||'').trim();
+      if(!tg) continue;
+      tagCounts[tg] = (tagCounts[tg]||0)+1;
+    }
+    const tagStr = Object.keys(tagCounts).length
+      ? Object.entries(tagCounts).map(([k,v])=>`${k}:${v}`).join(' • ')
+      : '—';
+
+    summaryRows.push({
+      table:t,
+      catCode:c.code,
+      catLabel:c.label,
+      n:items.length,
+      realized,
+      approved, grant, loan, own,
+      tagStr
+    });
+  }
+}
     view.innerHTML=`
       <div class="card h">
         <div><h2 class="ct">Dashboard</h2><p class="sub">Panoramica completa della filiera attiva.</p></div>
