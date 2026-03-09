@@ -1238,7 +1238,7 @@
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Investimenti','Crea prima una filiera.'); return; }
 
-    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup,sedi_operative').eq('filiera_id',fid).order('ragione_sociale');
     const beneficiaries=benQ.data||[];
     if(!beneficiaries.length){ view.innerHTML=routeError('Investimenti','Crea prima almeno un beneficiario.'); return; }
 
