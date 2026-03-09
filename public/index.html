@@ -697,6 +697,46 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
         <div class="card kpi" style="grid-column:span 6"><div class="l">Documenti caricati</div><div class="v">${docQ.count||0}</div></div>
         <div class="card kpi" style="grid-column:span 6"><div class="l">Issue totali</div><div class="v">${(issQ.data||[]).length}</div></div>
+        <div class="card" style="grid-column:span 12">
+  <div class="card h" style="border:none;box-shadow:none">
+    <div>
+      <h3 class="ct" style="font-size:15px">Riepilogo filiera per tabella e categoria</h3>
+      <p class="sub">Importi e conteggi per categoria (include investimenti rendicontati totali e TAG).</p>
+    </div>
+  </div>
+  <div class="table-wrap" style="max-height:420px">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Tabella</th>
+          <th>Categoria</th>
+          <th>#</th>
+          <th>Realizzati</th>
+          <th>Importo</th>
+          <th>Contributo</th>
+          <th>Finanz.</th>
+          <th>Mezzi propri</th>
+          <th>TAG</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summaryRows.map(r=>`
+          <tr>
+            <td><b>${esc(r.table)}</b></td>
+            <td>${esc(r.catCode)} • ${esc(r.catLabel)}</td>
+            <td>${r.n}</td>
+            <td>${r.realized}</td>
+            <td>${eur(r.approved)}</td>
+            <td>${eur(r.grant)}</td>
+            <td>${eur(r.loan)}</td>
+            <td>${eur(r.own)}</td>
+            <td style="color:var(--muted)">${esc(r.tagStr)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
       </div>`;
   }
 
