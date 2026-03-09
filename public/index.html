@@ -1,0 +1,1744 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PNRR M2C1 I3.4 CISA FCF MANAGER</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#07132b;
+      --panel:#0d1b3a;
+      --panel2:#0a1530;
+      --text:#e8eefc;
+      --muted:#9fb0d3;
+      --line:#203052;
+      --pri:#6ea8ff;
+      --pri2:#3b82f6;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --r:14px;
+      --shadow:0 14px 40px rgba(0,0,0,.28);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(110,168,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 110% 10%, rgba(34,197,94,.08), transparent 60%),
+        var(--bg);
+      color:var(--text)
+    }
+    .header{
+      position:sticky;top:0;z-index:30;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:12px 14px;border-bottom:1px solid var(--line);
+      background:rgba(13,27,58,.82);backdrop-filter:blur(10px)
+    }
+    .ttl{display:flex;gap:10px;align-items:center;min-width:0}
+    .logo{
+      width:34px;height:34px;border-radius:12px;
+      background:conic-gradient(from 210deg,var(--pri),#22c55e,#a855f7,var(--pri));
+      box-shadow:var(--shadow)
+    }
+    .h1{margin:0;font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .h2{margin:0;color:var(--muted);font-size:12px}
+    .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .shell{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 59px)}
+    .sidebar{padding:14px;border-right:1px solid var(--line);overflow:auto}
+    .section{margin:10px 10px 6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em}
+    .nav{display:flex;flex-direction:column;gap:6px}
+    .nav a{
+      padding:10px;border-radius:12px;text-decoration:none;color:var(--muted);
+      border:1px solid transparent;display:flex;gap:10px;align-items:center
+    }
+    .nav a.active{
+      color:var(--text);
+      background:rgba(110,168,255,.08);
+      border-color:rgba(110,168,255,.25)
+    }
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+    .nav a.active .dot{background:var(--pri)}
+    .sep{margin:10px 10px;border-top:1px solid var(--line)}
+    .main{padding:16px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow)}
+    .card.h{padding:14px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .ct{margin:0;font-size:16px;font-weight:800}
+    .sub{margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+    .btn{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;
+      display:inline-flex;gap:8px;align-items:center
+    }
+    .btn.pri{border-color:rgba(110,168,255,.55)}
+    .btn.danger{border-color:rgba(239,68,68,.55)}
+    .badge{border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:999px;font-size:12px}
+    .badge.good{border-color:rgba(34,197,94,.45);color:#baf3cc}
+    .badge.warn{border-color:rgba(245,158,11,.45);color:#ffe0a4}
+    .badge.bad{border-color:rgba(239,68,68,.45);color:#ffb4b4}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .input,select,textarea{
+      width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);
+      background:rgba(13,27,58,.35);color:var(--text);outline:none;font-size:13px
+    }
+    textarea{min-height:90px;resize:vertical}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .kpi{padding:14px}
+    .kpi .v{font-size:22px;font-weight:900;margin-top:6px}
+    .kpi .l{color:var(--muted);font-size:12px}
+    .table{width:100%;border-collapse:separate;border-spacing:0}
+    .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
+    .table th{color:var(--muted);font-weight:700;position:sticky;top:0;background:var(--panel)}
+    .table-wrap{max-height:62vh;overflow:auto;border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .full{grid-column:1/-1}
+    .bd{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+    .bd.open{display:flex}
+    .md{width:min(980px,100%);border:1px solid var(--line);background:var(--panel);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.45)}
+    .md header{padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .md .body{padding:14px}
+    .md footer{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+    .toast{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:10px;z-index:99}
+    .toast .t{max-width:480px;border:1px solid var(--line);background:var(--panel);padding:10px 12px;border-radius:14px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow)}
+    .toast .t b{display:block;font-size:13px}
+    .toast .t small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
+    .drop{border:1px dashed rgba(159,176,211,.55);border-radius:14px;padding:18px;background:rgba(13,27,58,.35)}
+    .drop.drag{border-color:rgba(110,168,255,.7);background:rgba(110,168,255,.08)}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    @media (max-width:1080px){
+      .shell{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .form{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="ttl">
+      <div class="logo"></div>
+      <div style="min-width:0">
+        <p class="h1">PNRR M2C1 I3.4 CISA FCF MANAGER</p>
+        <p class="h2">Build completa • Cloudflare + Supabase</p>
+      </div>
+    </div>
+    <div class="right">
+      <span class="badge" id="conn">—</span>
+      <select id="filieraSel" class="input" style="width:min(500px,44vw)"></select>
+      <button class="btn" id="logout" style="display:none">⎋</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="section">Accesso</div>
+      <nav class="nav" id="nav">
+        <a href="#/login" data-r="login"><span class="dot"></span>Login</a>
+        <div class="section">Struttura</div>
+        <a href="#/dashboard" data-r="dashboard"><span class="dot"></span>Dashboard</a>
+        <a href="#/filiere" data-r="filiere"><span class="dot"></span>Filiere</a>
+        <a href="#/beneficiari" data-r="beneficiari"><span class="dot"></span>Beneficiari</a>
+        <a href="#/conti" data-r="conti"><span class="dot"></span>Conti correnti</a>
+        <a href="#/fornitori" data-r="fornitori"><span class="dot"></span>Fornitori</a>
+        <a href="#/investimenti" data-r="investimenti"><span class="dot"></span>Investimenti</a>
+        <a href="#/varianti" data-r="varianti"><span class="dot"></span>Varianti progetto</a>
+        <div class="section">Finanziario</div>
+        <a href="#/fatture" data-r="fatture"><span class="dot"></span>Fatture</a>
+        <a href="#/bonifici" data-r="bonifici"><span class="dot"></span>Bonifici</a>
+        <div class="section">Documenti</div>
+        <a href="#/documenti" data-r="documenti"><span class="dot"></span>Document Center</a>
+        <a href="#/errori" data-r="errori"><span class="dot"></span>Errori / conformità</a>
+        <div class="section">SAL</div>
+        <a href="#/sal" data-r="sal"><span class="dot"></span>SAL</a>
+        <a href="#/dossier" data-r="dossier"><span class="dot"></span>Dossier SAL</a>
+      </nav>
+      <div style="margin-top:14px;padding:10px;color:var(--muted);font-size:12px;line-height:1.4">
+        Il login usa Supabase. I dati sono condivisi. I documenti vengono caricati nel bucket <b>documents</b>.
+      </div>
+    </aside>
+    <main class="main">
+      <section id="view"></section>
+    </main>
+  </div>
+
+  <div class="bd" id="bd">
+    <div class="md">
+      <header>
+        <h3 id="mt">—</h3>
+        <button class="btn" id="mc">✕</button>
+      </header>
+      <div class="body" id="mb"></div>
+      <footer id="mf"></footer>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const SUPABASE_URL = "https://uvwmixkvcbwojcqivhil.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_JvuIv4Q3X_AvtYAfJIZvJg_usMAsP27";
+  const APP_URL = location.origin;
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  });
+
+  const $=(s,e=document)=>e.querySelector(s);
+  const $$=(s,e=document)=>Array.from(e.querySelectorAll(s));
+  const esc=(s)=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=(v)=>{const x=Number(String(v??'').replace(/\./g,'').replace(',','.'));return Number.isFinite(x)?x:0};
+  const eur=(n)=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n||0));
+  const today=()=>new Date().toISOString().slice(0,10);
+
+  const ACTIVE_FILIERA_KEY='fcf_active_filiera_full';
+  const TAGS=['022','029','047','047bis','010','010bis'];
+  const TABLES={
+    '1A':[
+      {code:'1',label:'Immobili'},
+      {code:'2',label:'Macchinari'},
+      {code:'3',label:'Software & IP'},
+      {code:'4',label:'Spese tecniche'},
+      {code:'5',label:'Animali'}
+    ],
+    '2A':[
+      {code:'1',label:'Immobili'},
+      {code:'2',label:'Macchinari'},
+      {code:'3',label:'Spese tecniche'},
+      {code:'4',label:'Software & IP'}
+    ],
+    '3A':[
+      {code:'A-a',label:'Ricerca/Progett.'},
+      {code:'B-a',label:'Fiere/Eventi'},
+      {code:'B-b',label:'Pubblicità'},
+      {code:'B-c',label:'Divulgazione'},
+      {code:'B-d',label:'Promo PV'}
+    ],
+    '4A':[
+      {code:'1',label:'Categoria 1'},
+      {code:'2',label:'Categoria 2'},
+      {code:'3',label:'Categoria 3'}
+    ],
+    '5A':[
+      {code:'1',label:'Categoria 1'},
+      {code:'2',label:'Categoria 2'},
+      {code:'3',label:'Categoria 3'}
+    ]
+  };
+
+  let session=null;
+  let filiere=[];
+
+  function toast(t,b=false,d=''){
+    const el=document.createElement('div');
+    el.className='t';
+    el.innerHTML=`<div style="width:10px;height:10px;border-radius:99px;margin-top:4px;background:${b?'var(--bad)':'var(--pri2)'}"></div><div><b>${esc(t)}</b>${d?`<small>${esc(d)}</small>`:''}</div>`;
+    $('#toast').appendChild(el);
+    setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(6px)';el.style.transition='.2s';},2400);
+    setTimeout(()=>el.remove(),2800);
+  }
+
+  // modal
+  const bd=$('#bd'), mt=$('#mt'), mb=$('#mb'), mf=$('#mf');
+  const openM=(t,b,f)=>{mt.textContent=t;mb.innerHTML=b;mf.innerHTML=f;bd.classList.add('open')};
+  const closeM=()=>bd.classList.remove('open');
+  $('#mc').onclick=closeM;
+  bd.onclick=(e)=>{if(e.target===bd)closeM()};
+
+  function setConn(txt, ok=true){
+    const c=$('#conn');
+    c.className='badge '+(ok?'good':'bad');
+    c.textContent=txt;
+  }
+
+  async function refreshSession(){
+    const {data}=await sb.auth.getSession();
+    session=data.session;
+    $('#logout').style.display=session?'':'none';
+  }
+
+  async function loadFiliere(){
+    if(!session){filiere=[];return}
+    const {data,error}=await sb.from('filiere').select('*').order('created_at',{ascending:false});
+    if(error){
+      filiere=[];
+      setConn('DB non pronto',false);
+      return;
+    }
+    filiere=data||[];
+    setConn('Online',true);
+  }
+
+  function activeFiliera(){
+    const id=localStorage.getItem(ACTIVE_FILIERA_KEY);
+    if(id && filiere.some(f=>f.id===id)) return id;
+    return filiere[0]?.id || '';
+  }
+
+  function hydrateFiliera(){
+    const sel=$('#filieraSel');
+    if(!session){
+      sel.innerHTML='<option>Login richiesto</option>';
+      sel.disabled=true;
+      return;
+    }
+    if(!filiere.length){
+      sel.innerHTML='<option>Nessuna filiera</option>';
+      sel.disabled=true;
+      return;
+    }
+    sel.disabled=false;
+    sel.innerHTML=filiere.map(f=>`<option value="${f.id}">${esc(f.name)}${f.proponente?` • ${esc(f.proponente)}`:''}</option>`).join('');
+    sel.value=activeFiliera();
+    localStorage.setItem(ACTIVE_FILIERA_KEY, sel.value);
+  }
+
+  $('#filieraSel').onchange=()=>{
+    localStorage.setItem(ACTIVE_FILIERA_KEY,$('#filieraSel').value);
+    toast('Filiera selezionata');
+    render();
+  };
+
+  $('#logout').onclick=async()=>{
+    await sb.auth.signOut();
+    toast('Logout effettuato');
+    location.hash='#/login';
+    render();
+  };
+
+  // generic helpers
+  async function replaceIssue(fid, ownerType, ownerId, type, message){
+    await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type',ownerType).eq('owner_id',ownerId);
+    if(message){
+      await sb.from('issues').insert({filiera_id:fid,owner_type:ownerType,owner_id:ownerId,type,message});
+    }
+  }
+
+  async function runIssueChecksForBeneficiary(b){
+    const missing=[];
+    if(!b.cup) missing.push('CUP');
+    if(!b.pec) missing.push('PEC');
+    if(!b.cf && !b.piva) missing.push('CF/P.IVA');
+    await replaceIssue(b.filiera_id,'BENEFICIARIO',b.id,'BENEFICIARIO',missing.length?`Dati mancanti: ${missing.join(', ')}`:'');
+  }
+
+  async function runIssueChecksForInvoice(i){
+    const missing=[];
+    if(!i.invoice_number) missing.push('Numero');
+    if(!i.invoice_date) missing.push('Data');
+    if(!i.pnrr_text) missing.push('Dicitura PNRR');
+    if(!i.cup) missing.push('CUP');
+    if(!(num(i.net_amount)>0)) missing.push('Imponibile');
+    if(!(num(i.vat_amount)>=0)) missing.push('IVA');
+    if(!i.payment_type) missing.push('Tipologia pagamento');
+    if(!i.beneficiary_id) missing.push('Beneficiario');
+    if(!i.supplier_id) missing.push('Fornitore');
+    if(!i.investment_id) missing.push('Investimento');
+    await replaceIssue(i.filiera_id,'FATTURA',i.id,'FATTURA',missing.length?`Mancano: ${missing.join(', ')}`:'');
+    return missing;
+  }
+
+  async function runIssueChecksForPayment(p){
+    const missing=[];
+    if(!p.payment_date) missing.push('Data');
+    if(!(num(p.amount)>0)) missing.push('Importo');
+    if(!p.bank) missing.push('Banca');
+    if(!p.kind) missing.push('Acconto/Saldo');
+    if(!p.invoice_number) missing.push('N. fattura');
+    if(!p.pnrr_text) missing.push('Dicitura PNRR');
+    if(!p.cup) missing.push('CUP');
+    await replaceIssue(p.filiera_id,'BONIFICO',p.id,'BONIFICO',missing.length?`Mancano: ${missing.join(', ')}`:'');
+    return missing;
+  }
+
+  function routeError(title, msg){
+    return `<div class="card h"><div><h2 class="ct">${esc(title)}</h2><p class="sub">${esc(msg)}</p></div></div>`;
+  }
+
+  // routing
+  const view=$('#view');
+  const routes={
+    login:renderLogin,
+    dashboard:renderDashboard,
+    filiere:renderFiliere,
+    beneficiari:renderBeneficiari,
+    conti:renderConti,
+    fornitori:renderFornitori,
+    investimenti:renderInvestimenti,
+    varianti:renderVarianti,
+    fatture:renderFatture,
+    bonifici:renderBonifici,
+    documenti:renderDocumenti,
+    errori:renderErrori,
+    sal:renderSAL,
+    dossier:renderDossier
+  };
+  const cur=()=>{const r=(location.hash||'#/dashboard').replace('#/',''); return routes[r]?r:'dashboard'};
+  const nav=(r)=>{$$('#nav a[data-r]').forEach(a=>a.classList.toggle('active',a.dataset.r===r))};
+  window.addEventListener('hashchange',render);
+
+  async function render(){
+    await refreshSession();
+    await loadFiliere();
+    hydrateFiliera();
+
+    if(!session){
+      nav('login');
+      if(location.hash !== '#/login') location.hash='#/login';
+      return renderLogin();
+    }
+
+    const r=cur();
+    nav(r);
+    return routes[r]();
+  }
+
+  // LOGIN
+  function renderLogin(){
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Accesso team</h2><p class="sub">Accedi con email e password. In alternativa puoi usare il magic link.</p></div>
+        <span class="badge warn">login</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px">
+        <div class="form">
+          <div class="full">
+            <label style="color:var(--muted);font-size:12px">Email</label>
+            <input id="e" class="input" placeholder="nome@azienda.it">
+          </div>
+          <div class="full">
+            <label style="color:var(--muted);font-size:12px">Password</label>
+            <input id="p" type="password" class="input" placeholder="••••••••">
+          </div>
+          <div class="full row">
+            <button class="btn pri" id="in">Accedi</button>
+            <button class="btn" id="magic">Magic link</button>
+            <button class="btn" id="reset">Reset password</button>
+          </div>
+          <div class="full" id="msg" style="color:var(--muted);font-size:12px"></div>
+        </div>
+      </div>`;
+
+    $('#filieraSel').innerHTML='<option>Login richiesto</option>';
+    $('#filieraSel').disabled=true;
+
+    const msg=(t,b=false)=>$('#msg').innerHTML=b?`<span style="color:var(--bad)">${esc(t)}</span>`:esc(t);
+
+    $('#in').onclick=async()=>{
+      const email=$('#e').value.trim();
+      const password=$('#p').value;
+      if(!email||!password) return msg('Inserisci email e password.',true);
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error){toast('Login fallito',true);return msg(error.message,true)}
+      toast('Login riuscito');
+      location.hash='#/dashboard';
+      render();
+    };
+
+    $('#magic').onclick=async()=>{
+      const email=$('#e').value.trim();
+      if(!email) return msg('Inserisci email.',true);
+      const {error}=await sb.auth.signInWithOtp({
+        email,
+        options:{emailRedirectTo:APP_URL}
+      });
+      if(error){toast('Errore invio link',true);return msg(error.message,true)}
+      toast('Magic link inviato');
+      msg('Controlla la tua email.');
+    };
+
+    $('#reset').onclick=async()=>{
+      const email=$('#e').value.trim();
+      if(!email) return msg('Inserisci email.',true);
+      const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:APP_URL});
+      if(error){toast('Errore reset',true);return msg(error.message,true)}
+      toast('Reset inviato');
+      msg('Controlla la tua email.');
+    };
+  }
+
+  // FILIERE
+  function openFilieraModal(f){
+    const isEdit=!!f;
+    openM(
+      isEdit?'Modifica filiera':'Nuova filiera',
+      `<div class="form">
+        <div class="full">
+          <label style="color:var(--muted);font-size:12px">Nome filiera</label>
+          <input id="fn" class="input" value="${esc(f?.name||'')}">
+        </div>
+        <div class="full">
+          <label style="color:var(--muted);font-size:12px">Proponente</label>
+          <input id="fp" class="input" value="${esc(f?.proponente||'')}">
+        </div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="fd" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="fc">Annulla</button>
+       <button class="btn pri" id="fs">Salva</button>`
+    );
+
+    $('#fc').onclick=closeM;
+    $('#fs').onclick=async()=>{
+      const name=$('#fn').value.trim();
+      const proponente=$('#fp').value.trim();
+      if(!name) return toast('Nome obbligatorio',true);
+
+      if(isEdit){
+        const {error}=await sb.from('filiere').update({name,proponente}).eq('id',f.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        toast('Filiera aggiornata');
+      }else{
+        const {data,error}=await sb.from('filiere').insert({name,proponente,created_by:session.user.id}).select('id').single();
+        if(error) return toast('Errore creazione',true,error.message);
+        localStorage.setItem(ACTIVE_FILIERA_KEY,data.id);
+        toast('Filiera creata');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#fd').onclick=async()=>{
+        if(!confirm('Eliminare questa filiera?')) return;
+        const {error}=await sb.from('filiere').delete().eq('id',f.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        localStorage.removeItem(ACTIVE_FILIERA_KEY);
+        toast('Filiera eliminata');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderFiliere(){
+    await loadFiliere();
+    const fid=activeFiliera();
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Filiere</h2><p class="sub">Gestione filiere condivisa con il team.</p></div>
+        <button class="btn pri" id="newF">＋ Nuova filiera</button>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="ft">
+            <thead><tr><th>Nome</th><th>Proponente</th><th>Azioni</th></tr></thead>
+            <tbody>
+              ${filiere.map(f=>`<tr data-id="${f.id}" style="cursor:pointer">
+                <td><b>${esc(f.name)}</b> ${f.id===fid?'<span class="badge good">attiva</span>':''}</td>
+                <td style="color:var(--muted)">${esc(f.proponente||'')}</td>
+                <td style="text-align:right"><button class="btn" data-use="${f.id}">Usa</button> <button class="btn" data-ed="${f.id}">✏</button></td>
+              </tr>`).join('') || `<tr><td colspan="3" style="color:var(--muted)">Nessuna filiera.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    $('#newF').onclick=()=>openFilieraModal(null);
+    $('#ft').onclick=(e)=>{
+      const use=e.target.closest('button[data-use]');
+      if(use){ localStorage.setItem(ACTIVE_FILIERA_KEY,use.dataset.use); toast('Filiera selezionata'); render(); return; }
+      const ed=e.target.closest('button[data-ed]');
+      if(ed){ openFilieraModal(filiere.find(x=>x.id===ed.dataset.ed)); return; }
+      const tr=e.target.closest('tr[data-id]');
+      if(tr) openFilieraModal(filiere.find(x=>x.id===tr.dataset.id));
+    };
+  }
+
+  // DASHBOARD
+  async function renderDashboard(){
+    const fid=activeFiliera();
+    if(!fid){
+      view.innerHTML=routeError('Dashboard','Crea una filiera per iniziare.');
+      return;
+    }
+
+    const benQ=await sb.from('beneficiaries').select('id').eq('filiera_id',fid);
+    const benIds=(benQ.data||[]).map(x=>x.id);
+    const invQ=benIds.length ? await sb.from('investments').select('*').in('beneficiary_id',benIds) : {data:[]};
+    const forQ=benIds.length ? await sb.from('suppliers').select('id',{count:'exact',head:true}).in('beneficiary_id',benIds) : {count:0};
+    const accQ=await sb.from('bank_accounts').select('id',{count:'exact',head:true}).eq('filiera_id',fid);
+    const fatQ=await sb.from('invoices').select('id',{count:'exact',head:true}).eq('filiera_id',fid);
+    const bonQ=await sb.from('payments').select('id',{count:'exact',head:true}).eq('filiera_id',fid);
+    const docQ=await sb.from('documents').select('id',{count:'exact',head:true}).eq('filiera_id',fid);
+    const issQ=await sb.from('issues').select('*').eq('filiera_id',fid).order('created_at',{ascending:false}).limit(8);
+
+    const inv=invQ.data||[];
+    const totA=inv.reduce((a,x)=>a+num(x.approved_amount),0);
+    const totG=inv.reduce((a,x)=>a+num(x.grant_amount),0);
+    const totL=inv.reduce((a,x)=>a+num(x.loan_amount),0);
+    const totO=inv.reduce((a,x)=>a+num(x.own_funds),0);
+
+    const byTable=['1A','2A','3A','4A','5A'].map(t=>({
+      t,
+      n:inv.filter(x=>x.table_code===t).length,
+      sum:inv.filter(x=>x.table_code===t).reduce((a,x)=>a+num(x.approved_amount),0)
+    }));
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Dashboard</h2><p class="sub">Panoramica completa della filiera attiva.</p></div>
+        <div class="row"><span class="badge">Filiera: ${esc(filiere.find(f=>f.id===fid)?.name||'—')}</span></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="grid">
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Beneficiari</div><div class="v">${benIds.length}</div></div>
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Conti</div><div class="v">${accQ.count||0}</div></div>
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Fornitori</div><div class="v">${forQ.count||0}</div></div>
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Investimenti</div><div class="v">${inv.length}</div></div>
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Fatture</div><div class="v">${fatQ.count||0}</div></div>
+        <div class="card kpi" style="grid-column:span 2"><div class="l">Bonifici</div><div class="v">${bonQ.count||0}</div></div>
+
+        <div class="card kpi" style="grid-column:span 3"><div class="l">Importo approvato</div><div class="v">${eur(totA)}</div></div>
+        <div class="card kpi" style="grid-column:span 3"><div class="l">Contributo</div><div class="v">${eur(totG)}</div></div>
+        <div class="card kpi" style="grid-column:span 3"><div class="l">Finanz. agevolato</div><div class="v">${eur(totL)}</div></div>
+        <div class="card kpi" style="grid-column:span 3"><div class="l">Mezzi propri</div><div class="v">${eur(totO)}</div></div>
+
+        <div class="card" style="grid-column:span 7">
+          <div class="card h" style="border:none;box-shadow:none">
+            <div><h3 class="ct" style="font-size:15px">Distribuzione per tabella</h3><p class="sub">Conteggio investimenti e totale importi approvati.</p></div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Tabella</th><th># investimenti</th><th>Totale</th></tr></thead>
+              <tbody>
+                ${byTable.map(x=>`<tr><td><b>${x.t}</b></td><td>${x.n}</td><td>${eur(x.sum)}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:span 5">
+          <div class="card h" style="border:none;box-shadow:none">
+            <div><h3 class="ct" style="font-size:15px">Errori / non conformità</h3><p class="sub">Ultime segnalazioni.</p></div>
+            <span class="badge ${(issQ.data||[]).length?'bad':'good'}">${(issQ.data||[]).length}</span>
+          </div>
+          <div style="padding:14px">
+            ${(issQ.data||[]).length
+              ? `<ul style="margin:0;padding-left:18px;color:var(--muted)">${issQ.data.map(i=>`<li><b style="color:var(--text)">${esc(i.type)}</b> — ${esc(i.message)}</li>`).join('')}</ul>`
+              : `<div style="color:var(--muted)">Nessuna issue rilevata.</div>`}
+          </div>
+        </div>
+
+        <div class="card kpi" style="grid-column:span 6"><div class="l">Documenti caricati</div><div class="v">${docQ.count||0}</div></div>
+        <div class="card kpi" style="grid-column:span 6"><div class="l">Issue totali</div><div class="v">${(issQ.data||[]).length}</div></div>
+      </div>`;
+  }
+
+  // BENEFICIARI
+  function openBeneficiarioModal(b){
+    const isEdit=!!b;
+    const fid=activeFiliera();
+    if(!fid) return toast('Crea prima una filiera',true);
+
+    const sede=b?.sede_legale||{};
+    const sediOps=Array.isArray(b?.sedi_operative) ? b.sedi_operative : [];
+
+    openM(
+      isEdit?'Modifica beneficiario':'Nuovo beneficiario',
+      `<div class="form">
+        <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
+          <select id="b_dim" class="input">
+            ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
+        <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
+        <div></div>
+
+        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sedi operative</b></div>
+        <div class="full">
+          <label style="color:var(--muted);font-size:12px">JSON array sedi operative</label>
+          <textarea id="b_ops" class="input">${esc(JSON.stringify(sediOps,null,2))}</textarea>
+        </div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="bc">Annulla</button>
+       <button class="btn pri" id="bs">Salva</button>`
+    );
+
+    $('#bc').onclick=closeM;
+    $('#bs').onclick=async()=>{
+      const payload={
+        filiera_id: fid,
+        ragione_sociale: $('#b_rs').value.trim(),
+        cf: $('#b_cf').value.trim(),
+        piva: $('#b_piva').value.trim(),
+        pec: $('#b_pec').value.trim(),
+        cup: $('#b_cup').value.trim(),
+        ateco: $('#b_ateco').value.trim(),
+        telefono: $('#b_tel').value.trim(),
+        email: $('#b_email').value.trim(),
+        referente: $('#b_ref').value.trim(),
+        dimensione: $('#b_dim').value,
+        sede_legale:{
+          via:$('#sl_via').value.trim(),
+          civico:$('#sl_civ').value.trim(),
+          comune:$('#sl_com').value.trim(),
+          provincia:$('#sl_prov').value.trim(),
+          cap:$('#sl_cap').value.trim()
+        },
+        sedi_operative:[]
+      };
+      if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
+      try{
+        payload.sedi_operative = JSON.parse($('#b_ops').value || '[]');
+        if(!Array.isArray(payload.sedi_operative)) throw new Error();
+      }catch{
+        return toast('Sedi operative non valide',true,'Inserisci un JSON array valido');
+      }
+
+      if(isEdit){
+        const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        await runIssueChecksForBeneficiary({...payload,id:b.id});
+        toast('Beneficiario aggiornato');
+      }else{
+        const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
+        if(error) return toast('Errore creazione',true,error.message);
+        await runIssueChecksForBeneficiary({...payload,id:data.id});
+        toast('Beneficiario creato');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#bdel').onclick=async()=>{
+        if(!confirm('Eliminare questo beneficiario?')) return;
+        await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
+        const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Beneficiario eliminato');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderBeneficiari(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Beneficiari','Crea prima una filiera.'); return; }
+
+    const {data,error}=await sb.from('beneficiaries').select('*').eq('filiera_id',fid).order('created_at',{ascending:false});
+    if(error){ view.innerHTML=routeError('Beneficiari',error.message); return; }
+    const rows=data||[];
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Beneficiari</h2><p class="sub">Anagrafiche beneficiari con sede legale e sedi operative.</p></div>
+        <button class="btn pri" id="bnew">＋ Nuovo beneficiario</button>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="bt">
+            <thead><tr><th>Ragione sociale</th><th>CF</th><th>P.IVA</th><th>PEC</th><th>CUP</th><th>Sedi operative</th></tr></thead>
+            <tbody>
+              ${rows.map(b=>`<tr data-id="${b.id}" style="cursor:pointer">
+                <td><b>${esc(b.ragione_sociale)}</b></td>
+                <td>${esc(b.cf||'')}</td>
+                <td>${esc(b.piva||'')}</td>
+                <td>${esc(b.pec||'')}</td>
+                <td><span class="badge">${esc(b.cup||'')}</span></td>
+                <td>${Array.isArray(b.sedi_operative)?b.sedi_operative.length:0}</td>
+              </tr>`).join('') || `<tr><td colspan="6" style="color:var(--muted)">Nessun beneficiario.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    $('#bnew').onclick=()=>openBeneficiarioModal(null);
+    $('#bt').onclick=(e)=>{
+      const tr=e.target.closest('tr[data-id]');
+      if(!tr) return;
+      openBeneficiarioModal(rows.find(x=>x.id===tr.dataset.id));
+    };
+  }
+
+  // CONTI CORRENTI
+  function openContoModal(c, beneficiaries){
+    const isEdit=!!c;
+    const fid=activeFiliera();
+    const bid=c?.beneficiary_id || beneficiaries[0]?.id;
+
+    openM(
+      isEdit?'Modifica conto corrente':'Nuovo conto corrente',
+      `<div class="form">
+        <div class="full">
+          <label style="color:var(--muted);font-size:12px">Beneficiario</label>
+          <select id="a_ben" class="input">
+            ${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Intestatario</label><input id="a_holder" class="input" value="${esc(c?.holder||'')}"></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">IBAN</label><input id="a_iban" class="input" value="${esc(c?.iban||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Banca</label><input id="a_bank" class="input" value="${esc(c?.bank||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">BIC</label><input id="a_bic" class="input" value="${esc(c?.bic||'')}"></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Filiale</label><input id="a_branch" class="input" value="${esc(c?.branch||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Dedicato</label>
+          <select id="a_ded" class="input"><option value="true" ${(c?.dedicated??true)?'selected':''}>Sì</option><option value="false" ${!(c?.dedicated??true)?'selected':''}>No</option></select>
+        </div>
+        <div><label style="color:var(--muted);font-size:12px">Com. ISMEA</label>
+          <select id="a_ism" class="input"><option value="true" ${c?.communicated_to_ismea?'selected':''}>Sì</option><option value="false" ${!c?.communicated_to_ismea?'selected':''}>No</option></select>
+        </div>
+        <div><label style="color:var(--muted);font-size:12px">Data comunicazione</label><input id="a_date" type="date" class="input" value="${esc(c?.communicated_at||'')}"></div>
+        <div></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Note</label><textarea id="a_note" class="input">${esc(c?.note||'')}</textarea></div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="adel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="ac">Annulla</button>
+       <button class="btn pri" id="as">Salva</button>`
+    );
+
+    $('#ac').onclick=closeM;
+    $('#as').onclick=async()=>{
+      const payload={
+        filiera_id: fid,
+        beneficiary_id: $('#a_ben').value,
+        holder: $('#a_holder').value.trim(),
+        iban: $('#a_iban').value.trim(),
+        bank: $('#a_bank').value.trim(),
+        bic: $('#a_bic').value.trim(),
+        branch: $('#a_branch').value.trim(),
+        dedicated: $('#a_ded').value==='true',
+        communicated_to_ismea: $('#a_ism').value==='true',
+        communicated_at: $('#a_date').value || null,
+        note: $('#a_note').value.trim()
+      };
+      if(!payload.iban) return toast('IBAN obbligatorio',true);
+
+      if(isEdit){
+        const {error}=await sb.from('bank_accounts').update(payload).eq('id',c.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        toast('Conto aggiornato');
+      }else{
+        const {error}=await sb.from('bank_accounts').insert(payload);
+        if(error) return toast('Errore creazione',true,error.message);
+        toast('Conto creato');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#adel').onclick=async()=>{
+        if(!confirm('Eliminare questo conto?')) return;
+        const {error}=await sb.from('bank_accounts').delete().eq('id',c.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Conto eliminato');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderConti(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Conti correnti','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Conti correnti','Crea prima almeno un beneficiario.'); return; }
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Conti correnti</h2><p class="sub">Gestione dei conti correnti dedicati per beneficiario.</p></div>
+        <div class="row">
+          <select id="selBen" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <button class="btn pri" id="anew">＋ Nuovo conto</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="at">
+            <thead><tr><th>IBAN</th><th>Banca</th><th>BIC</th><th>Filiale</th><th>Dedicato</th><th>ISMEA</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    async function paint(){
+      const bid=$('#selBen').value;
+      const {data}=await sb.from('bank_accounts').select('*').eq('beneficiary_id',bid).order('created_at',{ascending:false});
+      const rows=data||[];
+      $('#at tbody').innerHTML = rows.map(a=>`<tr data-id="${a.id}" style="cursor:pointer">
+        <td><b>${esc(a.iban)}</b></td>
+        <td>${esc(a.bank||'')}</td>
+        <td>${esc(a.bic||'')}</td>
+        <td>${esc(a.branch||'')}</td>
+        <td>${a.dedicated?'<span class="badge good">Sì</span>':'<span class="badge">No</span>'}</td>
+        <td>${a.communicated_to_ismea?'<span class="badge good">Sì</span>':'<span class="badge">No</span>'}</td>
+      </tr>`).join('') || `<tr><td colspan="6" style="color:var(--muted)">Nessun conto.</td></tr>`;
+
+      $('#at').onclick=(e)=>{
+        const tr=e.target.closest('tr[data-id]');
+        if(!tr) return;
+        openContoModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries);
+      };
+    }
+
+    $('#selBen').onchange=paint;
+    $('#anew').onclick=()=>openContoModal(null, beneficiaries);
+    paint();
+  }
+
+  // FORNITORI
+  function openFornitoreModal(s, beneficiaries){
+    const isEdit=!!s;
+    const bid=s?.beneficiary_id || beneficiaries[0]?.id;
+
+    openM(
+      isEdit?'Modifica fornitore':'Nuovo fornitore',
+      `<div class="form">
+        <div class="full">
+          <label style="color:var(--muted);font-size:12px">Beneficiario</label>
+          <select id="s_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}</option>`).join('')}</select>
+        </div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale fornitore</label><input id="s_name" class="input" value="${esc(s?.name||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="s_piva" class="input" value="${esc(s?.piva||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CF</label><input id="s_cf" class="input" value="${esc(s?.cf||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="s_pec" class="input" value="${esc(s?.pec||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Email</label><input id="s_email" class="input" value="${esc(s?.email||'')}"></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Indirizzo</label><input id="s_addr" class="input" value="${esc(s?.address||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="s_tel" class="input" value="${esc(s?.phone||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Note</label><input id="s_note" class="input" value="${esc(s?.note||'')}"></div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="sdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="sc">Annulla</button>
+       <button class="btn pri" id="ss">Salva</button>`
+    );
+
+    $('#sc').onclick=closeM;
+    $('#ss').onclick=async()=>{
+      const payload={
+        beneficiary_id: $('#s_ben').value,
+        name: $('#s_name').value.trim(),
+        piva: $('#s_piva').value.trim(),
+        cf: $('#s_cf').value.trim(),
+        pec: $('#s_pec').value.trim(),
+        email: $('#s_email').value.trim(),
+        address: $('#s_addr').value.trim(),
+        phone: $('#s_tel').value.trim(),
+        note: $('#s_note').value.trim()
+      };
+      if(!payload.name) return toast('Ragione sociale obbligatoria',true);
+
+      if(isEdit){
+        const {error}=await sb.from('suppliers').update(payload).eq('id',s.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        toast('Fornitore aggiornato');
+      }else{
+        const {error}=await sb.from('suppliers').insert(payload);
+        if(error) return toast('Errore creazione',true,error.message);
+        toast('Fornitore creato');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#sdel').onclick=async()=>{
+        if(!confirm('Eliminare questo fornitore?')) return;
+        const {error}=await sb.from('suppliers').delete().eq('id',s.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Fornitore eliminato');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderFornitori(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Fornitori','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Fornitori','Crea prima almeno un beneficiario.'); return; }
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Fornitori</h2><p class="sub">Fornitori per beneficiario.</p></div>
+        <div class="row">
+          <select id="selSupBen" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <button class="btn pri" id="snew">＋ Nuovo fornitore</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="st">
+            <thead><tr><th>Ragione sociale</th><th>P.IVA</th><th>PEC</th><th>Email</th><th>Telefono</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    async function paint(){
+      const bid=$('#selSupBen').value;
+      const {data}=await sb.from('suppliers').select('*').eq('beneficiary_id',bid).order('created_at',{ascending:false});
+      const rows=data||[];
+      $('#st tbody').innerHTML = rows.map(s=>`<tr data-id="${s.id}" style="cursor:pointer">
+        <td><b>${esc(s.name)}</b></td>
+        <td>${esc(s.piva||'')}</td>
+        <td>${esc(s.pec||'')}</td>
+        <td>${esc(s.email||'')}</td>
+        <td>${esc(s.phone||'')}</td>
+      </tr>`).join('') || `<tr><td colspan="5" style="color:var(--muted)">Nessun fornitore.</td></tr>`;
+
+      $('#st').onclick=(e)=>{
+        const tr=e.target.closest('tr[data-id]');
+        if(!tr) return;
+        openFornitoreModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries);
+      };
+    }
+
+    $('#selSupBen').onchange=paint;
+    $('#snew').onclick=()=>openFornitoreModal(null, beneficiaries);
+    paint();
+  }
+
+  // INVESTIMENTI
+  function fillCategoryOptions(tab, selected){
+    const cats=TABLES[tab]||[];
+    return cats.map(c=>`<option value="${c.code}" ${c.code===selected?'selected':''}>${esc(c.code)} • ${esc(c.label)}</option>`).join('');
+  }
+
+  function openInvestimentoModal(i, beneficiaries){
+    const isEdit=!!i;
+    const bid=i?.beneficiary_id || beneficiaries[0]?.id;
+    const tab=i?.table_code || '1A';
+    const cat=i?.category_code || (TABLES[tab][0]?.code||'1');
+    const loc=i?.location || {};
+
+    openM(
+      isEdit?'Modifica investimento':'Nuovo investimento',
+      `<div class="form">
+        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="i_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
+        <div><label style="color:var(--muted);font-size:12px">Tabella</label><select id="i_tab" class="input">${['1A','2A','3A','4A','5A'].map(t=>`<option ${t===tab?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><label style="color:var(--muted);font-size:12px">Categoria</label><select id="i_cat" class="input">${fillCategoryOptions(tab,cat)}</select></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Titolo</label><input id="i_title" class="input" value="${esc(i?.title||'')}"></div>
+
+        <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc(i?.approved_amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc(i?.grant_amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc(i?.loan_amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc(i?.own_funds??'')}" disabled></div>
+
+        <div><label style="color:var(--muted);font-size:12px">TAG</label><select id="i_tag" class="input">${TAGS.map(t=>`<option ${t===(i?.tag||TAGS[0])?'selected':''}>${t}</option>`).join('')}</select></div>
+        <div><label style="color:var(--muted);font-size:12px">Stato</label><select id="i_state" class="input">${['Approvato','Oggetto di variante','Rendicontato parziale','Rendicontato totale'].map(s=>`<option ${s===(i?.state||'Approvato')?'selected':''}>${s}</option>`).join('')}</select></div>
+
+        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Ubicazione investimento</b></div>
+        <div><label style="color:var(--muted);font-size:12px">Via</label><input id="i_via" class="input" value="${esc(loc.via||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="i_civ" class="input" value="${esc(loc.civico||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="i_com" class="input" value="${esc(loc.comune||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="i_prov" class="input" value="${esc(loc.provincia||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Foglio</label><input id="i_fog" class="input" value="${esc(loc.foglio||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Particella</label><input id="i_par" class="input" value="${esc(loc.particella||'')}"></div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="idel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="ic">Annulla</button>
+       <button class="btn pri" id="is">Salva</button>`
+    );
+
+    function computeOwn(){
+      const own=Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value));
+      $('#i_own').value=String(own.toFixed(2));
+    }
+    $('#i_amt').oninput=computeOwn;
+    $('#i_grant').oninput=computeOwn;
+    $('#i_loan').oninput=computeOwn;
+    $('#i_tab').onchange=()=>{
+      const t=$('#i_tab').value;
+      $('#i_cat').innerHTML=fillCategoryOptions(t,'');
+    };
+    computeOwn();
+
+    $('#ic').onclick=closeM;
+    $('#is').onclick=async()=>{
+      const payload={
+        beneficiary_id: $('#i_ben').value,
+        table_code: $('#i_tab').value,
+        category_code: $('#i_cat').value,
+        title: $('#i_title').value.trim(),
+        approved_amount: num($('#i_amt').value),
+        grant_amount: num($('#i_grant').value),
+        loan_amount: num($('#i_loan').value),
+        own_funds: Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value)),
+        tag: $('#i_tag').value,
+        state: $('#i_state').value,
+        location:{
+          via:$('#i_via').value.trim(),
+          civico:$('#i_civ').value.trim(),
+          comune:$('#i_com').value.trim(),
+          provincia:$('#i_prov').value.trim(),
+          foglio:$('#i_fog').value.trim(),
+          particella:$('#i_par').value.trim()
+        }
+      };
+      if(!payload.title) return toast('Titolo obbligatorio',true);
+      if(!(payload.approved_amount>0)) return toast('Importo approvato non valido',true);
+
+      if(isEdit){
+        const {error}=await sb.from('investments').update(payload).eq('id',i.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        toast('Investimento aggiornato');
+      }else{
+        const {error}=await sb.from('investments').insert(payload);
+        if(error) return toast('Errore creazione',true,error.message);
+        toast('Investimento creato');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#idel').onclick=async()=>{
+        if(!confirm('Eliminare questo investimento?')) return;
+        const {error}=await sb.from('investments').delete().eq('id',i.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Investimento eliminato');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderInvestimenti(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Investimenti','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Investimenti','Crea prima almeno un beneficiario.'); return; }
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Investimenti</h2><p class="sub">Gestione investimenti per beneficiario, tabella e categoria.</p></div>
+        <div class="row">
+          <select id="selInvBen" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <button class="btn pri" id="inew">＋ Nuovo investimento</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div id="invArea"></div>`;
+
+    async function paint(){
+      const bid=$('#selInvBen').value;
+      const {data}=await sb.from('investments').select('*').eq('beneficiary_id',bid).order('created_at',{ascending:false});
+      const rows=data||[];
+
+      const total=rows.reduce((a,x)=>a+num(x.approved_amount),0);
+      const grant=rows.reduce((a,x)=>a+num(x.grant_amount),0);
+      const loan=rows.reduce((a,x)=>a+num(x.loan_amount),0);
+      const own=rows.reduce((a,x)=>a+num(x.own_funds),0);
+
+      function summarize(table){
+        const cats=TABLES[table]||[];
+        return cats.map(c=>{
+          const items=rows.filter(x=>x.table_code===table && x.category_code===c.code);
+          return {
+            code:c.code,label:c.label,n:items.length,
+            a:items.reduce((s,x)=>s+num(x.approved_amount),0),
+            g:items.reduce((s,x)=>s+num(x.grant_amount),0),
+            l:items.reduce((s,x)=>s+num(x.loan_amount),0),
+            o:items.reduce((s,x)=>s+num(x.own_funds),0)
+          };
+        });
+      }
+
+      $('#invArea').innerHTML=`
+        <div class="grid">
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Importo approvato</div><div class="v">${eur(total)}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Contributo</div><div class="v">${eur(grant)}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Finanz. agevolato</div><div class="v">${eur(loan)}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Mezzi propri</div><div class="v">${eur(own)}</div></div>
+        </div>
+        <div style="height:12px"></div>
+        ${['1A','2A','3A','4A','5A'].map(t=>{
+          const items=rows.filter(x=>x.table_code===t);
+          const sums=summarize(t);
+          return `
+            <div class="card" style="margin-bottom:12px">
+              <div class="card h" style="border:none;box-shadow:none">
+                <div><h3 class="ct" style="font-size:15px">Tabella ${t}</h3><p class="sub">Riepilogo per categoria + elenco investimenti.</p></div>
+                <span class="badge">${items.length} investimenti</span>
+              </div>
+              <div style="padding:14px">
+                <div class="card" style="padding:12px;box-shadow:none">
+                  <b>Riepilogo categorie</b>
+                  <div class="table-wrap" style="margin-top:10px;max-height:240px">
+                    <table class="table">
+                      <thead><tr><th>Categoria</th><th>#</th><th>Importo</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th></tr></thead>
+                      <tbody>
+                        ${sums.map(s=>`<tr><td><span class="badge">${esc(s.code)}</span> ${esc(s.label)}</td><td>${s.n}</td><td>${eur(s.a)}</td><td>${eur(s.g)}</td><td>${eur(s.l)}</td><td>${eur(s.o)}</td></tr>`).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table invT">
+                  <thead><tr><th>Titolo</th><th>Categoria</th><th>Importo</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th><th>TAG</th><th>Stato</th></tr></thead>
+                  <tbody>
+                    ${items.map(x=>{
+                      const cat=(TABLES[t]||[]).find(c=>c.code===x.category_code);
+                      return `<tr data-id="${x.id}" style="cursor:pointer">
+                        <td><b>${esc(x.title)}</b><div style="color:var(--muted);font-size:12px;margin-top:4px">${esc(x.location?.comune||'')}${x.location?.provincia?` (${esc(x.location.provincia)})`:''}</div></td>
+                        <td>${esc(x.category_code)} • ${esc(cat?.label||'')}</td>
+                        <td>${eur(x.approved_amount)}</td>
+                        <td>${eur(x.grant_amount)}</td>
+                        <td>${eur(x.loan_amount)}</td>
+                        <td>${eur(x.own_funds)}</td>
+                        <td><span class="badge">${esc(x.tag||'')}</span></td>
+                        <td>${esc(x.state||'')}</td>
+                      </tr>`;
+                    }).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento in questa tabella.</td></tr>`}
+                  </tbody>
+                </table>
+              </div>
+            </div>`;
+        }).join('')}
+      `;
+
+      $$('.invT tr[data-id]').forEach(tr=>{
+        tr.onclick=()=>openInvestimentoModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries);
+      });
+    }
+
+    $('#selInvBen').onchange=paint;
+    $('#inew').onclick=()=>openInvestimentoModal(null, beneficiaries);
+    paint();
+  }
+
+  // FATTURE
+  function openFatturaModal(invRow, beneficiaries, benMap){
+    const isEdit=!!invRow;
+    const fid=activeFiliera();
+    const bid=invRow?.beneficiary_id || beneficiaries[0]?.id;
+
+    openM(
+      isEdit?'Modifica fattura':'Nuova fattura',
+      `<div class="form">
+        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="iv_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
+        <div><label style="color:var(--muted);font-size:12px">Fornitore</label><select id="iv_sup" class="input"></select></div>
+        <div><label style="color:var(--muted);font-size:12px">Investimento</label><select id="iv_inv" class="input"></select></div>
+
+        <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="iv_num" class="input" value="${esc(invRow?.invoice_number||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Data fattura</label><input id="iv_date" type="date" class="input" value="${esc(invRow?.invoice_date||today())}"></div>
+
+        <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="iv_pnrr" class="input" value="${esc(invRow?.pnrr_text||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="iv_cup" class="input" value="${esc(invRow?.cup||benMap[bid]?.cup||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Tipologia pagamento</label><select id="iv_pay" class="input">${['Bonifico','RIBA','Assegno non trasferibile','Carta','F24','Altro'].map(x=>`<option ${x===(invRow?.payment_type||'Bonifico')?'selected':''}>${x}</option>`).join('')}</select></div>
+
+        <div><label style="color:var(--muted);font-size:12px">Imponibile</label><input id="iv_net" class="input" value="${esc(invRow?.net_amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="iv_vat" class="input" value="${esc(invRow?.vat_amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Ritenuta</label><input id="iv_with" class="input" value="${esc(invRow?.withholding??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Totale</label><input id="iv_tot" class="input" disabled></div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="ivdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="ivc">Annulla</button>
+       <button class="btn pri" id="ivs">Salva</button>`
+    );
+
+    async function fillRelations(){
+      const bid=$('#iv_ben').value;
+      const sQ=await sb.from('suppliers').select('id,name').eq('beneficiary_id',bid).order('name');
+      const iQ=await sb.from('investments').select('id,table_code,category_code,title').eq('beneficiary_id',bid).order('created_at',{ascending:false});
+      const suppliers=sQ.data||[];
+      const investments=iQ.data||[];
+      $('#iv_sup').innerHTML=suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">Nessun fornitore</option>';
+      $('#iv_inv').innerHTML=investments.map(i=>`<option value="${i.id}">${esc(i.table_code)}-${esc(i.category_code)} • ${esc(i.title)}</option>`).join('') || '<option value="">Nessun investimento</option>';
+      if(invRow?.supplier_id) $('#iv_sup').value=invRow.supplier_id;
+      if(invRow?.investment_id) $('#iv_inv').value=invRow.investment_id;
+      $('#iv_cup').value=invRow?.cup || benMap[bid]?.cup || '';
+    }
+
+    function calcTotal(){
+      $('#iv_tot').value=String((num($('#iv_net').value)+num($('#iv_vat').value)).toFixed(2));
+    }
+
+    $('#iv_ben').onchange=fillRelations;
+    $('#iv_net').oninput=calcTotal;
+    $('#iv_vat').oninput=calcTotal;
+    fillRelations();
+    calcTotal();
+
+    $('#ivc').onclick=closeM;
+    $('#ivs').onclick=async()=>{
+      const payload={
+        filiera_id: fid,
+        beneficiary_id: $('#iv_ben').value,
+        supplier_id: $('#iv_sup').value || null,
+        investment_id: $('#iv_inv').value || null,
+        invoice_number: $('#iv_num').value.trim(),
+        invoice_date: $('#iv_date').value,
+        pnrr_text: $('#iv_pnrr').value.trim(),
+        cup: $('#iv_cup').value.trim(),
+        net_amount: num($('#iv_net').value),
+        vat_amount: num($('#iv_vat').value),
+        withholding: num($('#iv_with').value),
+        payment_type: $('#iv_pay').value
+      };
+
+      if(isEdit){
+        const {error}=await sb.from('invoices').update(payload).eq('id',invRow.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        const missing=await runIssueChecksForInvoice({...payload,id:invRow.id});
+        toast(missing.length?'Fattura salvata con errori':'Fattura aggiornata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+      }else{
+        const {data,error}=await sb.from('invoices').insert(payload).select('id').single();
+        if(error) return toast('Errore creazione',true,error.message);
+        const missing=await runIssueChecksForInvoice({...payload,id:data.id});
+        toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#ivdel').onclick=async()=>{
+        if(!confirm('Eliminare questa fattura?')) return;
+        await replaceIssue(fid,'FATTURA',invRow.id,'FATTURA','');
+        const {error}=await sb.from('invoices').delete().eq('id',invRow.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Fattura eliminata');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderFatture(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Fatture','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid);
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Fatture','Crea prima almeno un beneficiario.'); return; }
+    const benMap={}; beneficiaries.forEach(b=>benMap[b.id]=b);
+
+    const invQ=await sb.from('invoices').select('*').eq('filiera_id',fid).order('created_at',{ascending:false});
+    const rows=invQ.data||[];
+    const issQ=await sb.from('issues').select('owner_id').eq('filiera_id',fid).eq('owner_type','FATTURA');
+    const issueSet=new Set((issQ.data||[]).map(x=>x.owner_id));
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Fatture</h2><p class="sub">Gestione fatture con controlli di conformità sui campi obbligatori.</p></div>
+        <div class="row">
+          <span class="badge ${issueSet.size?'bad':'good'}">${rows.length} fatture</span>
+          <button class="btn pri" id="ivnew">＋ Nuova fattura</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="ivt">
+            <thead><tr><th>Numero</th><th>Data</th><th>Beneficiario</th><th>Imponibile</th><th>IVA</th><th>Totale</th><th>CUP</th><th>PNRR</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
+                <td><b>${esc(r.invoice_number||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
+                <td>${esc(r.invoice_date||'')}</td>
+                <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
+                <td>${eur(r.net_amount)}</td>
+                <td>${eur(r.vat_amount)}</td>
+                <td>${eur(num(r.net_amount)+num(r.vat_amount))}</td>
+                <td><span class="badge">${esc(r.cup||'')}</span></td>
+                <td>${r.pnrr_text?'OK':'—'}</td>
+              </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessuna fattura.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    $('#ivnew').onclick=()=>openFatturaModal(null, beneficiaries, benMap);
+    $('#ivt').onclick=(e)=>{
+      const tr=e.target.closest('tr[data-id]');
+      if(!tr) return;
+      openFatturaModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
+    };
+  }
+
+  // BONIFICI
+  function openBonificoModal(pay, beneficiaries, benMap){
+    const isEdit=!!pay;
+    const fid=activeFiliera();
+    const bid=pay?.beneficiary_id || beneficiaries[0]?.id;
+
+    openM(
+      isEdit?'Modifica bonifico':'Nuovo bonifico',
+      `<div class="form">
+        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="p_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Fattura</label><select id="p_invSel" class="input"></select></div>
+        <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="p_invNum" class="input" value="${esc(pay?.invoice_number||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Data bonifico</label><input id="p_date" type="date" class="input" value="${esc(pay?.payment_date||today())}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Importo</label><input id="p_amt" class="input" value="${esc(pay?.amount??'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Banca</label><input id="p_bank" class="input" value="${esc(pay?.bank||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Acconto/Saldo</label><select id="p_kind" class="input">${['Acconto','Saldo'].map(x=>`<option ${x===(pay?.kind||'Saldo')?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="p_cup" class="input" value="${esc(pay?.cup||benMap[bid]?.cup||'')}"></div>
+        <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="p_pnrr" class="input" value="${esc(pay?.pnrr_text||'')}"></div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="pdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="pc">Annulla</button>
+       <button class="btn pri" id="ps">Salva</button>`
+    );
+
+    async function fillInvoices(){
+      const bid=$('#p_ben').value;
+      const invRows=(await sb.from('invoices').select('id,invoice_number,invoice_date,net_amount,vat_amount,cup').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false})).data||[];
+      $('#p_invSel').innerHTML=invRows.map(i=>`<option value="${i.id}">${esc(i.invoice_number)} • ${esc(i.invoice_date)} • ${eur(num(i.net_amount)+num(i.vat_amount))}</option>`).join('') || '<option value="">Nessuna fattura</option>';
+      if(pay?.invoice_id) $('#p_invSel').value=pay.invoice_id;
+      const chosen=invRows.find(x=>x.id===$('#p_invSel').value);
+      if(chosen){
+        $('#p_invNum').value=chosen.invoice_number;
+        $('#p_cup').value=chosen.cup || benMap[bid]?.cup || '';
+      }else{
+        $('#p_cup').value=benMap[bid]?.cup || '';
+      }
+    }
+
+    $('#p_ben').onchange=fillInvoices;
+    $('#p_invSel').onchange=fillInvoices;
+    fillInvoices();
+
+    $('#pc').onclick=closeM;
+    $('#ps').onclick=async()=>{
+      const payload={
+        filiera_id: fid,
+        beneficiary_id: $('#p_ben').value,
+        invoice_id: $('#p_invSel').value || null,
+        invoice_number: $('#p_invNum').value.trim(),
+        payment_date: $('#p_date').value,
+        amount: num($('#p_amt').value),
+        bank: $('#p_bank').value.trim(),
+        kind: $('#p_kind').value,
+        pnrr_text: $('#p_pnrr').value.trim(),
+        cup: $('#p_cup').value.trim()
+      };
+
+      if(isEdit){
+        const {error}=await sb.from('payments').update(payload).eq('id',pay.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        const missing=await runIssueChecksForPayment({...payload,id:pay.id});
+        toast(missing.length?'Bonifico salvato con errori':'Bonifico aggiornato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+      }else{
+        const {data,error}=await sb.from('payments').insert(payload).select('id').single();
+        if(error) return toast('Errore creazione',true,error.message);
+        const missing=await runIssueChecksForPayment({...payload,id:data.id});
+        toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+      }
+      closeM();
+      render();
+    };
+
+    if(isEdit){
+      $('#pdel').onclick=async()=>{
+        if(!confirm('Eliminare questo bonifico?')) return;
+        await replaceIssue(fid,'BONIFICO',pay.id,'BONIFICO','');
+        const {error}=await sb.from('payments').delete().eq('id',pay.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Bonifico eliminato');
+        closeM();
+        render();
+      };
+    }
+  }
+
+  async function renderBonifici(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Bonifici','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid);
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Bonifici','Crea prima almeno un beneficiario.'); return; }
+    const benMap={}; beneficiaries.forEach(b=>benMap[b.id]=b);
+
+    const payQ=await sb.from('payments').select('*').eq('filiera_id',fid).order('created_at',{ascending:false});
+    const rows=payQ.data||[];
+    const issQ=await sb.from('issues').select('owner_id').eq('filiera_id',fid).eq('owner_type','BONIFICO');
+    const issueSet=new Set((issQ.data||[]).map(x=>x.owner_id));
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Bonifici</h2><p class="sub">Gestione bonifici con controlli sui campi obbligatori.</p></div>
+        <div class="row">
+          <span class="badge ${issueSet.size?'bad':'good'}">${rows.length} bonifici</span>
+          <button class="btn pri" id="pnew">＋ Nuovo bonifico</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="pt">
+            <thead><tr><th>Data</th><th>Beneficiario</th><th>N. fattura</th><th>Importo</th><th>Banca</th><th>Tipo</th><th>CUP</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
+                <td><b>${esc(r.payment_date||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
+                <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
+                <td>${esc(r.invoice_number||'')}</td>
+                <td>${eur(r.amount)}</td>
+                <td>${esc(r.bank||'')}</td>
+                <td>${esc(r.kind||'')}</td>
+                <td><span class="badge">${esc(r.cup||'')}</span></td>
+              </tr>`).join('') || `<tr><td colspan="7" style="color:var(--muted)">Nessun bonifico.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    $('#pnew').onclick=()=>openBonificoModal(null, beneficiaries, benMap);
+    $('#pt').onclick=(e)=>{
+      const tr=e.target.closest('tr[data-id]');
+      if(!tr) return;
+      openBonificoModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
+    };
+  }
+
+  // DOCUMENTI
+  async function renderDocumenti(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Document Center','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Document Center','Crea prima almeno un beneficiario.'); return; }
+    const benMap={}; beneficiaries.forEach(b=>benMap[b.id]=b);
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Document Center</h2><p class="sub">Upload su Supabase Storage + classificazione metadati.</p></div>
+        <div class="row">
+          <select id="d_ben_sel" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <label class="btn pri" for="up">＋ Seleziona file</label>
+          <input id="up" type="file" multiple style="display:none">
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px">
+        <div id="drop" class="drop">
+          Trascina qui i documenti. Verranno caricati nel bucket <b>documents</b>.
+          <div style="margin-top:8px;color:var(--muted)">Puoi poi classificarli per tipo, tabella, categoria, CUP e dicitura PNRR.</div>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table" id="dt">
+            <thead><tr><th>File</th><th>Beneficiario</th><th>Tipo</th><th>Tabella</th><th>Categoria</th><th>CUP</th><th>PNRR</th><th>Azioni</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    async function loadRows(){
+      const bid=$('#d_ben_sel').value;
+      const {data}=await sb.from('documents').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false});
+      const rows=data||[];
+      $('#dt tbody').innerHTML=rows.map(d=>`<tr data-id="${d.id}" style="cursor:pointer">
+        <td><b>${esc(d.filename)}</b><div style="color:var(--muted);font-size:12px;margin-top:4px">${new Date(d.created_at).toLocaleString('it-IT')}</div></td>
+        <td>${esc(benMap[d.beneficiary_id]?.ragione_sociale||'')}</td>
+        <td><span class="badge">${esc(d.doc_type||'—')}</span></td>
+        <td>${esc(d.table_code||'—')}</td>
+        <td>${esc(d.category_code||'—')}</td>
+        <td><span class="badge">${esc(d.cup||'')}</span></td>
+        <td>${d.pnrr_ok?'OK':'—'}</td>
+        <td style="text-align:right"><button class="btn danger" data-del="${d.id}" type="button">🗑</button></td>
+      </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun documento.</td></tr>`;
+
+      $('#dt').onclick=async(e)=>{
+        const del=e.target.closest('button[data-del]');
+        if(del){
+          const id=del.dataset.del;
+          if(!confirm('Eliminare questo documento?')) return;
+          const {data:doc}=await sb.from('documents').select('*').eq('id',id).single();
+          if(doc?.storage_path) await sb.storage.from('documents').remove([doc.storage_path]);
+          await sb.from('documents').delete().eq('id',id);
+          toast('Documento eliminato');
+          loadRows();
+          return;
+        }
+
+        const tr=e.target.closest('tr[data-id]');
+        if(!tr) return;
+        const d=rows.find(x=>x.id===tr.dataset.id);
+        if(!d) return;
+
+        openM(
+          'Classifica documento',
+          `<div class="form">
+            <div class="full"><label style="color:var(--muted);font-size:12px">File</label><input class="input" disabled value="${esc(d.filename)}"></div>
+            <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="dc_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===d.beneficiary_id?'selected':''}>${esc(b.ragione_sociale)}</option>`).join('')}</select></div>
+            <div><label style="color:var(--muted);font-size:12px">Tipo documento</label><select id="dc_type" class="input">${['FATTURA','BONIFICO','CONTRATTO','PREVENTIVO','REL_TECNICA','LIBERATORIA','DSAN_MEZZI_PROPRI','ALTRO'].map(x=>`<option ${x===d.doc_type?'selected':''}>${x}</option>`).join('')}</select></div>
+            <div><label style="color:var(--muted);font-size:12px">Tabella</label><select id="dc_tab" class="input">${['','1A','2A','3A','4A','5A'].map(x=>`<option value="${x}" ${x===d.table_code?'selected':''}>${x||'—'}</option>`).join('')}</select></div>
+            <div><label style="color:var(--muted);font-size:12px">Categoria</label><select id="dc_cat" class="input"></select></div>
+            <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="dc_cup" class="input" value="${esc(d.cup||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">PNRR presente?</label><select id="dc_pnrr" class="input"><option value="false" ${!d.pnrr_ok?'selected':''}>No</option><option value="true" ${d.pnrr_ok?'selected':''}>Sì</option></select></div>
+            <div class="full"><label style="color:var(--muted);font-size:12px">Note</label><textarea id="dc_note" class="input">${esc(d.note||'')}</textarea></div>
+          </div>`,
+          `<button class="btn" id="dcc">Annulla</button><button class="btn pri" id="dcs">Salva</button>`
+        );
+
+        function fillCats(tab, selected){
+          const cats=TABLES[tab]||[];
+          $('#dc_cat').innerHTML=[''].concat(cats.map(c=>c.code)).map(code=>{
+            if(!code) return `<option value="">—</option>`;
+            const c=cats.find(x=>x.code===code);
+            return `<option value="${c.code}" ${c.code===selected?'selected':''}>${esc(c.code)} • ${esc(c.label)}</option>`;
+          }).join('');
+        }
+        fillCats(d.table_code,d.category_code);
+        $('#dc_tab').onchange=()=>fillCats($('#dc_tab').value,'');
+
+        $('#dcc').onclick=closeM;
+        $('#dcs').onclick=async()=>{
+          const payload={
+            beneficiary_id: $('#dc_ben').value,
+            doc_type: $('#dc_type').value,
+            table_code: $('#dc_tab').value || null,
+            category_code: $('#dc_cat').value || null,
+            cup: $('#dc_cup').value.trim(),
+            pnrr_ok: $('#dc_pnrr').value==='true',
+            note: $('#dc_note').value.trim()
+          };
+          const {error}=await sb.from('documents').update(payload).eq('id',d.id);
+          if(error) return toast('Errore salvataggio',true,error.message);
+          toast('Documento aggiornato');
+          closeM();
+          loadRows();
+        };
+      };
+    }
+
+    async function addFiles(files){
+      const bid=$('#d_ben_sel').value;
+      for(const file of files){
+        const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+        const path=`${fid}/${bid}/${Date.now()}_${safe}`;
+        const low=file.name.toLowerCase();
+        let docType='ALTRO';
+        if(low.includes('fatt')) docType='FATTURA';
+        else if(low.includes('bon')||low.includes('cro')||low.includes('pag')) docType='BONIFICO';
+        else if(low.includes('contr')) docType='CONTRATTO';
+        else if(low.includes('prevent')) docType='PREVENTIVO';
+
+        const up=await sb.storage.from('documents').upload(path,file,{upsert:false,contentType:file.type||undefined});
+        if(up.error){
+          toast('Upload fallito',true,up.error.message);
+          continue;
+        }
+
+        const ins=await sb.from('documents').insert({
+          filiera_id: fid,
+          beneficiary_id: bid,
+          filename: file.name,
+          storage_path: path,
+          mime: file.type||'',
+          size: file.size||null,
+          doc_type: docType,
+          table_code: null,
+          category_code: null,
+          cup: '',
+          pnrr_ok: false,
+          note: ''
+        });
+        if(ins.error) toast('Errore metadati',true,ins.error.message);
+      }
+      toast('Upload completato');
+      loadRows();
+    }
+
+    $('#d_ben_sel').onchange=loadRows;
+    $('#up').onchange=(e)=>addFiles(Array.from(e.target.files||[]));
+
+    const drop=$('#drop');
+    drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+    drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+    drop.addEventListener('drop',e=>{
+      e.preventDefault();
+      drop.classList.remove('drag');
+      addFiles(Array.from(e.dataTransfer.files||[]));
+    });
+
+    loadRows();
+  }
+
+  // ERRORI
+  async function renderErrori(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Errori / conformità','Crea prima una filiera.'); return; }
+
+    const {data,error}=await sb.from('issues').select('*').eq('filiera_id',fid).order('created_at',{ascending:false});
+    if(error){ view.innerHTML=routeError('Errori / conformità',error.message); return; }
+    const rows=data||[];
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Errori / non conformità</h2><p class="sub">Segnalazioni automatiche per beneficiari, fatture e bonifici.</p></div>
+        <span class="badge ${rows.length?'bad':'good'}">${rows.length} issue</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Tipo</th><th>Messaggio</th><th>Quando</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`<tr><td><span class="badge bad">${esc(r.type)}</span></td><td>${esc(r.message)}</td><td>${new Date(r.created_at).toLocaleString('it-IT')}</td></tr>`).join('') || `<tr><td colspan="3" style="color:var(--muted)">Nessuna issue.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // PLACEHOLDERS coerenti con la build precedente
+  function renderVarianti(){
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Varianti progetto</h2><p class="sub">Sezione ripristinata nel menu. Nel prossimo step possiamo strutturare varianti di filiera e per beneficiario.</p></div>
+        <span class="badge warn">in costruzione</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px;color:var(--muted)">Questa build ripristina tutte le sezioni operative principali. Le varianti restano predisposte come nella versione precedente.</div>`;
+  }
+
+  function renderSAL(){
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">SAL</h2><p class="sub">Sezione SAL predisposta.</p></div>
+        <span class="badge warn">in costruzione</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px;color:var(--muted)">Nel prossimo step possiamo aggiungere wizard SAL, checklist documentale e generazione stati avanzamento.</div>`;
+  }
+
+  function renderDossier(){
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Dossier SAL</h2><p class="sub">Sezione dossier predisposta.</p></div>
+        <span class="badge warn">in costruzione</span>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px;color:var(--muted)">Nel prossimo step possiamo aggiungere export dossier per singolo beneficiario.</div>`;
+  }
+
+  if(!location.hash) location.hash='#/login';
+  render();
+})();
+</script>
+</body>
+</html>
