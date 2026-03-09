@@ -1896,103 +1896,189 @@ for(const t of ['1A','2A','3A','4A','5A']){
     paint();
   }
 
-  function openFatturaModal(invRow, beneficiaries, benMap){
-    const isEdit=!!invRow;
-    const fid=activeFiliera();
-    const bid=invRow?.beneficiary_id || beneficiaries[0]?.id;
+  function openFatturaModal(invRow, beneficiaries, benMap, prefill=null){
+  const isEdit=!!invRow;
+  const fid=activeFiliera();
+  const bid=prefill?.beneficiary_id || invRow?.beneficiary_id || beneficiaries[0]?.id;
 
-    openM(
-      isEdit?'Modifica fattura':'Nuova fattura',
-      `<div class="form">
-        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="iv_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
-        <div><label style="color:var(--muted);font-size:12px">Fornitore</label><select id="iv_sup" class="input"></select></div>
-        <div><label style="color:var(--muted);font-size:12px">Investimento</label><select id="iv_inv" class="input"></select></div>
+  openM(
+    isEdit?'Modifica fattura':'Nuova fattura',
+    `<div class="form">
+      <div class="full card" style="padding:12px;background:rgba(110,168,255,.04)">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b>Importa PDF fattura</b>
+            <div style="color:var(--muted);font-size:12px;margin-top:4px">
+              Trascina un PDF qui oppure selezionalo. Se è una scansione verrà tentato OCR lato browser.
+            </div>
+          </div>
+          <label class="btn pri" for="iv_pdf">Seleziona PDF</label>
+          <input id="iv_pdf" type="file" accept="application/pdf" style="display:none">
+        </div>
+        <div id="iv_drop" class="drop" style="margin-top:10px">Trascina qui il PDF della fattura</div>
+        <div id="iv_ai_msg" style="margin-top:8px;color:var(--muted);font-size:12px"></div>
+      </div>
 
-        <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="iv_num" class="input" value="${esc(invRow?.invoice_number||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Data fattura</label><input id="iv_date" type="date" class="input" value="${esc(invRow?.invoice_date||today())}"></div>
+      <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="iv_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
+      <div><label style="color:var(--muted);font-size:12px">Fornitore</label><select id="iv_sup" class="input"></select></div>
+      <div><label style="color:var(--muted);font-size:12px">Investimento</label><select id="iv_inv" class="input"></select></div>
 
-        <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="iv_pnrr" class="input" value="${esc(invRow?.pnrr_text||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="iv_cup" class="input" value="${esc(invRow?.cup||benMap[bid]?.cup||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Tipologia pagamento</label><select id="iv_pay" class="input">${['Bonifico','RIBA','Assegno non trasferibile','Carta','F24','Altro'].map(x=>`<option ${x===(invRow?.payment_type||'Bonifico')?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="iv_num" class="input" value="${esc(prefill?.invoice_number || invRow?.invoice_number || '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Data fattura</label><input id="iv_date" type="date" class="input" value="${esc(prefill?.invoice_date || invRow?.invoice_date || today())}"></div>
 
-        <div><label style="color:var(--muted);font-size:12px">Imponibile</label><input id="iv_net" class="input" value="${esc(invRow?.net_amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="iv_vat" class="input" value="${esc(invRow?.vat_amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Ritenuta</label><input id="iv_with" class="input" value="${esc(invRow?.withholding??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Totale</label><input id="iv_tot" class="input" disabled></div>
-      </div>`,
-      `${isEdit?'<button class="btn danger" id="ivdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-       <button class="btn" id="ivc">Annulla</button>
-       <button class="btn pri" id="ivs">Salva</button>`
-    );
+      <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="iv_pnrr" class="input" value="${esc(prefill?.pnrr_text || invRow?.pnrr_text || '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="iv_cup" class="input" value="${esc(prefill?.cup || invRow?.cup || benMap[bid]?.cup || '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Tipologia pagamento</label><select id="iv_pay" class="input">${['Bonifico','RIBA','Assegno non trasferibile','Carta','F24','Altro'].map(x=>`<option ${x===((prefill?.payment_type)||(invRow?.payment_type)||'Bonifico')?'selected':''}>${x}</option>`).join('')}</select></div>
 
-    async function fillRelations(){
-      const bid=$('#iv_ben').value;
-      const sQ=await sb.from('suppliers').select('id,name').eq('beneficiary_id',bid).order('name');
-      const iQ=await sb.from('investments').select('id,table_code,category_code,title').eq('beneficiary_id',bid).order('created_at',{ascending:false});
-      const suppliers=sQ.data||[];
-      const investments=iQ.data||[];
-      $('#iv_sup').innerHTML=suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">Nessun fornitore</option>';
-      $('#iv_inv').innerHTML=investments.map(i=>`<option value="${i.id}">${esc(i.table_code)}-${esc(i.category_code)} • ${esc(i.title)}</option>`).join('') || '<option value="">Nessun investimento</option>';
-      if(invRow?.supplier_id) $('#iv_sup').value=invRow.supplier_id;
-      if(invRow?.investment_id) $('#iv_inv').value=invRow.investment_id;
-      $('#iv_cup').value=invRow?.cup || benMap[bid]?.cup || '';
-    }
+      <div><label style="color:var(--muted);font-size:12px">Imponibile</label><input id="iv_net" class="input" value="${esc(prefill?.net_amount ?? invRow?.net_amount ?? '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="iv_vat" class="input" value="${esc(prefill?.vat_amount ?? invRow?.vat_amount ?? '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Ritenuta</label><input id="iv_with" class="input" value="${esc(invRow?.withholding ?? '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Totale</label><input id="iv_tot" class="input" readonly></div>
+    </div>`,
+    `${isEdit?'<button class="btn danger" id="ivdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+     <button class="btn" id="ivc">Annulla</button>
+     <button class="btn pri" id="ivs">Salva</button>`
+  );
 
-    function calcTotal(){
-      $('#iv_tot').value=String((num($('#iv_net').value)+num($('#iv_vat').value)).toFixed(2));
-    }
+  async function fillRelations(){
+    const currentBid=$('#iv_ben').value;
 
-    $('#iv_ben').onchange=fillRelations;
-    $('#iv_net').oninput=calcTotal;
-    $('#iv_vat').oninput=calcTotal;
-    fillRelations();
-    calcTotal();
+    const [supQ,invQ]=await Promise.all([
+      sb.from('suppliers').select('*').eq('beneficiary_id',currentBid).order('name'),
+      sb.from('investments').select('*').eq('beneficiary_id',currentBid).order('created_at',{ascending:false})
+    ]);
 
-    $('#ivc').onclick=closeM;
-    $('#ivs').onclick=async()=>{
-      const payload={
-        filiera_id: fid,
-        beneficiary_id: $('#iv_ben').value,
-        supplier_id: $('#iv_sup').value || null,
-        investment_id: $('#iv_inv').value || null,
-        invoice_number: $('#iv_num').value.trim(),
-        invoice_date: $('#iv_date').value,
-        pnrr_text: $('#iv_pnrr').value.trim(),
-        cup: $('#iv_cup').value.trim(),
-        net_amount: num($('#iv_net').value),
-        vat_amount: num($('#iv_vat').value),
-        withholding: num($('#iv_with').value),
-        payment_type: $('#iv_pay').value
-      };
+    const sups=supQ.data||[];
+    const invs=invQ.data||[];
 
-      if(isEdit){
-        const {error}=await sb.from('invoices').update(payload).eq('id',invRow.id);
-        if(error) return toast('Errore salvataggio',true,error.message);
-        const missing=await runIssueChecksForInvoice({...payload,id:invRow.id});
-        toast(missing.length?'Fattura salvata con errori':'Fattura aggiornata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+    $('#iv_sup').innerHTML=sups.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">Nessun fornitore</option>';
+    $('#iv_inv').innerHTML=invs.map(i=>`<option value="${i.id}">${esc(i.table_code)}-${esc(i.category_code)} • ${esc(i.title)}</option>`).join('') || '<option value="">Nessun investimento</option>';
+
+    if(prefill?.supplier_id && sups.some(x=>x.id===prefill.supplier_id)) $('#iv_sup').value=prefill.supplier_id;
+    else if(invRow?.supplier_id && sups.some(x=>x.id===invRow.supplier_id)) $('#iv_sup').value=invRow.supplier_id;
+
+    if(prefill?.investment_id && invs.some(x=>x.id===prefill.investment_id)) $('#iv_inv').value=prefill.investment_id;
+    else if(invRow?.investment_id && invs.some(x=>x.id===invRow.investment_id)) $('#iv_inv').value=invRow.investment_id;
+
+    $('#iv_cup').value=$('#iv_cup').value || benMap[currentBid]?.cup || '';
+  }
+
+  function calcTotal(){
+    $('#iv_tot').value=String((num($('#iv_net').value)+num($('#iv_vat').value)).toFixed(2));
+  }
+
+  async function importInvoicePdf(file){
+    try{
+      $('#iv_ai_msg').textContent='Analisi PDF in corso...';
+      const fid=activeFiliera();
+      const ctx=await getInvoiceImportContext(fid);
+      const res=await extractTextFromPdfWithFallback(file);
+      const parsed=extractInvoiceFields(res.text);
+
+      const beneficiary=guessBeneficiaryFromText(res.text, ctx.beneficiaries);
+      const supplier=guessSupplierFromText(res.text, ctx.suppliers);
+      const investment=guessInvestmentFromText(res.text, ctx.investments);
+
+      if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
+        $('#iv_ben').value=beneficiary.id;
+        await fillRelations();
       }else{
-        const {data,error}=await sb.from('invoices').insert(payload).select('id').single();
-        if(error) return toast('Errore creazione',true,error.message);
-        const missing=await runIssueChecksForInvoice({...payload,id:data.id});
-        toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+        await fillRelations();
       }
-      closeM();
-      render();
-    };
 
-    if(isEdit){
-      $('#ivdel').onclick=async()=>{
-        if(!confirm('Eliminare questa fattura?')) return;
-        await replaceIssue(fid,'FATTURA',invRow.id,'FATTURA','');
-        const {error}=await sb.from('invoices').delete().eq('id',invRow.id);
-        if(error) return toast('Errore eliminazione',true,error.message);
-        toast('Fattura eliminata');
-        closeM();
-        render();
-      };
+      if(parsed.invoice_number) $('#iv_num').value=parsed.invoice_number;
+      if(parsed.invoice_date) $('#iv_date').value=parsed.invoice_date;
+      if(parsed.pnrr_text) $('#iv_pnrr').value=parsed.pnrr_text;
+      if(parsed.cup) $('#iv_cup').value=parsed.cup;
+      if(parsed.net_amount) $('#iv_net').value=String(parsed.net_amount);
+      if(parsed.vat_amount || parsed.vat_amount===0) $('#iv_vat').value=String(parsed.vat_amount);
+
+      if(supplier){
+        const hasOption=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
+        if(hasOption) $('#iv_sup').value=supplier.id;
+      }
+
+      if(investment){
+        const hasOption=[...$('#iv_inv').options].some(o=>o.value===investment.id);
+        if(hasOption) $('#iv_inv').value=investment.id;
+      }
+
+      calcTotal();
+
+      $('#iv_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
+    }catch(err){
+      console.error(err);
+      $('#iv_ai_msg').textContent='Analisi PDF non riuscita. Puoi comunque compilare i campi manualmente.';
+      toast('Analisi PDF non riuscita', true, err.message || 'Errore sconosciuto');
     }
   }
 
+  $('#iv_ben').onchange=fillRelations;
+  $('#iv_net').oninput=calcTotal;
+  $('#iv_vat').oninput=calcTotal;
+
+  const handleInvoiceFiles=(files)=>{
+    const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+    if(file) importInvoicePdf(file);
+    else toast('Seleziona un file PDF',true);
+  };
+
+  $('#iv_pdf').onchange=(e)=>handleInvoiceFiles(e.target.files);
+  $('#iv_drop').ondragover=(e)=>{ e.preventDefault(); $('#iv_drop').classList.add('drag'); };
+  $('#iv_drop').ondragleave=()=>$('#iv_drop').classList.remove('drag');
+  $('#iv_drop').ondrop=(e)=>{
+    e.preventDefault();
+    $('#iv_drop').classList.remove('drag');
+    handleInvoiceFiles(e.dataTransfer.files);
+  };
+
+  fillRelations();
+  calcTotal();
+
+  $('#ivc').onclick=closeM;
+  $('#ivs').onclick=async()=>{
+    const payload={
+      filiera_id: fid,
+      beneficiary_id: $('#iv_ben').value,
+      supplier_id: $('#iv_sup').value || null,
+      investment_id: $('#iv_inv').value || null,
+      invoice_number: $('#iv_num').value.trim(),
+      invoice_date: $('#iv_date').value,
+      pnrr_text: $('#iv_pnrr').value.trim(),
+      cup: $('#iv_cup').value.trim(),
+      net_amount: num($('#iv_net').value),
+      vat_amount: num($('#iv_vat').value),
+      withholding: num($('#iv_with').value),
+      payment_type: $('#iv_pay').value
+    };
+
+    if(isEdit){
+      const {error}=await sb.from('invoices').update(payload).eq('id',invRow.id);
+      if(error) return toast('Errore salvataggio',true,error.message);
+      const missing=await runIssueChecksForInvoice({...payload,id:invRow.id});
+      toast(missing.length?'Fattura salvata con errori':'Fattura aggiornata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+    }else{
+      const {data,error}=await sb.from('invoices').insert(payload).select('id').single();
+      if(error) return toast('Errore creazione',true,error.message);
+      const missing=await runIssueChecksForInvoice({...payload,id:data.id});
+      toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+    }
+    closeM();
+    render();
+  };
+
+  if(isEdit){
+    $('#ivdel').onclick=async()=>{
+      if(!confirm('Eliminare questa fattura?')) return;
+      await replaceIssue(fid,'FATTURA',invRow.id,'FATTURA','');
+      const {error}=await sb.from('invoices').delete().eq('id',invRow.id);
+      if(error) return toast('Errore eliminazione',true,error.message);
+      toast('Fattura eliminata');
+      closeM();
+      render();
+    };
+  }
+}
   async function renderFatture(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Fatture','Crea prima una filiera.'); return; }
