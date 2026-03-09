@@ -2104,25 +2104,40 @@ $('#ivc').onclick=closeM;
         </div>
       </div>
       <div style="height:12px"></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table class="table" id="ivt">
-            <thead><tr><th>Numero</th><th>Data</th><th>Beneficiario</th><th>Imponibile</th><th>IVA</th><th>Totale</th><th>CUP</th><th>PNRR</th></tr></thead>
-            <tbody>
-              ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
-                <td><b>${esc(r.invoice_number||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
-                <td>${esc(r.invoice_date||'')}</td>
-                <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
-                <td>${eur(r.net_amount)}</td>
-                <td>${eur(r.vat_amount)}</td>
-                <td>${eur(num(r.net_amount)+num(r.vat_amount))}</td>
-                <td><span class="badge">${esc(r.cup||'')}</span></td>
-                <td>${r.pnrr_text?'OK':'—'}</td>
-              </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessuna fattura.</td></tr>`}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+<div class="card" style="padding:14px">
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div>
+      <b>Importa fattura da PDF</b>
+      <div style="margin-top:6px;color:var(--muted)">
+        Trascina qui un PDF oppure selezionalo. La modale si aprirà già precompilata con OCR se necessario.
+      </div>
+    </div>
+    <label class="btn pri" for="iv_page_pdf">Seleziona PDF</label>
+    <input id="iv_page_pdf" type="file" accept="application/pdf" style="display:none">
+  </div>
+  <div id="iv_page_drop" class="drop">Trascina qui il PDF della fattura</div>
+</div>
+
+<div style="height:12px"></div>
+<div class="card">
+  <div class="table-wrap">
+    <table class="table" id="ivt">
+      <thead><tr><th>Numero</th><th>Data</th><th>Beneficiario</th><th>Imponibile</th><th>IVA</th><th>Totale</th><th>CUP</th><th>PNRR</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
+          <td><b>${esc(r.invoice_number||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
+          <td>${esc(r.invoice_date||'')}</td>
+          <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
+          <td>${eur(r.net_amount)}</td>
+          <td>${eur(r.vat_amount)}</td>
+          <td>${eur(num(r.net_amount)+num(r.vat_amount))}</td>
+          <td><span class="badge">${esc(r.cup||'')}</span></td>
+          <td>${r.pnrr_text?'OK':'—'}</td>
+        </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessuna fattura.</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+</div>`;
     $('#ivnew').onclick=()=>openFatturaModal(null, beneficiaries, benMap);
     $('#ivt').onclick=(e)=>{
       const tr=e.target.closest('tr[data-id]');
