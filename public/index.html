@@ -95,9 +95,181 @@
     .table th{color:var(--muted);font-weight:700;position:sticky;top:0;background:var(--panel)}
     .table-wrap{max-height:62vh;overflow:auto;border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
     .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .full{grid-column:1/-1}
-    .bd{position:fixed;inset
-    .toast{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:10px;z-index:99}
+    function openBeneficiarioModal(b){
+  const isEdit=!!b;
+  const fid=activeFiliera();
+  if(!fid) return toast('Crea prima una filiera',true);
+
+  const sede=b?.sede_legale||{};
+  let sediOpsState=(Array.isArray(b?.sedi_operative) && b.sedi_operative.length
+    ? b.sedi_operative
+    : [{}]
+  ).map(so=>({
+    via: so?.via || '',
+    civico: so?.civico || '',
+    comune: so?.comune || '',
+    provincia: so?.provincia || '',
+    foglio: so?.foglio || '',
+    particella: so?.particella || so?.particelle || ''
+  }));
+
+  openM(
+    isEdit?'Modifica beneficiario':'Nuovo beneficiario',
+    `<div class="form">
+      <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
+        <select id="b_dim" class="input">
+          ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
+      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
+      <div></div>
+
+      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <b>Sedi operative</b>
+          <button type="button" class="btn" id="addOp">＋ Aggiungi sede operativa</button>
+        </div>
+      </div>
+
+      <div class="full">
+        <div id="opsList" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+    </div>`,
+    `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+     <button class="btn" id="bc">Annulla</button>
+     <button class="btn pri" id="bs">Salva</button>`
+  );
+
+  function syncSediOpsFromDom(){
+    sediOpsState = $$('#opsList .op-item').map(box=>({
+      via: $('.op-via', box)?.value.trim() || '',
+      civico: $('.op-civ', box)?.value.trim() || '',
+      comune: $('.op-com', box)?.value.trim() || '',
+      provincia: $('.op-prov', box)?.value.trim() || '',
+      foglio: $('.op-fog', box)?.value.trim() || '',
+      particella: $('.op-part', box)?.value.trim() || ''
+    }));
+  }
+
+  function renderSediOps(){
+    const wrap = $('#opsList');
+    wrap.innerHTML = sediOpsState.map((so,idx)=>`
+      <div class="op-item card" style="padding:12px" data-idx="${idx}">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+          <b>Sede operativa ${idx+1}</b>
+          <button type="button" class="btn danger delOp" data-idx="${idx}" ${sediOpsState.length===1?'disabled':''}>🗑 Rimuovi</button>
+        </div>
+        <div class="form">
+          <div><label style="color:var(--muted);font-size:12px">Via</label><input class="input op-via" value="${esc(so.via||'')}"></div>
+          <div><label style="color:var(--muted);font-size:12px">N. civico</label><input class="input op-civ" value="${esc(so.civico||'')}"></div>
+          <div><label style="color:var(--muted);font-size:12px">Comune</label><input class="input op-com" value="${esc(so.comune||'')}"></div>
+          <div><label style="color:var(--muted);font-size:12px">Provincia</label><input class="input op-prov" value="${esc(so.provincia||'')}"></div>
+          <div><label style="color:var(--muted);font-size:12px">Foglio</label><input class="input op-fog" value="${esc(so.foglio||'')}"></div>
+          <div><label style="color:var(--muted);font-size:12px">Particella/e</label><input class="input op-part" value="${esc(so.particella||'')}"></div>
+        </div>
+      </div>
+    `).join('');
+
+    $$('.delOp', wrap).forEach(btn=>{
+      btn.onclick=()=>{
+        syncSediOpsFromDom();
+        const idx=Number(btn.dataset.idx);
+        sediOpsState.splice(idx,1);
+        if(!sediOpsState.length) sediOpsState=[{}];
+        renderSediOps();
+      };
+    });
+  }
+
+  $('#addOp').onclick=()=>{
+    syncSediOpsFromDom();
+    sediOpsState.push({
+      via:'',
+      civico:'',
+      comune:'',
+      provincia:'',
+      foglio:'',
+      particella:''
+    });
+    renderSediOps();
+  };
+
+  renderSediOps();
+
+  $('#bc').onclick=closeM;
+  $('#bs').onclick=async()=>{
+    syncSediOpsFromDom();
+
+    const sediPulite=sediOpsState.filter(so =>
+      Object.values(so).some(v => String(v||'').trim() !== '')
+    );
+
+    const payload={
+      filiera_id: fid,
+      ragione_sociale: $('#b_rs').value.trim(),
+      cf: $('#b_cf').value.trim(),
+      piva: $('#b_piva').value.trim(),
+      pec: $('#b_pec').value.trim(),
+      cup: $('#b_cup').value.trim(),
+      ateco: $('#b_ateco').value.trim(),
+      telefono: $('#b_tel').value.trim(),
+      email: $('#b_email').value.trim(),
+      referente: $('#b_ref').value.trim(),
+      dimensione: $('#b_dim').value,
+      sede_legale:{
+        via:$('#sl_via').value.trim(),
+        civico:$('#sl_civ').value.trim(),
+        comune:$('#sl_com').value.trim(),
+        provincia:$('#sl_prov').value.trim(),
+        cap:$('#sl_cap').value.trim()
+      },
+      sedi_operative: sediPulite
+    };
+
+    if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
+
+    if(isEdit){
+      const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
+      if(error) return toast('Errore salvataggio',true,error.message);
+      await runIssueChecksForBeneficiary({...payload,id:b.id});
+      toast('Beneficiario aggiornato');
+    }else{
+      const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
+      if(error) return toast('Errore creazione',true,error.message);
+      await runIssueChecksForBeneficiary({...payload,id:data.id});
+      toast('Beneficiario creato');
+    }
+    closeM();
+    render();
+  };
+
+  if(isEdit){
+    $('#bdel').onclick=async()=>{
+      if(!confirm('Eliminare questo beneficiario?')) return;
+      await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
+      const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
+      if(error) return toast('Errore eliminazione',true,error.message);
+      toast('Beneficiario eliminato');
+      closeM();
+      render();
+    };
+  }
+}
     .toast .t{max-width:480px;border:1px solid var(--line);background:var(--panel);padding:10px 12px;border-radius:14px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow)}
     .toast .t b{display:block;font-size:13px}
     .toast .t small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
