@@ -1136,104 +1136,220 @@
   }
 
   function openInvestimentoModal(i, beneficiaries){
-    const isEdit=!!i;
-    const bid=i?.beneficiary_id || beneficiaries[0]?.id;
-    const tab=i?.table_code || '1A';
-    const cat=i?.category_code || (TABLES[tab][0]?.code||'1');
-    const loc=i?.location || {};
+  const isEdit=!!i;
+  const bid=i?.beneficiary_id || beneficiaries[0]?.id;
+  const tab=i?.table_code || '1A';
+  const cat=i?.category_code || (TABLES[tab][0]?.code||'1');
+  const loc=i?.location || {};
 
-    openM(
-      isEdit?'Modifica investimento':'Nuovo investimento',
-      `<div class="form">
-        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="i_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
-        <div><label style="color:var(--muted);font-size:12px">Tabella</label><select id="i_tab" class="input">${['1A','2A','3A','4A','5A'].map(t=>`<option ${t===tab?'selected':''}>${t}</option>`).join('')}</select></div>
-        <div><label style="color:var(--muted);font-size:12px">Categoria</label><select id="i_cat" class="input">${fillCategoryOptions(tab,cat)}</select></div>
-        <div class="full"><label style="color:var(--muted);font-size:12px">Titolo</label><input id="i_title" class="input" value="${esc(i?.title||'')}"></div>
+  const getBenById = (id) => beneficiaries.find(b => b.id === id);
+  const getOpsForBen = (id) => {
+    const ben = getBenById(id);
+    return Array.isArray(ben?.sedi_operative) ? ben.sedi_operative : [];
+  };
 
-        <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc(i?.approved_amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc(i?.grant_amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc(i?.loan_amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc(i?.own_funds??'')}" disabled></div>
+  const fmtOp = (so, idx) => {
+    const comune = so?.comune || '';
+    const prov = so?.provincia ? ` (${so.provincia})` : '';
+    const via = so?.via || '';
+    const civ = so?.civico ? ` ${so.civico}` : '';
+    const fog = so?.foglio ? ` • Fg. ${so.foglio}` : '';
+    const par = so?.particella ? ` • Part. ${so.particella}` : '';
+    return `Sede ${idx+1}: ${comune}${prov} — ${via}${civ}${fog}${par}`.trim();
+  };
 
-        <div><label style="color:var(--muted);font-size:12px">TAG</label><select id="i_tag" class="input">${TAGS.map(t=>`<option ${t===(i?.tag||TAGS[0])?'selected':''}>${t}</option>`).join('')}</select></div>
-        <div><label style="color:var(--muted);font-size:12px">Stato</label><select id="i_state" class="input">${['Approvato','Oggetto di variante','Rendicontato parziale','Rendicontato totale'].map(s=>`<option ${s===(i?.state||'Approvato')?'selected':''}>${s}</option>`).join('')}</select></div>
+  openM(
+    isEdit?'Modifica investimento':'Nuovo investimento',
+    `<div class="form">
+      <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label>
+        <select id="i_ben" class="input">
+          ${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}
+        </select>
+      </div>
 
-        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Ubicazione investimento</b></div>
-        <div><label style="color:var(--muted);font-size:12px">Via</label><input id="i_via" class="input" value="${esc(loc.via||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="i_civ" class="input" value="${esc(loc.civico||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="i_com" class="input" value="${esc(loc.comune||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="i_prov" class="input" value="${esc(loc.provincia||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Foglio</label><input id="i_fog" class="input" value="${esc(loc.foglio||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Particella</label><input id="i_par" class="input" value="${esc(loc.particella||'')}"></div>
-      </div>`,
-      `${isEdit?'<button class="btn danger" id="idel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-       <button class="btn" id="ic">Annulla</button>
-       <button class="btn pri" id="is">Salva</button>`
+      <div><label style="color:var(--muted);font-size:12px">Tabella</label>
+        <select id="i_tab" class="input">
+          ${['1A','2A','3A','4A','5A'].map(t=>`<option ${t===tab?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+
+      <div><label style="color:var(--muted);font-size:12px">Categoria</label>
+        <select id="i_cat" class="input">${fillCategoryOptions(tab,cat)}</select>
+      </div>
+
+      <div class="full"><label style="color:var(--muted);font-size:12px">Titolo</label>
+        <input id="i_title" class="input" value="${esc(i?.title||'')}">
+      </div>
+
+      <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc(i?.approved_amount??'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc(i?.grant_amount??'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc(i?.loan_amount??'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc(i?.own_funds??'')}" disabled></div>
+
+      <div><label style="color:var(--muted);font-size:12px">TAG</label>
+        <select id="i_tag" class="input">${TAGS.map(t=>`<option ${t===(i?.tag||TAGS[0])?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+
+      <div><label style="color:var(--muted);font-size:12px">Stato</label>
+        <select id="i_state" class="input">
+          ${['Approvato','Oggetto di variante','Rendicontato parziale','Rendicontato totale'].map(s=>`<option ${s===(i?.state||'Approvato')?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Ubicazione investimento</b></div>
+
+      <div class="full">
+        <label style="color:var(--muted);font-size:12px">Seleziona una sede operativa del beneficiario</label>
+        <select id="i_loc_sel" class="input"></select>
+      </div>
+
+      <!-- Campi sempre disponibili (si auto-compilano quando scegli una sede) -->
+      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="i_via" class="input" value="${esc(loc.via||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="i_civ" class="input" value="${esc(loc.civico||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="i_com" class="input" value="${esc(loc.comune||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="i_prov" class="input" value="${esc(loc.provincia||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Foglio</label><input id="i_fog" class="input" value="${esc(loc.foglio||'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Particella</label><input id="i_par" class="input" value="${esc(loc.particella||'')}"></div>
+    </div>`,
+    `${isEdit?'<button class="btn danger" id="idel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+     <button class="btn" id="ic">Annulla</button>
+     <button class="btn pri" id="is">Salva</button>`
+  );
+
+  function computeOwn(){
+    const own=Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value));
+    $('#i_own').value=String(own.toFixed(2));
+  }
+
+  function setLocFields(so){
+    $('#i_via').value = so?.via || '';
+    $('#i_civ').value = so?.civico || '';
+    $('#i_com').value = so?.comune || '';
+    $('#i_prov').value = so?.provincia || '';
+    $('#i_fog').value = so?.foglio || '';
+    $('#i_par').value = so?.particella || so?.particelle || '';
+  }
+
+  function currentLocObj(){
+    return {
+      via: $('#i_via').value.trim(),
+      civico: $('#i_civ').value.trim(),
+      comune: $('#i_com').value.trim(),
+      provincia: $('#i_prov').value.trim(),
+      foglio: $('#i_fog').value.trim(),
+      particella: $('#i_par').value.trim()
+    };
+  }
+
+  function norm(s){ return String(s||'').trim().toLowerCase(); }
+
+  function refreshLocationDropdown(keepSelection=false){
+    const bid = $('#i_ben').value;
+    const ops = getOpsForBen(bid);
+    const sel = $('#i_loc_sel');
+
+    if(!ops.length){
+      sel.innerHTML = `<option value="__manual__">Nessuna sede operativa trovata (inserisci manualmente)</option>`;
+      sel.value="__manual__";
+      return;
+    }
+
+    const opts = ops.map((so,idx)=>`<option value="${idx}">${esc(fmtOp(so,idx))}</option>`).join('');
+    sel.innerHTML = opts + `<option value="__manual__">Altro / inserisci manualmente</option>`;
+
+    if(keepSelection && sel.value && sel.value !== '') return;
+
+    // prova a matchare la location già presente con una sede operativa
+    const cur = currentLocObj();
+    const matchIdx = ops.findIndex(so =>
+      norm(so?.comune)===norm(cur.comune) &&
+      norm(so?.via)===norm(cur.via) &&
+      norm(so?.civico)===norm(cur.civico) &&
+      norm(so?.foglio)===norm(cur.foglio) &&
+      norm(so?.particella || so?.particelle)===norm(cur.particella)
     );
 
-    function computeOwn(){
-      const own=Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value));
-      $('#i_own').value=String(own.toFixed(2));
-    }
-    $('#i_amt').oninput=computeOwn;
-    $('#i_grant').oninput=computeOwn;
-    $('#i_loan').oninput=computeOwn;
-    $('#i_tab').onchange=()=>{
-      const t=$('#i_tab').value;
-      $('#i_cat').innerHTML=fillCategoryOptions(t,'');
-    };
-    computeOwn();
-
-    $('#ic').onclick=closeM;
-    $('#is').onclick=async()=>{
-      const payload={
-        beneficiary_id: $('#i_ben').value,
-        table_code: $('#i_tab').value,
-        category_code: $('#i_cat').value,
-        title: $('#i_title').value.trim(),
-        approved_amount: num($('#i_amt').value),
-        grant_amount: num($('#i_grant').value),
-        loan_amount: num($('#i_loan').value),
-        own_funds: Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value)),
-        tag: $('#i_tag').value,
-        state: $('#i_state').value,
-        location:{
-          via:$('#i_via').value.trim(),
-          civico:$('#i_civ').value.trim(),
-          comune:$('#i_com').value.trim(),
-          provincia:$('#i_prov').value.trim(),
-          foglio:$('#i_fog').value.trim(),
-          particella:$('#i_par').value.trim()
-        }
-      };
-      if(!payload.title) return toast('Titolo obbligatorio',true);
-      if(!(payload.approved_amount>0)) return toast('Importo approvato non valido',true);
-
-      if(isEdit){
-        const {error}=await sb.from('investments').update(payload).eq('id',i.id);
-        if(error) return toast('Errore salvataggio',true,error.message);
-        toast('Investimento aggiornato');
-      }else{
-        const {error}=await sb.from('investments').insert(payload);
-        if(error) return toast('Errore creazione',true,error.message);
-        toast('Investimento creato');
-      }
-      closeM();
-      render();
-    };
-
-    if(isEdit){
-      $('#idel').onclick=async()=>{
-        if(!confirm('Eliminare questo investimento?')) return;
-        const {error}=await sb.from('investments').delete().eq('id',i.id);
-        if(error) return toast('Errore eliminazione',true,error.message);
-        toast('Investimento eliminato');
-        closeM();
-        render();
-      };
+    if(matchIdx >= 0){
+      sel.value = String(matchIdx);
+    } else {
+      // default: prima sede
+      sel.value = "0";
+      setLocFields(ops[0]);
     }
   }
 
+  // eventi
+  $('#i_amt').oninput=computeOwn;
+  $('#i_grant').oninput=computeOwn;
+  $('#i_loan').oninput=computeOwn;
+
+  $('#i_tab').onchange=()=>{
+    const t=$('#i_tab').value;
+    $('#i_cat').innerHTML=fillCategoryOptions(t,'');
+  };
+
+  $('#i_ben').onchange=()=>{
+    // quando cambi beneficiario, aggiorna dropdown e auto-compila con prima sede (se presente)
+    refreshLocationDropdown(false);
+  };
+
+  $('#i_loc_sel').onchange=()=>{
+    const bid = $('#i_ben').value;
+    const ops = getOpsForBen(bid);
+    const v = $('#i_loc_sel').value;
+    if(v === '__manual__') return; // lascia i campi editabili manualmente
+    const idx = Number(v);
+    if(Number.isFinite(idx) && ops[idx]) setLocFields(ops[idx]);
+  };
+
+  // init
+  computeOwn();
+  refreshLocationDropdown(false);
+
+  $('#ic').onclick=closeM;
+
+  $('#is').onclick=async()=>{
+    const payload={
+      beneficiary_id: $('#i_ben').value,
+      table_code: $('#i_tab').value,
+      category_code: $('#i_cat').value,
+      title: $('#i_title').value.trim(),
+      approved_amount: num($('#i_amt').value),
+      grant_amount: num($('#i_grant').value),
+      loan_amount: num($('#i_loan').value),
+      own_funds: Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value)),
+      tag: $('#i_tag').value,
+      state: $('#i_state').value,
+      location: currentLocObj()
+    };
+
+    if(!payload.title) return toast('Titolo obbligatorio',true);
+    if(!(payload.approved_amount>0)) return toast('Importo approvato non valido',true);
+
+    if(isEdit){
+      const {error}=await sb.from('investments').update(payload).eq('id',i.id);
+      if(error) return toast('Errore salvataggio',true,error.message);
+      toast('Investimento aggiornato');
+    }else{
+      const {error}=await sb.from('investments').insert(payload);
+      if(error) return toast('Errore creazione',true,error.message);
+      toast('Investimento creato');
+    }
+    closeM();
+    render();
+  };
+
+  if(isEdit){
+    $('#idel').onclick=async()=>{
+      if(!confirm('Eliminare questo investimento?')) return;
+      const {error}=await sb.from('investments').delete().eq('id',i.id);
+      if(error) return toast('Errore eliminazione',true,error.message);
+      toast('Investimento eliminato');
+      closeM();
+      render();
+    };
+  }
+}
   async function renderInvestimenti(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Investimenti','Crea prima una filiera.'); return; }
