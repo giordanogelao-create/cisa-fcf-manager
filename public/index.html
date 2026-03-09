@@ -20,7 +20,7 @@
       --bad:#ef4444;
       --r:14px;
       --shadow:0 14px 40px rgba(0,0,0,.28);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -30,19 +30,19 @@
         radial-gradient(1200px 700px at 20% -10%, rgba(110,168,255,.18), transparent 55%),
         radial-gradient(900px 500px at 110% 10%, rgba(34,197,94,.08), transparent 60%),
         var(--bg);
-      color:var(--text)
+      color:var(--text);
     }
     .header{
       position:sticky;top:0;z-index:30;
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       padding:12px 14px;border-bottom:1px solid var(--line);
-      background:rgba(13,27,58,.82);backdrop-filter:blur(10px)
+      background:rgba(13,27,58,.82);backdrop-filter:blur(10px);
     }
     .ttl{display:flex;gap:10px;align-items:center;min-width:0}
     .logo{
       width:34px;height:34px;border-radius:12px;
       background:conic-gradient(from 210deg,var(--pri),#22c55e,#a855f7,var(--pri));
-      box-shadow:var(--shadow)
+      box-shadow:var(--shadow);
     }
     .h1{margin:0;font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .h2{margin:0;color:var(--muted);font-size:12px}
@@ -53,16 +53,15 @@
     .nav{display:flex;flex-direction:column;gap:6px}
     .nav a{
       padding:10px;border-radius:12px;text-decoration:none;color:var(--muted);
-      border:1px solid transparent;display:flex;gap:10px;align-items:center
+      border:1px solid transparent;display:flex;gap:10px;align-items:center;
     }
     .nav a.active{
       color:var(--text);
       background:rgba(110,168,255,.08);
-      border-color:rgba(110,168,255,.25)
+      border-color:rgba(110,168,255,.25);
     }
     .dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
     .nav a.active .dot{background:var(--pri)}
-    .sep{margin:10px 10px;border-top:1px solid var(--line)}
     .main{padding:16px}
     .card{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow)}
     .card.h{padding:14px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -71,8 +70,9 @@
     .btn{
       border:1px solid var(--line);
       background:linear-gradient(180deg,var(--panel2),var(--panel));
-      color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;
-      display:inline-flex;gap:8px;align-items:center
+      color:var(--text);
+      padding:10px 12px;border-radius:12px;cursor:pointer;
+      display:inline-flex;gap:8px;align-items:center;
     }
     .btn.pri{border-color:rgba(110,168,255,.55)}
     .btn.danger{border-color:rgba(239,68,68,.55)}
@@ -83,7 +83,7 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .input,select,textarea{
       width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);
-      background:rgba(13,27,58,.35);color:var(--text);outline:none;font-size:13px
+      background:rgba(13,27,58,.35);color:var(--text);outline:none;font-size:13px;
     }
     textarea{min-height:90px;resize:vertical}
     .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
@@ -95,182 +95,61 @@
     .table th{color:var(--muted);font-weight:700;position:sticky;top:0;background:var(--panel)}
     .table-wrap{max-height:62vh;overflow:auto;border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
     .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    function openBeneficiarioModal(b){
-  const isEdit=!!b;
-  const fid=activeFiliera();
-  if(!fid) return toast('Crea prima una filiera',true);
-
-  const sede=b?.sede_legale||{};
-  let sediOpsState=(Array.isArray(b?.sedi_operative) && b.sedi_operative.length
-    ? b.sedi_operative
-    : [{}]
-  ).map(so=>({
-    via: so?.via || '',
-    civico: so?.civico || '',
-    comune: so?.comune || '',
-    provincia: so?.provincia || '',
-    foglio: so?.foglio || '',
-    particella: so?.particella || so?.particelle || ''
-  }));
-
-  openM(
-    isEdit?'Modifica beneficiario':'Nuovo beneficiario',
-    `<div class="form">
-      <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
-        <select id="b_dim" class="input">
-          ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
-      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
-      <div></div>
-
-      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <b>Sedi operative</b>
-          <button type="button" class="btn" id="addOp">＋ Aggiungi sede operativa</button>
-        </div>
-      </div>
-
-      <div class="full">
-        <div id="opsList" style="display:flex;flex-direction:column;gap:12px"></div>
-      </div>
-    </div>`,
-    `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-     <button class="btn" id="bc">Annulla</button>
-     <button class="btn pri" id="bs">Salva</button>`
-  );
-
-  function syncSediOpsFromDom(){
-    sediOpsState = $$('#opsList .op-item').map(box=>({
-      via: $('.op-via', box)?.value.trim() || '',
-      civico: $('.op-civ', box)?.value.trim() || '',
-      comune: $('.op-com', box)?.value.trim() || '',
-      provincia: $('.op-prov', box)?.value.trim() || '',
-      foglio: $('.op-fog', box)?.value.trim() || '',
-      particella: $('.op-part', box)?.value.trim() || ''
-    }));
-  }
-
-  function renderSediOps(){
-    const wrap = $('#opsList');
-    wrap.innerHTML = sediOpsState.map((so,idx)=>`
-      <div class="op-item card" style="padding:12px" data-idx="${idx}">
-        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-          <b>Sede operativa ${idx+1}</b>
-          <button type="button" class="btn danger delOp" data-idx="${idx}" ${sediOpsState.length===1?'disabled':''}>🗑 Rimuovi</button>
-        </div>
-        <div class="form">
-          <div><label style="color:var(--muted);font-size:12px">Via</label><input class="input op-via" value="${esc(so.via||'')}"></div>
-          <div><label style="color:var(--muted);font-size:12px">N. civico</label><input class="input op-civ" value="${esc(so.civico||'')}"></div>
-          <div><label style="color:var(--muted);font-size:12px">Comune</label><input class="input op-com" value="${esc(so.comune||'')}"></div>
-          <div><label style="color:var(--muted);font-size:12px">Provincia</label><input class="input op-prov" value="${esc(so.provincia||'')}"></div>
-          <div><label style="color:var(--muted);font-size:12px">Foglio</label><input class="input op-fog" value="${esc(so.foglio||'')}"></div>
-          <div><label style="color:var(--muted);font-size:12px">Particella/e</label><input class="input op-part" value="${esc(so.particella||'')}"></div>
-        </div>
-      </div>
-    `).join('');
-
-    $$('.delOp', wrap).forEach(btn=>{
-      btn.onclick=()=>{
-        syncSediOpsFromDom();
-        const idx=Number(btn.dataset.idx);
-        sediOpsState.splice(idx,1);
-        if(!sediOpsState.length) sediOpsState=[{}];
-        renderSediOps();
-      };
-    });
-  }
-
-  $('#addOp').onclick=()=>{
-    syncSediOpsFromDom();
-    sediOpsState.push({
-      via:'',
-      civico:'',
-      comune:'',
-      provincia:'',
-      foglio:'',
-      particella:''
-    });
-    renderSediOps();
-  };
-
-  renderSediOps();
-
-  $('#bc').onclick=closeM;
-  $('#bs').onclick=async()=>{
-    syncSediOpsFromDom();
-
-    const sediPulite=sediOpsState.filter(so =>
-      Object.values(so).some(v => String(v||'').trim() !== '')
-    );
-
-    const payload={
-      filiera_id: fid,
-      ragione_sociale: $('#b_rs').value.trim(),
-      cf: $('#b_cf').value.trim(),
-      piva: $('#b_piva').value.trim(),
-      pec: $('#b_pec').value.trim(),
-      cup: $('#b_cup').value.trim(),
-      ateco: $('#b_ateco').value.trim(),
-      telefono: $('#b_tel').value.trim(),
-      email: $('#b_email').value.trim(),
-      referente: $('#b_ref').value.trim(),
-      dimensione: $('#b_dim').value,
-      sede_legale:{
-        via:$('#sl_via').value.trim(),
-        civico:$('#sl_civ').value.trim(),
-        comune:$('#sl_com').value.trim(),
-        provincia:$('#sl_prov').value.trim(),
-        cap:$('#sl_cap').value.trim()
-      },
-      sedi_operative: sediPulite
-    };
-
-    if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
-
-    if(isEdit){
-      const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
-      if(error) return toast('Errore salvataggio',true,error.message);
-      await runIssueChecksForBeneficiary({...payload,id:b.id});
-      toast('Beneficiario aggiornato');
-    }else{
-      const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
-      if(error) return toast('Errore creazione',true,error.message);
-      await runIssueChecksForBeneficiary({...payload,id:data.id});
-      toast('Beneficiario creato');
+    .full{grid-column:1/-1}
+    .bd{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+      overflow-y:auto;
     }
-    closeM();
-    render();
-  };
-
-  if(isEdit){
-    $('#bdel').onclick=async()=>{
-      if(!confirm('Eliminare questo beneficiario?')) return;
-      await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
-      const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
-      if(error) return toast('Errore eliminazione',true,error.message);
-      toast('Beneficiario eliminato');
-      closeM();
-      render();
-    };
-  }
-}
-    .toast .t{max-width:480px;border:1px solid var(--line);background:var(--panel);padding:10px 12px;border-radius:14px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow)}
+    .bd.open{display:flex}
+    .md{
+      width:min(980px,100%);
+      max-height:calc(100vh - 36px);
+      border:1px solid var(--line);
+      background:var(--panel);
+      border-radius:18px;
+      box-shadow:0 24px 80px rgba(0,0,0,.45);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .md header{
+      padding:14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex:0 0 auto;
+    }
+    .md header h3{margin:0;font-size:15px}
+    .md .body{
+      padding:14px;
+      overflow:auto;
+      max-height:calc(100vh - 180px);
+      -webkit-overflow-scrolling:touch;
+      flex:1 1 auto;
+    }
+    .md footer{
+      padding:12px 14px;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      flex:0 0 auto;
+    }
+    .toast{
+      position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:10px;z-index:99;
+    }
+    .toast .t{
+      max-width:480px;border:1px solid var(--line);background:var(--panel);padding:10px 12px;
+      border-radius:14px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow);
+    }
     .toast .t b{display:block;font-size:13px}
     .toast .t small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
     .drop{border:1px dashed rgba(159,176,211,.55);border-radius:14px;padding:18px;background:rgba(13,27,58,.35)}
@@ -326,6 +205,7 @@
         Il login usa Supabase. I dati sono condivisi. I documenti vengono caricati nel bucket <b>documents</b>.
       </div>
     </aside>
+
     <main class="main">
       <section id="view"></section>
     </main>
@@ -408,7 +288,6 @@
     setTimeout(()=>el.remove(),2800);
   }
 
-  // modal
   const bd=$('#bd'), mt=$('#mt'), mb=$('#mb'), mf=$('#mf');
   const openM=(t,b,f)=>{mt.textContent=t;mb.innerHTML=b;mf.innerHTML=f;bd.classList.add('open')};
   const closeM=()=>bd.classList.remove('open');
@@ -476,7 +355,6 @@
     render();
   };
 
-  // generic helpers
   async function replaceIssue(fid, ownerType, ownerId, type, message){
     await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type',ownerType).eq('owner_id',ownerId);
     if(message){
@@ -525,7 +403,6 @@
     return `<div class="card h"><div><h2 class="ct">${esc(title)}</h2><p class="sub">${esc(msg)}</p></div></div>`;
   }
 
-  // routing
   const view=$('#view');
   const routes={
     login:renderLogin,
@@ -563,7 +440,6 @@
     return routes[r]();
   }
 
-  // LOGIN
   function renderLogin(){
     view.innerHTML=`
       <div class="card h">
@@ -628,7 +504,6 @@
     };
   }
 
-  // FILIERE
   function openFilieraModal(f){
     const isEdit=!!f;
     openM(
@@ -715,7 +590,6 @@
     };
   }
 
-  // DASHBOARD
   async function renderDashboard(){
     const fid=activeFiliera();
     if(!fid){
@@ -795,118 +669,185 @@
       </div>`;
   }
 
-  // BENEFICIARI
-function openBeneficiarioModal(b){
-  const isEdit=!!b;
-  const fid=activeFiliera();
-  if(!fid) return toast('Crea prima una filiera',true);
+  function openBeneficiarioModal(b){
+    const isEdit=!!b;
+    const fid=activeFiliera();
+    if(!fid) return toast('Crea prima una filiera',true);
 
-  const sede=b?.sede_legale||{};
-  const sediOps=Array.isArray(b?.sedi_operative) ? b.sedi_operative : [];
-  const sedeOp=sediOps[0]||{};
+    const sede=b?.sede_legale||{};
+    let sediOpsState=(Array.isArray(b?.sedi_operative) && b.sedi_operative.length
+      ? b.sedi_operative
+      : [{}]
+    ).map(so=>({
+      via: so?.via || '',
+      civico: so?.civico || '',
+      comune: so?.comune || '',
+      provincia: so?.provincia || '',
+      cap: so?.cap || '',
+      foglio: so?.foglio || '',
+      particella: so?.particella || so?.particelle || ''
+    }));
 
-  openM(
-    isEdit?'Modifica beneficiario':'Nuovo beneficiario',
-    `<div class="form">
-      <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
-        <select id="b_dim" class="input">
-          ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
-        </select>
-      </div>
+    openM(
+      isEdit?'Modifica beneficiario':'Nuovo beneficiario',
+      `<div class="form">
+        <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input id="b_rs" class="input" value="${esc(b?.ragione_sociale||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CF</label><input id="b_cf" class="input" value="${esc(b?.cf||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input id="b_piva" class="input" value="${esc(b?.piva||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">PEC</label><input id="b_pec" class="input" value="${esc(b?.pec||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="b_cup" class="input" value="${esc(b?.cup||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">ATECO</label><input id="b_ateco" class="input" value="${esc(b?.ateco||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Telefono</label><input id="b_tel" class="input" value="${esc(b?.telefono||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Email</label><input id="b_email" class="input" value="${esc(b?.email||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Referente</label><input id="b_ref" class="input" value="${esc(b?.referente||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Dimensione</label>
+          <select id="b_dim" class="input">
+            ${['PMI','Grande','Non definita'].map(x=>`<option ${(x===(b?.dimensione||'Non definita'))?'selected':''}>${x}</option>`).join('')}
+          </select>
+        </div>
 
-      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
-      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
-      <div></div>
+        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede legale</b></div>
+        <div><label style="color:var(--muted);font-size:12px">Via</label><input id="sl_via" class="input" value="${esc(sede.via||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Civico</label><input id="sl_civ" class="input" value="${esc(sede.civico||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="sl_com" class="input" value="${esc(sede.comune||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="sl_prov" class="input" value="${esc(sede.provincia||'')}"></div>
+        <div><label style="color:var(--muted);font-size:12px">CAP</label><input id="sl_cap" class="input" value="${esc(sede.cap||'')}"></div>
+        <div></div>
 
-      <div class="full" style="padding-top:8px;border-top:1px solid var(--line)"><b>Sede operativa</b></div>
-      <div><label style="color:var(--muted);font-size:12px">Via</label><input id="so_via" class="input" value="${esc(sedeOp.via||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">N. civico</label><input id="so_civ" class="input" value="${esc(sedeOp.civico||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Comune</label><input id="so_com" class="input" value="${esc(sedeOp.comune||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Provincia</label><input id="so_prov" class="input" value="${esc(sedeOp.provincia||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Foglio</label><input id="so_fog" class="input" value="${esc(sedeOp.foglio||'')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Particella/e</label><input id="so_part" class="input" value="${esc(sedeOp.particella||sedeOp.particelle||'')}"></div>
-    </div>`,
-    `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-     <button class="btn" id="bc">Annulla</button>
-     <button class="btn pri" id="bs">Salva</button>`
-  );
+        <div class="full" style="padding-top:8px;border-top:1px solid var(--line)">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <b>Sedi operative</b>
+            <button type="button" class="btn" id="addOp">＋ Aggiungi sede operativa</button>
+          </div>
+        </div>
 
-  $('#bc').onclick=closeM;
-  $('#bs').onclick=async()=>{
-    const sedeOperativa={
-      via:$('#so_via').value.trim(),
-      civico:$('#so_civ').value.trim(),
-      comune:$('#so_com').value.trim(),
-      provincia:$('#so_prov').value.trim(),
-      foglio:$('#so_fog').value.trim(),
-      particella:$('#so_part').value.trim()
-    };
+        <div class="full">
+          <div id="opsList" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>`,
+      `${isEdit?'<button class="btn danger" id="bdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+       <button class="btn" id="bc">Annulla</button>
+       <button class="btn pri" id="bs">Salva</button>`
+    );
 
-    const hasSedeOperativa=Object.values(sedeOperativa).some(v=>String(v||'').trim()!=='');
-    const payload={
-      filiera_id: fid,
-      ragione_sociale: $('#b_rs').value.trim(),
-      cf: $('#b_cf').value.trim(),
-      piva: $('#b_piva').value.trim(),
-      pec: $('#b_pec').value.trim(),
-      cup: $('#b_cup').value.trim(),
-      ateco: $('#b_ateco').value.trim(),
-      telefono: $('#b_tel').value.trim(),
-      email: $('#b_email').value.trim(),
-      referente: $('#b_ref').value.trim(),
-      dimensione: $('#b_dim').value,
-      sede_legale:{
-        via:$('#sl_via').value.trim(),
-        civico:$('#sl_civ').value.trim(),
-        comune:$('#sl_com').value.trim(),
-        provincia:$('#sl_prov').value.trim(),
-        cap:$('#sl_cap').value.trim()
-      },
-      sedi_operative: hasSedeOperativa ? [sedeOperativa] : []
-    };
-
-    if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
-
-    if(isEdit){
-      const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
-      if(error) return toast('Errore salvataggio',true,error.message);
-      await runIssueChecksForBeneficiary({...payload,id:b.id});
-      toast('Beneficiario aggiornato');
-    }else{
-      const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
-      if(error) return toast('Errore creazione',true,error.message);
-      await runIssueChecksForBeneficiary({...payload,id:data.id});
-      toast('Beneficiario creato');
+    function syncSediOpsFromDom(){
+      sediOpsState = $$('#opsList .op-item').map(box=>({
+        via: $('.op-via', box)?.value.trim() || '',
+        civico: $('.op-civ', box)?.value.trim() || '',
+        comune: $('.op-com', box)?.value.trim() || '',
+        provincia: $('.op-prov', box)?.value.trim() || '',
+        cap: $('.op-cap', box)?.value.trim() || '',
+        foglio: $('.op-fog', box)?.value.trim() || '',
+        particella: $('.op-part', box)?.value.trim() || ''
+      }));
     }
-    closeM();
-    render();
-  };
 
-  if(isEdit){
-    $('#bdel').onclick=async()=>{
-      if(!confirm('Eliminare questo beneficiario?')) return;
-      await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
-      const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
-      if(error) return toast('Errore eliminazione',true,error.message);
-      toast('Beneficiario eliminato');
+    function renderSediOps(){
+      const wrap = $('#opsList');
+      wrap.innerHTML = sediOpsState.map((so,idx)=>`
+        <div class="op-item card" style="padding:12px" data-idx="${idx}">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+            <b>Sede operativa ${idx+1}</b>
+            <button type="button" class="btn danger delOp" data-idx="${idx}" ${sediOpsState.length===1?'disabled':''}>🗑 Rimuovi</button>
+          </div>
+          <div class="form">
+            <div><label style="color:var(--muted);font-size:12px">Via</label><input class="input op-via" value="${esc(so.via||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">N. civico</label><input class="input op-civ" value="${esc(so.civico||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">Comune</label><input class="input op-com" value="${esc(so.comune||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">Provincia</label><input class="input op-prov" value="${esc(so.provincia||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">CAP</label><input class="input op-cap" value="${esc(so.cap||'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">Foglio</label><input class="input op-fog" value="${esc(so.foglio||'')}"></div>
+            <div class="full"><label style="color:var(--muted);font-size:12px">Particella/e</label><input class="input op-part" value="${esc(so.particella||'')}"></div>
+          </div>
+        </div>
+      `).join('');
+
+      $$('.delOp', wrap).forEach(btn=>{
+        btn.onclick=()=>{
+          syncSediOpsFromDom();
+          const idx=Number(btn.dataset.idx);
+          sediOpsState.splice(idx,1);
+          if(!sediOpsState.length) sediOpsState=[{}];
+          renderSediOps();
+        };
+      });
+    }
+
+    $('#addOp').onclick=()=>{
+      syncSediOpsFromDom();
+      sediOpsState.push({
+        via:'',
+        civico:'',
+        comune:'',
+        provincia:'',
+        cap:'',
+        foglio:'',
+        particella:''
+      });
+      renderSediOps();
+    };
+
+    renderSediOps();
+
+    $('#bc').onclick=closeM;
+    $('#bs').onclick=async()=>{
+      syncSediOpsFromDom();
+
+      const sediPulite=sediOpsState.filter(so =>
+        Object.values(so).some(v => String(v||'').trim() !== '')
+      );
+
+      const payload={
+        filiera_id: fid,
+        ragione_sociale: $('#b_rs').value.trim(),
+        cf: $('#b_cf').value.trim(),
+        piva: $('#b_piva').value.trim(),
+        pec: $('#b_pec').value.trim(),
+        cup: $('#b_cup').value.trim(),
+        ateco: $('#b_ateco').value.trim(),
+        telefono: $('#b_tel').value.trim(),
+        email: $('#b_email').value.trim(),
+        referente: $('#b_ref').value.trim(),
+        dimensione: $('#b_dim').value,
+        sede_legale:{
+          via:$('#sl_via').value.trim(),
+          civico:$('#sl_civ').value.trim(),
+          comune:$('#sl_com').value.trim(),
+          provincia:$('#sl_prov').value.trim(),
+          cap:$('#sl_cap').value.trim()
+        },
+        sedi_operative: sediPulite
+      };
+
+      if(!payload.ragione_sociale) return toast('Ragione sociale obbligatoria',true);
+
+      if(isEdit){
+        const {error}=await sb.from('beneficiaries').update(payload).eq('id',b.id);
+        if(error) return toast('Errore salvataggio',true,error.message);
+        await runIssueChecksForBeneficiary({...payload,id:b.id});
+        toast('Beneficiario aggiornato');
+      }else{
+        const {data,error}=await sb.from('beneficiaries').insert(payload).select('id').single();
+        if(error) return toast('Errore creazione',true,error.message);
+        await runIssueChecksForBeneficiary({...payload,id:data.id});
+        toast('Beneficiario creato');
+      }
       closeM();
       render();
     };
+
+    if(isEdit){
+      $('#bdel').onclick=async()=>{
+        if(!confirm('Eliminare questo beneficiario?')) return;
+        await sb.from('issues').delete().eq('filiera_id',fid).eq('owner_type','BENEFICIARIO').eq('owner_id',b.id);
+        const {error}=await sb.from('beneficiaries').delete().eq('id',b.id);
+        if(error) return toast('Errore eliminazione',true,error.message);
+        toast('Beneficiario eliminato');
+        closeM();
+        render();
+      };
+    }
   }
-}
 
   async function renderBeneficiari(){
     const fid=activeFiliera();
@@ -947,7 +888,6 @@ function openBeneficiarioModal(b){
     };
   }
 
-  // CONTI CORRENTI
   function openContoModal(c, beneficiaries){
     const isEdit=!!c;
     const fid=activeFiliera();
@@ -1075,7 +1015,6 @@ function openBeneficiarioModal(b){
     paint();
   }
 
-  // FORNITORI
   function openFornitoreModal(s, beneficiaries){
     const isEdit=!!s;
     const bid=s?.beneficiary_id || beneficiaries[0]?.id;
@@ -1191,7 +1130,6 @@ function openBeneficiarioModal(b){
     paint();
   }
 
-  // INVESTIMENTI
   function fillCategoryOptions(tab, selected){
     const cats=TABLES[tab]||[];
     return cats.map(c=>`<option value="${c.code}" ${c.code===selected?'selected':''}>${esc(c.code)} • ${esc(c.label)}</option>`).join('');
@@ -1403,7 +1341,6 @@ function openBeneficiarioModal(b){
     paint();
   }
 
-  // FATTURE
   function openFatturaModal(invRow, beneficiaries, benMap){
     const isEdit=!!invRow;
     const fid=activeFiliera();
@@ -1551,7 +1488,6 @@ function openBeneficiarioModal(b){
     };
   }
 
-  // BONIFICI
   function openBonificoModal(pay, beneficiaries, benMap){
     const isEdit=!!pay;
     const fid=activeFiliera();
@@ -1685,7 +1621,6 @@ function openBeneficiarioModal(b){
     };
   }
 
-  // DOCUMENTI
   async function renderDocumenti(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Document Center','Crea prima una filiera.'); return; }
@@ -1853,7 +1788,6 @@ function openBeneficiarioModal(b){
     loadRows();
   }
 
-  // ERRORI
   async function renderErrori(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Errori / conformità','Crea prima una filiera.'); return; }
@@ -1880,15 +1814,14 @@ function openBeneficiarioModal(b){
       </div>`;
   }
 
-  // PLACEHOLDERS coerenti con la build precedente
   function renderVarianti(){
     view.innerHTML=`
       <div class="card h">
-        <div><h2 class="ct">Varianti progetto</h2><p class="sub">Sezione ripristinata nel menu. Nel prossimo step possiamo strutturare varianti di filiera e per beneficiario.</p></div>
+        <div><h2 class="ct">Varianti progetto</h2><p class="sub">Sezione predisposta. Possiamo strutturare varianti di filiera e per beneficiario nel prossimo step.</p></div>
         <span class="badge warn">in costruzione</span>
       </div>
       <div style="height:12px"></div>
-      <div class="card" style="padding:14px;color:var(--muted)">Questa build ripristina tutte le sezioni operative principali. Le varianti restano predisposte come nella versione precedente.</div>`;
+      <div class="card" style="padding:14px;color:var(--muted)">Questa build ripristina le sezioni operative principali. Le varianti restano predisposte.</div>`;
   }
 
   function renderSAL(){
@@ -1898,7 +1831,7 @@ function openBeneficiarioModal(b){
         <span class="badge warn">in costruzione</span>
       </div>
       <div style="height:12px"></div>
-      <div class="card" style="padding:14px;color:var(--muted)">Nel prossimo step possiamo aggiungere wizard SAL, checklist documentale e generazione stati avanzamento.</div>`;
+      <div class="card" style="padding:14px;color:var(--muted)">Nel prossimo step possiamo aggiungere wizard SAL e checklist documentale.</div>`;
   }
 
   function renderDossier(){
