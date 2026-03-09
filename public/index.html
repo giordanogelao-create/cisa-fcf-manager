@@ -1896,7 +1896,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
     paint();
   }
 
-  function openFatturaModal(invRow, beneficiaries, benMap, prefill=null){
+  function openFatturaModal(invRow, beneficiaries, benMap, prefill=null, initialFile=null){
   const isEdit=!!invRow;
   const fid=activeFiliera();
   const bid=prefill?.beneficiary_id || invRow?.beneficiary_id || beneficiaries[0]?.id;
@@ -2033,9 +2033,11 @@ for(const t of ['1A','2A','3A','4A','5A']){
   };
 
   fillRelations();
-  calcTotal();
+calcTotal();
 
-  $('#ivc').onclick=closeM;
+if(initialFile) importInvoicePdf(initialFile);
+
+$('#ivc').onclick=closeM;
   $('#ivs').onclick=async()=>{
     const payload={
       filiera_id: fid,
@@ -2129,7 +2131,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
     };
   }
 
-  function openBonificoModal(pay, beneficiaries, benMap, prefill=null){
+  function openBonificoModal(pay, beneficiaries, benMap, prefill=null, initialFile=null){
   const isEdit=!!pay;
   const fid=activeFiliera();
   const bid=prefill?.beneficiary_id || pay?.beneficiary_id || beneficiaries[0]?.id;
@@ -2300,7 +2302,9 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
   fillInvoices();
 
-  $('#pc').onclick=closeM;
+if(initialFile) importPaymentPdf(initialFile);
+
+$('#pc').onclick=closeM;
   $('#ps').onclick=async()=>{
     const payload={
       filiera_id: fid,
@@ -2370,19 +2374,20 @@ for(const t of ['1A','2A','3A','4A','5A']){
       <div class="card">
         <div class="table-wrap">
           <table class="table" id="pt">
-            <thead><tr><th>Data</th><th>Beneficiario</th><th>N. fattura</th><th>Importo</th><th>Banca</th><th>Tipo</th><th>CUP</th></tr></thead>
-            <tbody>
-              ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
-                <td><b>${esc(r.payment_date||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
-                <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
-                <td>${esc(r.invoice_number||'')}</td>
-                <td>${eur(r.amount)}</td>
-                <td>${esc(r.bank||'')}</td>
-                <td>${esc(r.kind||'')}</td>
-                <td><span class="badge">${esc(r.cup||'')}</span></td>
-              </tr>`).join('') || `<tr><td colspan="7" style="color:var(--muted)">Nessun bonifico.</td></tr>`}
-            </tbody>
-          </table>
+  <thead><tr><th>Data</th><th>Beneficiario</th><th>N. fattura</th><th>Importo</th><th>Banca</th><th>Tipo</th><th>CRO/TRN</th><th>CUP</th></tr></thead>
+  <tbody>
+    ${rows.map(r=>`<tr data-id="${r.id}" style="cursor:pointer">
+      <td><b>${esc(r.payment_date||'')}</b> ${issueSet.has(r.id)?'<span class="badge bad">errore</span>':''}</td>
+      <td>${esc(benMap[r.beneficiary_id]?.ragione_sociale||'')}</td>
+      <td>${esc(r.invoice_number||'')}</td>
+      <td>${eur(r.amount)}</td>
+      <td>${esc(r.bank||'')}</td>
+      <td>${esc(r.kind||'')}</td>
+      <td>${r.cro ? `<span class="badge">${esc(r.cro)}</span>` : '—'}</td>
+      <td><span class="badge">${esc(r.cup||'')}</span></td>
+    </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun bonifico.</td></tr>`}
+  </tbody>
+</table>
         </div>
       </div>`;
     $('#pnew').onclick=()=>openBonificoModal(null, beneficiaries, benMap);
