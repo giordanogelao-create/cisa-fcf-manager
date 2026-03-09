@@ -2129,89 +2129,220 @@ for(const t of ['1A','2A','3A','4A','5A']){
     };
   }
 
-  function openBonificoModal(pay, beneficiaries, benMap){
-    const isEdit=!!pay;
-    const fid=activeFiliera();
-    const bid=pay?.beneficiary_id || beneficiaries[0]?.id;
+  function openBonificoModal(pay, beneficiaries, benMap, prefill=null){
+  const isEdit=!!pay;
+  const fid=activeFiliera();
+  const bid=prefill?.beneficiary_id || pay?.beneficiary_id || beneficiaries[0]?.id;
 
-    openM(
-      isEdit?'Modifica bonifico':'Nuovo bonifico',
-      `<div class="form">
-        <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="p_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
-        <div class="full"><label style="color:var(--muted);font-size:12px">Fattura</label><select id="p_invSel" class="input"></select></div>
-        <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="p_invNum" class="input" value="${esc(pay?.invoice_number||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Data bonifico</label><input id="p_date" type="date" class="input" value="${esc(pay?.payment_date||today())}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Importo</label><input id="p_amt" class="input" value="${esc(pay?.amount??'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Banca</label><input id="p_bank" class="input" value="${esc(pay?.bank||'')}"></div>
-        <div><label style="color:var(--muted);font-size:12px">Acconto/Saldo</label><select id="p_kind" class="input">${['Acconto','Saldo'].map(x=>`<option ${x===(pay?.kind||'Saldo')?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="p_cup" class="input" value="${esc(pay?.cup||benMap[bid]?.cup||'')}"></div>
-        <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="p_pnrr" class="input" value="${esc(pay?.pnrr_text||'')}"></div>
-      </div>`,
-      `${isEdit?'<button class="btn danger" id="pdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
-       <button class="btn" id="pc">Annulla</button>
-       <button class="btn pri" id="ps">Salva</button>`
-    );
+  openM(
+    isEdit?'Modifica bonifico':'Nuovo bonifico',
+    `<div class="form">
+      <div class="full card" style="padding:12px;background:rgba(110,168,255,.04)">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <b>Importa PDF bonifico</b>
+            <div style="color:var(--muted);font-size:12px;margin-top:4px">
+              Trascina un PDF qui oppure selezionalo. Se è una scansione verrà tentato OCR lato browser.
+            </div>
+          </div>
+          <label class="btn pri" for="p_pdf">Seleziona PDF</label>
+          <input id="p_pdf" type="file" accept="application/pdf" style="display:none">
+        </div>
+        <div id="p_drop" class="drop" style="margin-top:10px">Trascina qui il PDF del bonifico</div>
+        <div id="p_ai_msg" style="margin-top:8px;color:var(--muted);font-size:12px"></div>
+      </div>
 
-    async function fillInvoices(){
-      const bid=$('#p_ben').value;
-      const invRows=(await sb.from('invoices').select('id,invoice_number,invoice_date,net_amount,vat_amount,cup').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false})).data||[];
-      $('#p_invSel').innerHTML=invRows.map(i=>`<option value="${i.id}">${esc(i.invoice_number)} • ${esc(i.invoice_date)} • ${eur(num(i.net_amount)+num(i.vat_amount))}</option>`).join('') || '<option value="">Nessuna fattura</option>';
-      if(pay?.invoice_id) $('#p_invSel').value=pay.invoice_id;
-      const chosen=invRows.find(x=>x.id===$('#p_invSel').value);
-      if(chosen){
-        $('#p_invNum').value=chosen.invoice_number;
-        $('#p_cup').value=chosen.cup || benMap[bid]?.cup || '';
-      }else{
-        $('#p_cup').value=benMap[bid]?.cup || '';
-      }
+      <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="p_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
+
+      <div class="full"><label style="color:var(--muted);font-size:12px">Fattura</label><select id="p_invSel" class="input"></select></div>
+
+      <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="p_invNum" class="input" value="${esc(prefill?.invoice_number || pay?.invoice_number || '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Data bonifico</label><input id="p_date" type="date" class="input" value="${esc(prefill?.payment_date || pay?.payment_date || today())}"></div>
+
+      <div><label style="color:var(--muted);font-size:12px">Importo</label><input id="p_amt" class="input" value="${esc(prefill?.amount ?? pay?.amount ?? '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Banca</label><input id="p_bank" class="input" value="${esc(prefill?.bank || pay?.bank || '')}"></div>
+
+      <div><label style="color:var(--muted);font-size:12px">Acconto/Saldo</label><select id="p_kind" class="input">${['Acconto','Saldo'].map(x=>`<option ${x===((prefill?.kind)||(pay?.kind)||'Saldo')?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label style="color:var(--muted);font-size:12px">CRO / TRN</label><input id="p_cro" class="input" value="${esc(prefill?.cro || pay?.cro || '')}"></div>
+
+      <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="p_cup" class="input" value="${esc(prefill?.cup || pay?.cup || benMap[bid]?.cup || '')}"></div>
+      <div class="full"><label style="color:var(--muted);font-size:12px">Dicitura PNRR</label><input id="p_pnrr" class="input" value="${esc(prefill?.pnrr_text || pay?.pnrr_text || '')}"></div>
+    </div>`,
+    `${isEdit?'<button class="btn danger" id="pdel" style="margin-right:auto">🗑 Elimina</button>':'<span></span>'}
+     <button class="btn" id="pc">Annulla</button>
+     <button class="btn pri" id="ps">Salva</button>`
+  );
+
+  let currentInvoices=[];
+
+  async function fillInvoices(preferredInvoiceId=null){
+    const currentBid=$('#p_ben').value;
+
+    const invRows=(await sb
+      .from('invoices')
+      .select('id,beneficiary_id,invoice_number,invoice_date,net_amount,vat_amount,cup')
+      .eq('filiera_id',fid)
+      .eq('beneficiary_id',currentBid)
+      .order('created_at',{ascending:false})
+    ).data || [];
+
+    currentInvoices=invRows;
+
+    $('#p_invSel').innerHTML =
+      `<option value="">Seleziona fattura / nessuna associazione</option>` +
+      invRows.map(i=>`<option value="${i.id}">${esc(i.invoice_number)} • ${esc(i.invoice_date)} • ${eur(num(i.net_amount)+num(i.vat_amount))}</option>`).join('');
+
+    const wantedId = preferredInvoiceId || prefill?.invoice_id || pay?.invoice_id || '';
+    if(wantedId && invRows.some(x=>x.id===wantedId)){
+      $('#p_invSel').value=wantedId;
     }
 
-    $('#p_ben').onchange=fillInvoices;
-    $('#p_invSel').onchange=fillInvoices;
-    fillInvoices();
+    syncFieldsFromSelectedInvoice(false);
 
-    $('#pc').onclick=closeM;
-    $('#ps').onclick=async()=>{
-      const payload={
-        filiera_id: fid,
-        beneficiary_id: $('#p_ben').value,
-        invoice_id: $('#p_invSel').value || null,
-        invoice_number: $('#p_invNum').value.trim(),
-        payment_date: $('#p_date').value,
-        amount: num($('#p_amt').value),
-        bank: $('#p_bank').value.trim(),
-        kind: $('#p_kind').value,
-        pnrr_text: $('#p_pnrr').value.trim(),
-        cup: $('#p_cup').value.trim()
-      };
+    if(!$('#p_cup').value){
+      $('#p_cup').value=benMap[currentBid]?.cup || '';
+    }
+  }
 
-      if(isEdit){
-        const {error}=await sb.from('payments').update(payload).eq('id',pay.id);
-        if(error) return toast('Errore salvataggio',true,error.message);
-        const missing=await runIssueChecksForPayment({...payload,id:pay.id});
-        toast(missing.length?'Bonifico salvato con errori':'Bonifico aggiornato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
-      }else{
-        const {data,error}=await sb.from('payments').insert(payload).select('id').single();
-        if(error) return toast('Errore creazione',true,error.message);
-        const missing=await runIssueChecksForPayment({...payload,id:data.id});
-        toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+  function syncFieldsFromSelectedInvoice(overwriteInvoiceNumber=true){
+    const currentBid=$('#p_ben').value;
+    const chosen=currentInvoices.find(x=>x.id===$('#p_invSel').value);
+
+    if(chosen){
+      if(overwriteInvoiceNumber || !$('#p_invNum').value.trim()){
+        $('#p_invNum').value=chosen.invoice_number || '';
       }
-      closeM();
-      render();
+      if(!$('#p_cup').value.trim() || $('#p_cup').value===benMap[currentBid]?.cup){
+        $('#p_cup').value=chosen.cup || benMap[currentBid]?.cup || '';
+      }
+
+      const total = Number((num(chosen.net_amount)+num(chosen.vat_amount)).toFixed(2));
+      const amount = num($('#p_amt').value);
+
+      if(amount > 0){
+        if(Math.abs(total - amount) < 0.01){
+          $('#p_kind').value='Saldo';
+        }else if(amount < total){
+          $('#p_kind').value='Acconto';
+        }
+      }
+    }else{
+      if(!$('#p_cup').value.trim()){
+        $('#p_cup').value=benMap[currentBid]?.cup || '';
+      }
+    }
+  }
+
+  async function importPaymentPdf(file){
+    try{
+      $('#p_ai_msg').textContent='Analisi PDF in corso...';
+
+      const ctx=await getPaymentImportContext(fid);
+      const res=await extractTextFromPdfWithFallback(file);
+      const parsed=extractPaymentFields(res.text);
+
+      const beneficiary=guessBeneficiaryFromText(res.text, ctx.beneficiaries);
+
+      if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
+        $('#p_ben').value=beneficiary.id;
+        await fillInvoices();
+      }else{
+        await fillInvoices();
+      }
+
+      if(parsed.payment_date) $('#p_date').value=parsed.payment_date;
+      if(parsed.amount) $('#p_amt').value=String(parsed.amount);
+      if(parsed.bank) $('#p_bank').value=parsed.bank;
+      if(parsed.kind) $('#p_kind').value=parsed.kind;
+      if(parsed.cro) $('#p_cro').value=parsed.cro;
+      if(parsed.invoice_number) $('#p_invNum').value=parsed.invoice_number;
+      if(parsed.cup) $('#p_cup').value=parsed.cup;
+      if(parsed.pnrr_text) $('#p_pnrr').value=parsed.pnrr_text;
+
+      const guessedInvoice=guessInvoiceForPayment(
+        parsed,
+        currentInvoices,
+        $('#p_ben').value
+      );
+
+      if(guessedInvoice && [...$('#p_invSel').options].some(o=>o.value===guessedInvoice.id)){
+        $('#p_invSel').value=guessedInvoice.id;
+        syncFieldsFromSelectedInvoice(false);
+      }else{
+        syncFieldsFromSelectedInvoice(false);
+      }
+
+      $('#p_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
+    }catch(err){
+      console.error(err);
+      $('#p_ai_msg').textContent='Analisi PDF non riuscita. Puoi comunque compilare i campi manualmente.';
+      toast('Analisi PDF non riuscita', true, err.message || 'Errore sconosciuto');
+    }
+  }
+
+  $('#p_ben').onchange=()=>fillInvoices();
+  $('#p_invSel').onchange=()=>syncFieldsFromSelectedInvoice(true);
+
+  const handlePaymentFiles=(files)=>{
+    const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+    if(file) importPaymentPdf(file);
+    else toast('Seleziona un file PDF',true);
+  };
+
+  $('#p_pdf').onchange=(e)=>handlePaymentFiles(e.target.files);
+  $('#p_drop').ondragover=(e)=>{ e.preventDefault(); $('#p_drop').classList.add('drag'); };
+  $('#p_drop').ondragleave=()=>$('#p_drop').classList.remove('drag');
+  $('#p_drop').ondrop=(e)=>{
+    e.preventDefault();
+    $('#p_drop').classList.remove('drag');
+    handlePaymentFiles(e.dataTransfer.files);
+  };
+
+  fillInvoices();
+
+  $('#pc').onclick=closeM;
+  $('#ps').onclick=async()=>{
+    const payload={
+      filiera_id: fid,
+      beneficiary_id: $('#p_ben').value,
+      invoice_id: $('#p_invSel').value || null,
+      invoice_number: $('#p_invNum').value.trim(),
+      payment_date: $('#p_date').value,
+      amount: num($('#p_amt').value),
+      bank: $('#p_bank').value.trim(),
+      kind: $('#p_kind').value,
+      cro: $('#p_cro').value.trim(),
+      pnrr_text: $('#p_pnrr').value.trim(),
+      cup: $('#p_cup').value.trim()
     };
 
     if(isEdit){
-      $('#pdel').onclick=async()=>{
-        if(!confirm('Eliminare questo bonifico?')) return;
-        await replaceIssue(fid,'BONIFICO',pay.id,'BONIFICO','');
-        const {error}=await sb.from('payments').delete().eq('id',pay.id);
-        if(error) return toast('Errore eliminazione',true,error.message);
-        toast('Bonifico eliminato');
-        closeM();
-        render();
-      };
+      const {error}=await sb.from('payments').update(payload).eq('id',pay.id);
+      if(error) return toast('Errore salvataggio',true,error.message);
+      const missing=await runIssueChecksForPayment({...payload,id:pay.id});
+      toast(missing.length?'Bonifico salvato con errori':'Bonifico aggiornato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+    }else{
+      const {data,error}=await sb.from('payments').insert(payload).select('id').single();
+      if(error) return toast('Errore creazione',true,error.message);
+      const missing=await runIssueChecksForPayment({...payload,id:data.id});
+      toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
     }
+    closeM();
+    render();
+  };
+
+  if(isEdit){
+    $('#pdel').onclick=async()=>{
+      if(!confirm('Eliminare questo bonifico?')) return;
+      await replaceIssue(fid,'BONIFICO',pay.id,'BONIFICO','');
+      const {error}=await sb.from('payments').delete().eq('id',pay.id);
+      if(error) return toast('Errore eliminazione',true,error.message);
+      toast('Bonifico eliminato');
+      closeM();
+      render();
+    };
   }
+}
 
   async function renderBonifici(){
     const fid=activeFiliera();
