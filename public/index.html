@@ -2139,11 +2139,33 @@ $('#ivc').onclick=closeM;
   </div>
 </div>`;
     $('#ivnew').onclick=()=>openFatturaModal(null, beneficiaries, benMap);
-    $('#ivt').onclick=(e)=>{
-      const tr=e.target.closest('tr[data-id]');
-      if(!tr) return;
-      openFatturaModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
-    };
+
+const handleInvoicePageFiles=(files)=>{
+  const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+  if(!file) return toast('Seleziona un file PDF', true);
+  openFatturaModal(null, beneficiaries, benMap, null, file);
+};
+
+$('#iv_page_pdf').onchange=(e)=>handleInvoicePageFiles(e.target.files);
+
+$('#iv_page_drop').addEventListener('dragover',e=>{
+  e.preventDefault();
+  $('#iv_page_drop').classList.add('drag');
+});
+$('#iv_page_drop').addEventListener('dragleave',()=>{
+  $('#iv_page_drop').classList.remove('drag');
+});
+$('#iv_page_drop').addEventListener('drop',e=>{
+  e.preventDefault();
+  $('#iv_page_drop').classList.remove('drag');
+  handleInvoicePageFiles(e.dataTransfer.files);
+});
+
+$('#ivt').onclick=(e)=>{
+  const tr=e.target.closest('tr[data-id]');
+  if(!tr) return;
+  openFatturaModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
+};
   }
 
   function openBonificoModal(pay, beneficiaries, benMap, prefill=null, initialFile=null){
