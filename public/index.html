@@ -1941,6 +1941,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
   const isEdit=!!invRow;
   const fid=activeFiliera();
   const bid=prefill?.beneficiary_id || invRow?.beneficiary_id || beneficiaries[0]?.id;
+    let importedPdfFile = initialFile || null;
 
   openM(
     isEdit?'Modifica fattura':'Nuova fattura',
@@ -2059,10 +2060,11 @@ for(const t of ['1A','2A','3A','4A','5A']){
   $('#iv_vat').oninput=calcTotal;
 
   const handleInvoiceFiles=(files)=>{
-    const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
-    if(file) importInvoicePdf(file);
-    else toast('Seleziona un file PDF',true);
-  };
+  const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+  if(!file) return toast('Seleziona un file PDF',true);
+  importedPdfFile = file;
+  importInvoicePdf(file);
+};
 
   $('#iv_pdf').onchange=(e)=>handleInvoiceFiles(e.target.files);
   $('#iv_drop').ondragover=(e)=>{ e.preventDefault(); $('#iv_drop').classList.add('drag'); };
@@ -2080,35 +2082,57 @@ if(initialFile) importInvoicePdf(initialFile);
 
 $('#ivc').onclick=closeM;
   $('#ivs').onclick=async()=>{
-    const payload={
-      filiera_id: fid,
-      beneficiary_id: $('#iv_ben').value,
-      supplier_id: $('#iv_sup').value || null,
-      investment_id: $('#iv_inv').value || null,
-      invoice_number: $('#iv_num').value.trim(),
-      invoice_date: $('#iv_date').value,
-      pnrr_text: $('#iv_pnrr').value.trim(),
-      cup: $('#iv_cup').value.trim(),
-      net_amount: num($('#iv_net').value),
-      vat_amount: num($('#iv_vat').value),
-      withholding: num($('#iv_with').value),
-      payment_type: $('#iv_pay').value
-    };
-
-    if(isEdit){
-      const {error}=await sb.from('invoices').update(payload).eq('id',invRow.id);
-      if(error) return toast('Errore salvataggio',true,error.message);
-      const missing=await runIssueChecksForInvoice({...payload,id:invRow.id});
-      toast(missing.length?'Fattura salvata con errori':'Fattura aggiornata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
-    }else{
-      const {data,error}=await sb.from('invoices').insert(payload).select('id').single();
-      if(error) return toast('Errore creazione',true,error.message);
-      const missing=await runIssueChecksForInvoice({...payload,id:data.id});
-      toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
-    }
-    closeM();
-    render();
+  const payload={
+    filiera_id: fid,
+    beneficiary_id: $('#iv_ben').value,
+    supplier_id: $('#iv_sup').value || null,
+    investment_id: $('#iv_inv').value || null,
+    invoice_number: $('#iv_num').value.trim(),
+    invoice_date: $('#iv_date').value,
+    pnrr_text: $('#iv_pnrr').value.trim(),
+    cup: $('#iv_cup').value.trim(),
+    net_amount: num($('#iv_net').value),
+    vat_amount: num($('#iv_vat').value),
+    withholding: num($('#iv_with').value),
+    payment_type: $('#iv_pay').value
   };
+
+  let savedId=null;
+
+  if(isEdit){
+    const {error}=await sb.from('invoices').update(payload).eq('id',invRow.id);
+    if(error) return toast('Errore salvataggio',true,error.message);
+    savedId=invRow.id;
+    const missing=await runIssueChecksForInvoice({...payload,id:invRow.id});
+    toast(missing.length?'Fattura salvata con errori':'Fattura aggiornata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+  }else{
+    const {data,error}=await sb.from('invoices').insert(payload).select('id').single();
+    if(error) return toast('Errore creazione',true,error.message);
+    savedId=data.id;
+    const missing=await runIssueChecksForInvoice({...payload,id:data.id});
+    toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+  }
+
+  if(importedPdfFile){
+    try{
+      await saveImportedPdfToDocuments({
+        file: importedPdfFile,
+        filieraId: fid,
+        beneficiaryId: payload.beneficiary_id,
+        docType: 'FATTURA',
+        cup: payload.cup,
+        pnrrText: payload.pnrr_text,
+        note: `Import automatico da sezione Fatture${savedId ? ` • invoice_id: ${savedId}` : ''}${payload.invoice_number ? ` • n. ${payload.invoice_number}` : ''}`
+      });
+    }catch(err){
+      console.error(err);
+      toast('PDF letto ma non archiviato', true, err.message || 'Errore upload documents');
+    }
+  }
+
+  closeM();
+  render();
+};
 
   if(isEdit){
     $('#ivdel').onclick=async()=>{
