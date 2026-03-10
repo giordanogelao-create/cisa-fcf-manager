@@ -2056,10 +2056,10 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       $('#iv_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
     }catch(err){
-      console.error(err);
-      $('#iv_ai_msg').textContent='Analisi PDF non riuscita. Puoi comunque compilare i campi manualmente.';
-      toast('Analisi PDF non riuscita', true, err.message || 'Errore sconosciuto');
-    }
+  console.error(err);
+  $('#iv_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
+  toast('Analisi PDF non riuscita', true, err?.message || 'Errore sconosciuto');
+}
   }
 
   $('#iv_ben').onchange=fillRelations;
