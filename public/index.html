@@ -892,12 +892,46 @@
       /\briepiloghi\s+iva\s+e\s+totali\b([\s\S]{0,500}?)(?:\bmodalit[aà]\s+pagamento\b|\bpage\b|$)/i
     ]);
 
-    const summaryAmounts=extractAmountsFromText(summaryBlock);
-    const tail=summaryAmounts.slice(-3);
+        const summaryAmounts=extractAmountsFromText(summaryBlock);
+    let summaryNet=0;
+    let summaryVat=0;
+    let summaryTotal=0;
 
-    if(!net && tail[0]) net=tail[0];
-    if(!vat && tail[1]) vat=tail[1];
-    if(!total && tail[2]) total=tail[2];
+    if(summaryAmounts.length >= 4){
+      const tail=summaryAmounts.slice(-3);
+      summaryNet=tail[0] || 0;
+      summaryVat=tail[1] || 0;
+      summaryTotal=tail[2] || 0;
+    }else if(summaryAmounts.length === 3){
+      const [a,b,c]=summaryAmounts;
+      if(a <= 100 && b > 100 && c > 100){
+        summaryNet=b;
+        summaryVat=c;
+      }else{
+        summaryNet=a || 0;
+        summaryVat=b || 0;
+        summaryTotal=c || 0;
+      }
+    }else if(summaryAmounts.length === 2){
+      const [a,b]=summaryAmounts;
+      if(a > 100 && b > 100){
+        summaryNet=a;
+        summaryVat=b;
+      }
+    }
+
+    const suspiciousNet = !net || net <= 100;
+    const suspiciousVat = !vat || (summaryNet && vat === summaryNet);
+
+    if(summaryNet && summaryVat && (suspiciousNet || suspiciousVat)){
+      net=summaryNet;
+      vat=summaryVat;
+      if(summaryTotal) total=summaryTotal;
+    }else{
+      if(!net && summaryNet) net=summaryNet;
+      if(!vat && summaryVat) vat=summaryVat;
+      if(!total && summaryTotal) total=summaryTotal;
+    }
 
     const cup=firstMatch(multiline,[
       /\bCUP\s*[:\-]?\s*([A-Z0-9]{15})\b/i
