@@ -2495,24 +2495,28 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       const headerText=normalizeTextKeepLines(sourceText);
 
-      if(!parsed.invoice_number){
+            if(!parsed.invoice_number){
         parsed.invoice_number=firstMatch(headerText,[
-          /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
-          /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
-          /\bfattura\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
-          /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i
+          /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+          /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+          /\bfattura\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+          /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i
         ]) || '';
       }
 
-            const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
+      const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
       const fileInvoiceNumber=fileInvoiceMatch ? fileInvoiceMatch[1] : '';
 
-      const suspiciousInvoiceNumber =
-        !parsed.invoice_number ||
-        (/^\d{1,4}$/.test(parsed.invoice_number) && !/[\/.-]/.test(parsed.invoice_number));
+      const normalizedInvoiceNumber=(parsed.invoice_number || '').trim();
 
-      if(suspiciousInvoiceNumber && fileInvoiceNumber){
-        parsed.invoice_number=fileInvoiceNumber;
+      const suspiciousInvoiceNumber =
+        !normalizedInvoiceNumber ||
+        /^[A-ZÀ-Úa-zà-ú]+$/.test(normalizedInvoiceNumber) ||
+        /^(?:differita|immediata|elettronica|accompagnatoria|td\d+|fattura|documento)$/i.test(normalizedInvoiceNumber) ||
+        (/^\d{1,4}$/.test(normalizedInvoiceNumber) && !/[\/.-]/.test(normalizedInvoiceNumber));
+
+      if(suspiciousInvoiceNumber){
+        parsed.invoice_number=fileInvoiceNumber || '';
       }
 
       if(!parsed.invoice_date){
