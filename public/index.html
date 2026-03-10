@@ -2504,9 +2504,15 @@ for(const t of ['1A','2A','3A','4A','5A']){
         ]) || '';
       }
 
-      if(!parsed.invoice_number){
-        const m=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
-        if(m) parsed.invoice_number=m[1];
+            const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
+      const fileInvoiceNumber=fileInvoiceMatch ? fileInvoiceMatch[1] : '';
+
+      const suspiciousInvoiceNumber =
+        !parsed.invoice_number ||
+        (/^\d{1,4}$/.test(parsed.invoice_number) && !/[\/.-]/.test(parsed.invoice_number));
+
+      if(suspiciousInvoiceNumber && fileInvoiceNumber){
+        parsed.invoice_number=fileInvoiceNumber;
       }
 
       if(!parsed.invoice_date){
