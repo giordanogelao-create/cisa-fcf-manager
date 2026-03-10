@@ -2378,14 +2378,27 @@ for(const t of ['1A','2A','3A','4A','5A']){
         await fillRelations();
       }
 
-      if(parsed.invoice_number) $('#iv_num').value=parsed.invoice_number;
+            if(parsed.invoice_number) $('#iv_num').value=parsed.invoice_number;
       if(parsed.invoice_date) $('#iv_date').value=parsed.invoice_date;
       if(parsed.pnrr_text) $('#iv_pnrr').value=parsed.pnrr_text;
       if(parsed.cup) $('#iv_cup').value=parsed.cup;
-      if(parsed.net_amount) $('#iv_net').value=String(parsed.net_amount);
+      if(parsed.net_amount || parsed.net_amount===0) $('#iv_net').value=String(parsed.net_amount);
       if(parsed.vat_amount || parsed.vat_amount===0) $('#iv_vat').value=String(parsed.vat_amount);
 
-      if(supplier){
+      const explicitSupplierName = extractSupplierNameFromInvoiceText(res.text);
+      const supplierWanted = normalizeForMatch(explicitSupplierName || supplier?.name || '');
+
+      const supplierOption = [...$('#iv_sup').options].find(o=>{
+        const label = normalizeForMatch(o.textContent || '');
+        return supplierWanted && (
+          label === supplierWanted ||
+          label.includes(supplierWanted) ||
+          supplierWanted.includes(label)
+        );
+      });
+
+      if(supplierOption) $('#iv_sup').value = supplierOption.value;
+      else if(supplier){
         const hasOption=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
         if(hasOption) $('#iv_sup').value=supplier.id;
       }
