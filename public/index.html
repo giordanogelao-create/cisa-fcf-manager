@@ -257,17 +257,24 @@
   }
 
   async function ensurePdfJs(){
-    if(window.pdfjsLib) return window.pdfjsLib;
-    if(!pdfLibPromise){
-      pdfLibPromise=(async()=>{
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.js');
-        if(!window.pdfjsLib) throw new Error('PDF.js non disponibile');
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js';
-        return window.pdfjsLib;
-      })();
-    }
-    return pdfLibPromise;
+  if(window.pdfjsLib?.getDocument) return window.pdfjsLib;
+
+  if(!pdfLibPromise){
+    pdfLibPromise=(async()=>{
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+
+      const lib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+      if(!lib?.getDocument) throw new Error('PDF.js non disponibile');
+
+      lib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      return lib;
+    })();
   }
+
+  return pdfLibPromise;
+}
 
   async function ensureTesseract(){
     if(window.Tesseract) return window.Tesseract;
