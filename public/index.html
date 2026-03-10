@@ -2489,30 +2489,51 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const fid=activeFiliera();
       const ctx=await getInvoiceImportContext(fid);
             const res=await extractTextFromPdfWithFallback(file);
-      const parsed=extractInvoiceFields([file?.name || '', res.text].filter(Boolean).join('\n'));
-
       const filename=file?.name || '';
+      const sourceText=[filename, res.pdfText || '', res.ocrText || '', res.text || ''].filter(Boolean).join('\n');
+      const parsed=extractInvoiceFields(sourceText);
+
+      const headerText=normalizeTextKeepLines(sourceText);
+
+      if(!parsed.invoice_number){
+        parsed.invoice_number=firstMatch(headerText,[
+          /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
+          /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
+          /\bfattura\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i,
+          /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i
+        ]) || '';
+      }
+
+      if(!parsed.invoice_number){
+        const m=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
+        if(m) parsed.invoice_number=m[1];
+      }
+
+      if(!parsed.invoice_date){
+        parsed.invoice_date=toIsoDateGuess(firstMatch(headerText,[
+          /\bdata\s+documento\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+          /\bdata\s+fattura\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+          /\bfattura\s+del\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+          /\bemessa\s+il\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
+        ]));
+      }
 
       if(!parsed.invoice_date){
         const m=filename.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
         if(m) parsed.invoice_date=`${m[1]}-${m[2]}-${m[3]}`;
       }
 
-      if(!parsed.invoice_number){
-        const m=filename.match(/\bF\.\s*(\d{5,})\b/i);
-        if(m) parsed.invoice_number=m[1];
-      }
-
       if((!parsed.net_amount || parsed.net_amount===0)){
-        const m=res.text.match(/\bspesa\s+di\s+€?\s*(\d{1,3}(?:\.\d{3})*,\d{2})\b/i);
+        const m=sourceText.match(/\bspesa\s+di\s+€?\s*(\d{1,3}(?:\.\d{3})*,\d{2})\b/i);
         if(m) parsed.net_amount=parseItalianAmount(m[1]);
       }
 
-      const isLikelyCeliInvoice =
-        /\bCELI\b/i.test(filename) ||
-        /\bCELI\b/i.test(res.text);
+      const isLikelySimple22Vat =
+        /\b22,00\b/.test(sourceText) ||
+        /\b22%\b/.test(sourceText) ||
+        /\baliquota\s+iva\s+22\b/i.test(sourceText);
 
-      if((!parsed.vat_amount || parsed.vat_amount===0) && parsed.net_amount && isLikelyCeliInvoice){
+      if((!parsed.vat_amount || parsed.vat_amount===0) && parsed.net_amount && isLikelySimple22Vat){
         parsed.vat_amount=Number((parsed.net_amount * 0.22).toFixed(2));
       }
 
@@ -2520,9 +2541,9 @@ for(const t of ['1A','2A','3A','4A','5A']){
         parsed.total_amount=Number((parsed.net_amount + (parsed.vat_amount || 0)).toFixed(2));
       }
 
-      const beneficiary=guessBeneficiaryFromText(res.text, ctx.beneficiaries);
-      const supplier=guessSupplierFromText(res.text, ctx.suppliers);
-      const investment=guessInvestmentFromText(res.text, ctx.investments);
+      const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
+      const supplier=guessSupplierFromText(sourceText, ctx.suppliers);
+      const investment=guessInvestmentFromText(sourceText, ctx.investments);
 
       if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
         $('#iv_ben').value=beneficiary.id;
