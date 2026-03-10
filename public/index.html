@@ -710,7 +710,7 @@
     return normalizeTextKeepLines(pages.join('\n\n'));
   }
 
-  async function ocrPdfFile(file, maxPages=3){
+    async function ocrPdfFile(file, maxPages=3){
     const pdfjsLib=await ensurePdfJs();
     const Tesseract=await ensureTesseract();
 
@@ -722,19 +722,21 @@
 
     for(let p=1;p<=total;p++){
       const page=await pdf.getPage(p);
-      const viewport=page.getViewport({scale:2});
+      const viewport=page.getViewport({scale:2.25});
       const canvas=document.createElement('canvas');
       const ctx=canvas.getContext('2d');
+
       canvas.width=Math.ceil(viewport.width);
       canvas.height=Math.ceil(viewport.height);
+
       await page.render({canvasContext:ctx,viewport}).promise;
 
       const {data:{text}}=await Tesseract.recognize(canvas,'ita+eng');
-      out.push(text||'');
+      out.push(text || '');
       await sleep(50);
     }
 
-    return normalizeText(out.join('\n'));
+    return normalizeTextKeepLines(out.join('\n\n'));
   }
 
   async function extractTextFromPdfWithFallback(file){
