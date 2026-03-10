@@ -2490,48 +2490,83 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const ctx=await getInvoiceImportContext(fid);
             const res=await extractTextFromPdfWithFallback(file);
       const filename=file?.name || '';
-      const sourceText=[filename, res.pdfText || '', res.ocrText || '', res.text || ''].filter(Boolean).join('\n');
+      const pdfText=res.pdfText || '';
+      const ocrText=res.ocrText || '';
+      const sourceText=[filename, pdfText, ocrText, res.text || ''].filter(Boolean).join('\n');
       const parsed=extractInvoiceFields(sourceText);
 
       const headerText=normalizeTextKeepLines(sourceText);
+      const pdfHeaderText=normalizeTextKeepLines(pdfText);
+      const ocrHeaderText=normalizeTextKeepLines(ocrText);
 
-            if(!parsed.invoice_number){
-        parsed.invoice_number=firstMatch(headerText,[
-          /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-          /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-          /\bfattura\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-          /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i
-        ]) || '';
-      }
+      const invoicePatterns=[
+        /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+        /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+        /\bfattura\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
+        /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i
+      ];
+
+      const invoiceCandidates=[];
+      const pushInvoiceCandidate=(value, score)=>{
+        const raw=String(value || '').trim();
+        if(!raw) return;
+
+        if(
+          /^[A-ZÀ-Úa-zà-ú]+$/.test(raw) ||
+          /^(?:differita|immediata|elettronica|accompagnatoria|td\d+|fattura|documento)$/i.test(raw) ||
+          !/\d/.test(raw)
+        ){
+          return;
+        }
+
+        let finalScore=score;
+        if(/^\d{1,4}$/.test(raw) && !/[\/.-]/.test(raw)) finalScore-=35;
+        if(/[\/.-]/.test(raw)) finalScore+=5;
+
+        invoiceCandidates.push({ value: raw, score: finalScore });
+      };
+
+      pushInvoiceCandidate(firstMatch(pdfHeaderText, invoicePatterns), 100);
+      pushInvoiceCandidate(firstMatch(headerText, invoicePatterns), 92);
+      pushInvoiceCandidate(parsed.invoice_number, 90);
+      pushInvoiceCandidate(firstMatch(ocrHeaderText, invoicePatterns), 70);
 
       const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
       const fileInvoiceNumber=fileInvoiceMatch ? fileInvoiceMatch[1] : '';
+      pushInvoiceCandidate(fileInvoiceNumber, 85);
 
-      const normalizedInvoiceNumber=(parsed.invoice_number || '').trim();
+      invoiceCandidates.sort((a,b)=>(b.score-a.score) || (b.value.length-a.value.length));
+      parsed.invoice_number=invoiceCandidates[0]?.value || '';
 
-      const suspiciousInvoiceNumber =
-        !normalizedInvoiceNumber ||
-        /^[A-ZÀ-Úa-zà-ú]+$/.test(normalizedInvoiceNumber) ||
-        /^(?:differita|immediata|elettronica|accompagnatoria|td\d+|fattura|documento)$/i.test(normalizedInvoiceNumber) ||
-        (/^\d{1,4}$/.test(normalizedInvoiceNumber) && !/[\/.-]/.test(normalizedInvoiceNumber));
+      const datePatterns=[
+        /\bdata\s+documento\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\bdata\s+fattura\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\bfattura\s+del\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\bemessa\s+il\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
+      ];
 
-      if(suspiciousInvoiceNumber){
-        parsed.invoice_number=fileInvoiceNumber || '';
+      const dateCandidates=[];
+      const pushDateCandidate=(value, score)=>{
+        const iso=toIsoDateGuess(value);
+        if(!iso) return;
+        dateCandidates.push({ value: iso, score });
+      };
+
+      pushDateCandidate(firstMatch(pdfHeaderText, datePatterns), 100);
+      pushDateCandidate(firstMatch(headerText, datePatterns), 92);
+      pushDateCandidate(parsed.invoice_date, 90);
+      pushDateCandidate(firstMatch(ocrHeaderText, datePatterns), 70);
+
+      const fileDateMatch=filename.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+      if(fileDateMatch){
+        dateCandidates.push({
+          value:`${fileDateMatch[1]}-${fileDateMatch[2]}-${fileDateMatch[3]}`,
+          score:80
+        });
       }
 
-      if(!parsed.invoice_date){
-        parsed.invoice_date=toIsoDateGuess(firstMatch(headerText,[
-          /\bdata\s+documento\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-          /\bdata\s+fattura\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-          /\bfattura\s+del\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-          /\bemessa\s+il\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
-        ]));
-      }
-
-      if(!parsed.invoice_date){
-        const m=filename.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
-        if(m) parsed.invoice_date=`${m[1]}-${m[2]}-${m[3]}`;
-      }
+      dateCandidates.sort((a,b)=>b.score-a.score);
+      parsed.invoice_date=dateCandidates[0]?.value || '';
 
       if((!parsed.net_amount || parsed.net_amount===0)){
         const m=sourceText.match(/\bspesa\s+di\s+€?\s*(\d{1,3}(?:\.\d{3})*,\d{2})\b/i);
