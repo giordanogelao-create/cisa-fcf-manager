@@ -739,42 +739,41 @@
     return normalizeTextKeepLines(out.join('\n\n'));
   }
 
-  async function extractTextFromPdfWithFallback(file){
-  let pdfText='';
-  let ocrText='';
-  let usedOcr=false;
+    async function extractTextFromPdfWithFallback(file){
+    let pdfText='';
+    let ocrText='';
 
-  try{
-    pdfText=await extractPdfText(file);
-  }catch(err){
-    console.error(err);
-  }
-
-  const normalizedPdfText=normalizeText(pdfText);
-
-  const missingStructuredInvoiceData =
-    !/numero\s+documento/i.test(normalizedPdfText) ||
-    !/data\s+documento/i.test(normalizedPdfText) ||
-    !/totale\s+documento/i.test(normalizedPdfText);
-
-  const likelyScannedOrMixed =
-    !normalizedPdfText ||
-    normalizedPdfText.length < 120 ||
-    missingStructuredInvoiceData;
-
-  if(likelyScannedOrMixed){
     try{
-      usedOcr=true;
-      ocrText=await ocrPdfFile(file,2);
+      pdfText=normalizeTextKeepLines(await extractPdfText(file));
     }catch(err){
       console.error(err);
     }
+
+    const signalScore=countStructuredDocumentSignals(pdfText);
+    const amountCount=extractAmountsFromText(pdfText).length;
+    const hasDate=/\b\d{2}[\/.\-]\d{2}[\/.\-]\d{4}\b/.test(pdfText);
+
+    const needsOcr =
+      !pdfText ||
+      pdfText.length < 160 ||
+      signalScore < 3 ||
+      (hasDate && amountCount === 0) ||
+      (/numero\s+documento/i.test(pdfText) && !/\b\d{5,}\b/.test(pdfText)) ||
+      (/riepiloghi\s+iva\s+e\s+totali/i.test(pdfText) && amountCount < 3);
+
+    if(needsOcr){
+      try{
+        ocrText=normalizeTextKeepLines(await ocrPdfFile(file,3));
+      }catch(err){
+        console.error(err);
+      }
+    }
+
+    const usedOcr=!!ocrText;
+    const text=mergeExtractedTextBlocks(pdfText, ocrText);
+
+    return { text, usedOcr, pdfText, ocrText };
   }
-
-  const mergedText=normalizeText([normalizedPdfText, ocrText].filter(Boolean).join('\n'));
-
-  return { text: mergedText, usedOcr };
-}
 
   function extractInvoiceFields(text){
   const t=normalizeText(text);
