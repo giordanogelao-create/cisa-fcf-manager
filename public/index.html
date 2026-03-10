@@ -2508,8 +2508,16 @@ for(const t of ['1A','2A','3A','4A','5A']){
         if(m) parsed.net_amount=parseItalianAmount(m[1]);
       }
 
-      if((!parsed.total_amount || parsed.total_amount===0) && parsed.net_amount && parsed.vat_amount){
-        parsed.total_amount=Number((parsed.net_amount + parsed.vat_amount).toFixed(2));
+      const isLikelyCeliInvoice =
+        /\bCELI\b/i.test(filename) ||
+        /\bCELI\b/i.test(res.text);
+
+      if((!parsed.vat_amount || parsed.vat_amount===0) && parsed.net_amount && isLikelyCeliInvoice){
+        parsed.vat_amount=Number((parsed.net_amount * 0.22).toFixed(2));
+      }
+
+      if((!parsed.total_amount || parsed.total_amount===0) && parsed.net_amount){
+        parsed.total_amount=Number((parsed.net_amount + (parsed.vat_amount || 0)).toFixed(2));
       }
 
       const beneficiary=guessBeneficiaryFromText(res.text, ctx.beneficiaries);
