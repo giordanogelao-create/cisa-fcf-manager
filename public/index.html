@@ -468,23 +468,41 @@
   }
 
   async function extractTextFromPdfWithFallback(file){
-    let text='';
-    let usedOcr=false;
+  let pdfText='';
+  let ocrText='';
+  let usedOcr=false;
 
+  try{
+    pdfText=await extractPdfText(file);
+  }catch(err){
+    console.error(err);
+  }
+
+  const normalizedPdfText=normalizeText(pdfText);
+
+  const missingStructuredInvoiceData =
+    !/numero\s+documento/i.test(normalizedPdfText) ||
+    !/data\s+documento/i.test(normalizedPdfText) ||
+    !/totale\s+documento/i.test(normalizedPdfText);
+
+  const likelyScannedOrMixed =
+    !normalizedPdfText ||
+    normalizedPdfText.length < 120 ||
+    missingStructuredInvoiceData;
+
+  if(likelyScannedOrMixed){
     try{
-      text=await extractPdfText(file);
+      usedOcr=true;
+      ocrText=await ocrPdfFile(file,2);
     }catch(err){
       console.error(err);
     }
-
-    const likelyScanned = !text || text.length < 80;
-    if(likelyScanned){
-      usedOcr=true;
-      text=await ocrPdfFile(file,3);
-    }
-
-    return { text: normalizeText(text), usedOcr };
   }
+
+  const mergedText=normalizeText([normalizedPdfText, ocrText].filter(Boolean).join('\n'));
+
+  return { text: mergedText, usedOcr };
+}
 
   function extractInvoiceFields(text){
     const t=normalizeText(text);
