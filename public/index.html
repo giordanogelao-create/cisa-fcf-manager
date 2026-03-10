@@ -775,64 +775,101 @@
     return { text, usedOcr, pdfText, ocrText };
   }
 
-  function extractInvoiceFields(text){
-  const t=normalizeText(text);
+    function extractInvoiceFields(text){
+    const multiline=normalizeTextKeepLines(text);
+    const flat=normalizeText(multiline);
 
-  const invoiceNumber=firstMatch(t,[
-    /\bnumero\s+documento\s*[:\-]?\s*([A-Z0-9\/._-]+)/i,
-    /\bnumero\s+fattura\s*[:\-]?\s*([A-Z0-9\/._-]+)/i,
-    /\bfattura\s+n\.?\s*([A-Z0-9\/._-]+)/i,
-    /\bdocumento\s+n\.?\s*([A-Z0-9\/._-]+)/i
-  ]);
+    let invoiceNumber='';
+    let invoiceDate='';
 
-  const invoiceDate=toIsoDateGuess(firstMatch(t,[
-    /\bdata\s+documento\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-    /\bdata\s+fattura\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-    /\bfattura\s+del\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-    /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
-  ]));
+    const headerMatch=flat.match(
+      /\bnumero\s+documento\b[\s\S]{0,260}?\b(\d{5,})\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
+    );
 
-  const total=parseItalianAmount(firstMatch(t,[
-    /\btotale\s+documento\s*[:\-]?\s*([0-9\.\,]+)/i,
-    /\btotale\s+fattura\s*[:\-]?\s*([0-9\.\,]+)/i,
-    /\bimporto\s+totale\s*[:\-]?\s*([0-9\.\,]+)/i
-  ]));
+    if(headerMatch){
+      invoiceNumber=headerMatch[1].trim();
+      invoiceDate=toIsoDateGuess(headerMatch[2]);
+    }
 
-  const vat=parseItalianAmount(firstMatch(t,[
-    /\btotale\s+imposta\s*[:\-]?\s*([0-9\.\,]+)/i,
-    /\bimposta\s*[:\-]?\s*([0-9\.\,]+)/i,
-    /\biva\s+importo\s*[:\-]?\s*([0-9\.\,]+)/i
-  ]));
+    if(!invoiceNumber){
+      invoiceNumber=firstMatch(flat,[
+        /\bnumero\s+documento\b[\s\S]{0,220}?\b(\d{5,})\b/i,
+        /\bnumero\s+fattura\b[\s\S]{0,180}?\b([A-Z0-9][A-Z0-9\/._-]{4,})\b/i,
+        /\bfattura\s+n\.?\s*([A-Z0-9][A-Z0-9\/._-]{3,})\b/i
+      ]);
+    }
 
-  let net=parseItalianAmount(firstMatch(t,[
-    /\btotale\s+imponibile\s*[:\-]?\s*([0-9\.\,]+)/i,
-    /\bimponibile\s*[:\-]?\s*([0-9\.\,]+)/i
-  ]));
+    if(!invoiceDate){
+      invoiceDate=toIsoDateGuess(firstMatch(flat,[
+        /\bdata\s+documento\b[\s\S]{0,180}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\bdata\s+fattura\b[\s\S]{0,120}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\bfattura\s+del\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
+      ]));
+    }
 
-  const cup=firstMatch(t,[
-    /\bCUP\s*[:\-]?\s*([A-Z0-9]{15})\b/i
-  ]) || extractCup(t);
+    let total=parseItalianAmount(firstMatch(flat,[
+      /\btotale\s+documento\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i,
+      /\btotale\s+fattura\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i,
+      /\bimporto\s+totale\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+    ]));
 
-  const pnrr=firstMatch(t,[
-    /\bcausale\s+(.{0,500}?pnrr.{0,500}?)(?:cod\.?\s*articolo|modalit[aà]\s+pagamento|riepiloghi\s+iva|$)/i,
-    /\b(progetto\s+da\s+finanziare.{0,600}?cup\s*[:\-]?\s*[A-Z0-9]{15})/i
-  ]) || (hasPnrrText(t) ? 'PNRR rilevato nel documento' : '');
+    let net=parseItalianAmount(firstMatch(flat,[
+      /\btotale\s+imponibile\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i,
+      /\bimponibile\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+    ]));
 
-  if(!net && total && vat){
-    net = Math.max(0, Number((total - vat).toFixed(2)));
+    let vat=parseItalianAmount(firstMatch(flat,[
+      /\btotale\s+imposta\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i,
+      /\biva\s+importo\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i,
+      /\bimposta\b[^\d]{0,20}(\d{1,3}(?:\.\d{3})*,\d{2})/i
+    ]));
+
+    const summaryBlock=firstMatch(multiline,[
+      /\briepiloghi\s+iva\s+e\s+totali\b([\s\S]{0,500}?)(?:\bmodalit[aà]\s+pagamento\b|\bpage\b|$)/i
+    ]);
+
+    const summaryAmounts=extractAmountsFromText(summaryBlock);
+    const tail=summaryAmounts.slice(-3);
+
+    if(!net && tail[0]) net=tail[0];
+    if(!vat && tail[1]) vat=tail[1];
+    if(!total && tail[2]) total=tail[2];
+
+    const cup=firstMatch(multiline,[
+      /\bCUP\s*[:\-]?\s*([A-Z0-9]{15})\b/i
+    ]) || extractCup(multiline);
+
+    let pnrrText='';
+
+    const causaleBlock=firstMatch(multiline,[
+      /\bcausale\b([\s\S]{0,700}?)(?:\bcod\.?\s*articolo\b|\bmodalit[aà]\s+pagamento\b|\briepiloghi\s+iva\b|$)/i
+    ]);
+
+    if(causaleBlock){
+      pnrrText=cleanupPnrrText(causaleBlock);
+    }else if(hasPnrrText(multiline)){
+      pnrrText=cleanupPnrrText(
+        firstMatch(flat,[
+          /\b(progetto\s+da\s+finanziare[\s\S]{0,450}?cup\s*[:\-]?\s*[A-Z0-9]{15})/i,
+          /\b(fondi\s+pnrr[\s\S]{0,450}?cup\s*[:\-]?\s*[A-Z0-9]{15})/i
+        ]) || 'PNRR rilevato nel documento'
+      );
+    }
+
+    if(!net && total && vat){
+      net=Math.max(0, Number((total - vat).toFixed(2)));
+    }
+
+    return {
+      invoice_number: invoiceNumber,
+      invoice_date: invoiceDate,
+      net_amount: net || 0,
+      vat_amount: vat || 0,
+      total_amount: total || Number((net + vat).toFixed(2)),
+      cup,
+      pnrr_text: pnrrText
+    };
   }
-
-  return {
-    invoice_number: invoiceNumber,
-    invoice_date: invoiceDate,
-    net_amount: net || 0,
-    vat_amount: vat || 0,
-    total_amount: total || Number((net + vat).toFixed(2)),
-    cup,
-    pnrr_text: pnrr
-  };
-}
-
   function extractPaymentFields(text){
     const t=normalizeText(text);
 
