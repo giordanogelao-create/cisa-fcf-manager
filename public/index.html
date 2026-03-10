@@ -609,6 +609,47 @@
 
     return null;
   }
+  async function saveImportedPdfToDocuments({
+  file,
+  filieraId,
+  beneficiaryId,
+  docType,
+  cup='',
+  pnrrText='',
+  note=''
+}){
+  if(!file || !filieraId || !beneficiaryId) return null;
+
+  const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+  const path=`${filieraId}/${beneficiaryId}/${Date.now()}_${safe}`;
+
+  const up=await sb.storage
+    .from('documents')
+    .upload(path, file, {
+      upsert:false,
+      contentType:file.type || 'application/pdf'
+    });
+
+  if(up.error) throw up.error;
+
+  const ins=await sb.from('documents').insert({
+    filiera_id: filieraId,
+    beneficiary_id: beneficiaryId,
+    filename: file.name,
+    storage_path: path,
+    mime: file.type || 'application/pdf',
+    size: file.size || null,
+    doc_type: docType,
+    table_code: null,
+    category_code: null,
+    cup: cup || '',
+    pnrr_ok: !!pnrrText,
+    note: note || ''
+  }).select().single();
+
+  if(ins.error) throw ins.error;
+  return ins.data;
+}
   const ACTIVE_FILIERA_KEY='fcf_active_filiera_full';
   const TAGS=['022','029','047','047bis','010','010bis'];
   const TABLES={
