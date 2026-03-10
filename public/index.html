@@ -505,45 +505,62 @@
 }
 
   function extractInvoiceFields(text){
-    const t=normalizeText(text);
+  const t=normalizeText(text);
 
-    const invoiceNumber=firstMatch(t,[
-      /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i,
-      /\b(?:documento)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i
-    ]);
+  const invoiceNumber=firstMatch(t,[
+    /\bnumero\s+documento\s*[:\-]?\s*([A-Z0-9\/._-]+)/i,
+    /\bnumero\s+fattura\s*[:\-]?\s*([A-Z0-9\/._-]+)/i,
+    /\bfattura\s+n\.?\s*([A-Z0-9\/._-]+)/i,
+    /\bdocumento\s+n\.?\s*([A-Z0-9\/._-]+)/i
+  ]);
 
-    const invoiceDate=toIsoDateGuess(firstMatch(t,[
-      /\b(?:data\s+fattura|fattura\s+del|data)\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-      /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
-    ]));
+  const invoiceDate=toIsoDateGuess(firstMatch(t,[
+    /\bdata\s+documento\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+    /\bdata\s+fattura\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+    /\bfattura\s+del\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+    /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+  ]));
 
-    const cup=extractCup(t);
-    const pnrr=hasPnrrText(t) ? firstMatch(t,[/(.{0,40}pnrr.{0,80})/i]) || 'PNRR rilevato nel documento' : '';
+  const total=parseItalianAmount(firstMatch(t,[
+    /\btotale\s+documento\s*[:\-]?\s*([0-9\.\,]+)/i,
+    /\btotale\s+fattura\s*[:\-]?\s*([0-9\.\,]+)/i,
+    /\bimporto\s+totale\s*[:\-]?\s*([0-9\.\,]+)/i
+  ]));
 
-    const total=parseItalianAmount(firstMatch(t,[
-      /\b(?:totale\s+fattura|totale\s+documento|importo\s+totale|totale)\s*[:\-]?\s*([0-9\.\,]+)/i
-    ]));
+  const vat=parseItalianAmount(firstMatch(t,[
+    /\btotale\s+imposta\s*[:\-]?\s*([0-9\.\,]+)/i,
+    /\bimposta\s*[:\-]?\s*([0-9\.\,]+)/i,
+    /\biva\s+importo\s*[:\-]?\s*([0-9\.\,]+)/i
+  ]));
 
-    const vat=parseItalianAmount(firstMatch(t,[
-      /\b(?:iva)\s*(?:22|10|4)?%?\s*[:\-]?\s*([0-9\.\,]+)/i
-    ]));
+  let net=parseItalianAmount(firstMatch(t,[
+    /\btotale\s+imponibile\s*[:\-]?\s*([0-9\.\,]+)/i,
+    /\bimponibile\s*[:\-]?\s*([0-9\.\,]+)/i
+  ]));
 
-    let net=parseItalianAmount(firstMatch(t,[
-      /\b(?:imponibile|totale\s+imponibile)\s*[:\-]?\s*([0-9\.\,]+)/i
-    ]));
+  const cup=firstMatch(t,[
+    /\bCUP\s*[:\-]?\s*([A-Z0-9]{15})\b/i
+  ]) || extractCup(t);
 
-    if(!net && total && vat >= 0) net = Math.max(0, Number((total - vat).toFixed(2)));
+  const pnrr=firstMatch(t,[
+    /\bcausale\s+(.{0,500}?pnrr.{0,500}?)(?:cod\.?\s*articolo|modalit[aà]\s+pagamento|riepiloghi\s+iva|$)/i,
+    /\b(progetto\s+da\s+finanziare.{0,600}?cup\s*[:\-]?\s*[A-Z0-9]{15})/i
+  ]) || (hasPnrrText(t) ? 'PNRR rilevato nel documento' : '');
 
-    return {
-      invoice_number: invoiceNumber,
-      invoice_date: invoiceDate,
-      net_amount: net || 0,
-      vat_amount: vat || 0,
-      total_amount: total || Number((net + vat).toFixed(2)),
-      cup,
-      pnrr_text: pnrr
-    };
+  if(!net && total && vat){
+    net = Math.max(0, Number((total - vat).toFixed(2)));
   }
+
+  return {
+    invoice_number: invoiceNumber,
+    invoice_date: invoiceDate,
+    net_amount: net || 0,
+    vat_amount: vat || 0,
+    total_amount: total || Number((net + vat).toFixed(2)),
+    cup,
+    pnrr_text: pnrr
+  };
+}
 
   function extractPaymentFields(text){
     const t=normalizeText(text);
