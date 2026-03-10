@@ -2443,11 +2443,33 @@ $('#pc').onclick=closeM;
   </div>
 </div>`;
     $('#pnew').onclick=()=>openBonificoModal(null, beneficiaries, benMap);
-    $('#pt').onclick=(e)=>{
-      const tr=e.target.closest('tr[data-id]');
-      if(!tr) return;
-      openBonificoModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
-    };
+
+const handlePaymentPageFiles=(files)=>{
+  const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+  if(!file) return toast('Seleziona un file PDF', true);
+  openBonificoModal(null, beneficiaries, benMap, null, file);
+};
+
+$('#p_page_pdf').onchange=(e)=>handlePaymentPageFiles(e.target.files);
+
+$('#p_page_drop').addEventListener('dragover',e=>{
+  e.preventDefault();
+  $('#p_page_drop').classList.add('drag');
+});
+$('#p_page_drop').addEventListener('dragleave',()=>{
+  $('#p_page_drop').classList.remove('drag');
+});
+$('#p_page_drop').addEventListener('drop',e=>{
+  e.preventDefault();
+  $('#p_page_drop').classList.remove('drag');
+  handlePaymentPageFiles(e.dataTransfer.files);
+});
+
+$('#pt').onclick=(e)=>{
+  const tr=e.target.closest('tr[data-id]');
+  if(!tr) return;
+  openBonificoModal(rows.find(x=>x.id===tr.dataset.id), beneficiaries, benMap);
+};
   }
 
   async function renderDocumenti(){
