@@ -2237,6 +2237,7 @@ $('#ivt').onclick=(e)=>{
   const isEdit=!!pay;
   const fid=activeFiliera();
   const bid=prefill?.beneficiary_id || pay?.beneficiary_id || beneficiaries[0]?.id;
+    let importedPdfFile = initialFile || null;
 
   openM(
     isEdit?'Modifica bonifico':'Nuovo bonifico',
@@ -2388,10 +2389,11 @@ $('#ivt').onclick=(e)=>{
   $('#p_invSel').onchange=()=>syncFieldsFromSelectedInvoice(true);
 
   const handlePaymentFiles=(files)=>{
-    const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
-    if(file) importPaymentPdf(file);
-    else toast('Seleziona un file PDF',true);
-  };
+  const file=[...(files||[])].find(f=>/\.pdf$/i.test(f.name) || f.type==='application/pdf');
+  if(!file) return toast('Seleziona un file PDF',true);
+  importedPdfFile = file;
+  importPaymentPdf(file);
+};
 
   $('#p_pdf').onchange=(e)=>handlePaymentFiles(e.target.files);
   $('#p_drop').ondragover=(e)=>{ e.preventDefault(); $('#p_drop').classList.add('drag'); };
@@ -2408,34 +2410,56 @@ if(initialFile) importPaymentPdf(initialFile);
 
 $('#pc').onclick=closeM;
   $('#ps').onclick=async()=>{
-    const payload={
-      filiera_id: fid,
-      beneficiary_id: $('#p_ben').value,
-      invoice_id: $('#p_invSel').value || null,
-      invoice_number: $('#p_invNum').value.trim(),
-      payment_date: $('#p_date').value,
-      amount: num($('#p_amt').value),
-      bank: $('#p_bank').value.trim(),
-      kind: $('#p_kind').value,
-      cro: $('#p_cro').value.trim(),
-      pnrr_text: $('#p_pnrr').value.trim(),
-      cup: $('#p_cup').value.trim()
-    };
-
-    if(isEdit){
-      const {error}=await sb.from('payments').update(payload).eq('id',pay.id);
-      if(error) return toast('Errore salvataggio',true,error.message);
-      const missing=await runIssueChecksForPayment({...payload,id:pay.id});
-      toast(missing.length?'Bonifico salvato con errori':'Bonifico aggiornato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
-    }else{
-      const {data,error}=await sb.from('payments').insert(payload).select('id').single();
-      if(error) return toast('Errore creazione',true,error.message);
-      const missing=await runIssueChecksForPayment({...payload,id:data.id});
-      toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
-    }
-    closeM();
-    render();
+  const payload={
+    filiera_id: fid,
+    beneficiary_id: $('#p_ben').value,
+    invoice_id: $('#p_invSel').value || null,
+    invoice_number: $('#p_invNum').value.trim(),
+    payment_date: $('#p_date').value,
+    amount: num($('#p_amt').value),
+    bank: $('#p_bank').value.trim(),
+    kind: $('#p_kind').value,
+    cro: $('#p_cro').value.trim(),
+    pnrr_text: $('#p_pnrr').value.trim(),
+    cup: $('#p_cup').value.trim()
   };
+
+  let savedId=null;
+
+  if(isEdit){
+    const {error}=await sb.from('payments').update(payload).eq('id',pay.id);
+    if(error) return toast('Errore salvataggio',true,error.message);
+    savedId=pay.id;
+    const missing=await runIssueChecksForPayment({...payload,id:pay.id});
+    toast(missing.length?'Bonifico salvato con errori':'Bonifico aggiornato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+  }else{
+    const {data,error}=await sb.from('payments').insert(payload).select('id').single();
+    if(error) return toast('Errore creazione',true,error.message);
+    savedId=data.id;
+    const missing=await runIssueChecksForPayment({...payload,id:data.id});
+    toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
+  }
+
+  if(importedPdfFile){
+    try{
+      await saveImportedPdfToDocuments({
+        file: importedPdfFile,
+        filieraId: fid,
+        beneficiaryId: payload.beneficiary_id,
+        docType: 'BONIFICO',
+        cup: payload.cup,
+        pnrrText: payload.pnrr_text,
+        note: `Import automatico da sezione Bonifici${savedId ? ` • payment_id: ${savedId}` : ''}${payload.invoice_number ? ` • fattura ${payload.invoice_number}` : ''}${payload.cro ? ` • CRO ${payload.cro}` : ''}`
+      });
+    }catch(err){
+      console.error(err);
+      toast('PDF letto ma non archiviato', true, err.message || 'Errore upload documents');
+    }
+  }
+
+  closeM();
+  render();
+};
 
   if(isEdit){
     $('#pdel').onclick=async()=>{
