@@ -693,19 +693,21 @@
     return best;
   }
 
-  async function extractPdfText(file){
+    async function extractPdfText(file){
     const pdfjsLib=await ensurePdfJs();
     const bytes=new Uint8Array(await file.arrayBuffer());
     const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
 
-    let textParts=[];
+    let pages=[];
+
     for(let p=1;p<=pdf.numPages;p++){
       const page=await pdf.getPage(p);
       const content=await page.getTextContent();
-      const pageText=content.items.map(it=>it.str).join(' ');
-      textParts.push(pageText);
+      const pageText=extractPdfPageTextLines(content);
+      if(pageText) pages.push(pageText);
     }
-    return normalizeText(textParts.join('\n'));
+
+    return normalizeTextKeepLines(pages.join('\n\n'));
   }
 
   async function ocrPdfFile(file, maxPages=3){
