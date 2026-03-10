@@ -306,16 +306,46 @@
   }
 
   function parseItalianAmount(raw){
-    const s=String(raw||'').replace(/[^\d,.-]/g,'').trim();
-    if(!s) return 0;
-    if(s.includes(',') && s.includes('.')){
-      return num(s.replace(/\./g,'').replace(',','.'));
-    }
-    if(s.includes(',')){
-      return num(s.replace(',','.'));
-    }
-    return num(s);
+  const original = String(raw || '').trim();
+  if(!original) return 0;
+
+  let s = original
+    .replace(/\s+/g, '')
+    .replace(/[€]/g, '')
+    .replace(/[^\d,.\-]/g, '')
+    .trim();
+
+  if(!s) return 0;
+
+  // Caso classico italiano: 27.480,45
+  if(s.includes(',') && s.includes('.')){
+    return num(s.replace(/\./g, '').replace(',', '.'));
   }
+
+  // Caso con sola virgola: 27480,45
+  if(s.includes(',')){
+    return num(s.replace(',', '.'));
+  }
+
+  // Caso con solo punto:
+  // - se ci sono 2 cifre dopo il punto => decimali veri
+  // - altrimenti il punto è separatore migliaia
+  if(s.includes('.')){
+    const parts = s.split('.');
+    const last = parts[parts.length - 1];
+    if(last.length === 2){
+      return num(s);
+    }
+    return num(s.replace(/\./g, ''));
+  }
+
+  // Caso OCR/PDF che perde la virgola finale: 2748045 -> 27480.45
+  if(/^\d{3,}$/.test(s)){
+    return num(`${s.slice(0, -2)}.${s.slice(-2)}`);
+  }
+
+  return num(s);
+}
 
   function toIsoDateGuess(raw){
     const s=String(raw||'').trim();
