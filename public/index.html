@@ -2419,8 +2419,12 @@ for(const t of ['1A','2A','3A','4A','5A']){
     $('#iv_cup').value=$('#iv_cup').value || benMap[currentBid]?.cup || '';
   }
 
-  function calcTotal(){
-    $('#iv_tot').value=String((num($('#iv_net').value)+num($('#iv_vat').value)).toFixed(2));
+    function calcTotal(){
+    const total=num($('#iv_net').value)+num($('#iv_vat').value);
+    $('#iv_tot').value=total.toLocaleString('it-IT',{
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    });
   }
 
   async function importInvoicePdf(file){
@@ -2446,8 +2450,18 @@ for(const t of ['1A','2A','3A','4A','5A']){
       if(parsed.invoice_date) $('#iv_date').value=parsed.invoice_date;
       if(parsed.pnrr_text) $('#iv_pnrr').value=parsed.pnrr_text;
       if(parsed.cup) $('#iv_cup').value=parsed.cup;
-      if(parsed.net_amount || parsed.net_amount===0) $('#iv_net').value=String(parsed.net_amount);
-      if(parsed.vat_amount || parsed.vat_amount===0) $('#iv_vat').value=String(parsed.vat_amount);
+            if(parsed.net_amount || parsed.net_amount===0){
+        $('#iv_net').value=Number(parsed.net_amount).toLocaleString('it-IT',{
+          minimumFractionDigits:2,
+          maximumFractionDigits:2
+        });
+      }
+      if(parsed.vat_amount || parsed.vat_amount===0){
+        $('#iv_vat').value=Number(parsed.vat_amount).toLocaleString('it-IT',{
+          minimumFractionDigits:2,
+          maximumFractionDigits:2
+        });
+      }
 
       const explicitSupplierName = extractSupplierNameFromInvoiceText(res.text);
       const supplierWanted = normalizeForMatch(explicitSupplierName || supplier?.name || '');
