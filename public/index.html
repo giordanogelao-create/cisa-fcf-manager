@@ -2711,11 +2711,21 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       calcTotal();
 
-      const supplierMsg = supplier
-        ? ` • fornitore: ${supplier.name || extractedSupplierName || 'riconosciuto'}`
-        : (extractedSupplierName ? ` • fornitore estratto: ${extractedSupplierName}` : '');
+            const supplierMsg = supplier
+        ? `Fornitore selezionato: ${supplier.name || extractedSupplierName || 'riconosciuto'}`
+        : 'Fornitore NON selezionato';
 
-      $('#iv_ai_msg').textContent=`Documento analizzato ${res?.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare${supplierMsg}.`;
+      $('#iv_ai_msg').textContent = [
+        `Analisi ${res?.usedOcr ? 'con OCR' : 'da testo PDF'}`,
+        `Beneficiario ID: ${currentBid || 'VUOTO'}`,
+        `Fornitore estratto: ${extractedSupplierName || 'VUOTO'}`,
+        `P.IVA estratta: ${extractedSupplierPiva || 'VUOTA'}`,
+        `CF estratto: ${extractedSupplierCf || 'VUOTO'}`,
+        `Fornitori già presenti per beneficiario: ${currentSuppliers.length}`,
+        `Auto-creazione consentita: ${canAutoCreateSupplier ? 'SI' : 'NO'}`,
+        `Opzioni menu fornitore: ${$('#iv_sup').options.length}`,
+        supplierMsg
+      ].join(' • ');
     }catch(err){
       console.error(err);
       $('#iv_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
