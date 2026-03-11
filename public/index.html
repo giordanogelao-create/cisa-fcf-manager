@@ -839,7 +839,7 @@
         const x=Number(it?.transform?.[4]);
         const y=Number(it?.transform?.[5]);
         if(!Number.isFinite(x) || !Number.isFinite(y)) return false;
-        return x <= (minX + 260) && y >= (maxY - 220);
+        return x <= (minX + 420) && y >= (maxY - 320);
       });
 
       if(!topLeftItems.length) return '';
