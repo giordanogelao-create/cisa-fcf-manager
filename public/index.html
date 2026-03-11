@@ -2555,7 +2555,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
         /\bcedente\/prestatore\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
-      ]) || supplierScopeText.slice(0, 1600);
+      ]) || '';
 
               let extractedSupplierName=String(
         firstMatch(supplierBlock,[
