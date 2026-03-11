@@ -2580,6 +2580,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const rows=[];
       let current=[];
       let currentTableCode='';
+      const currentCategoryByTable={};
 
       const detectTableCode=(value)=>
         firstMatch(value,[
@@ -2664,6 +2665,18 @@ for(const t of ['1A','2A','3A','4A','5A']){
         if(splitParts.length > 1 && splitParts[0].length <= 40){
           category=splitParts[0];
           title=tidy(splitParts.slice(1).join(' - '));
+        }
+
+        if(!category && tableCode && currentCategoryByTable[tableCode]){
+          category=currentCategoryByTable[tableCode];
+        }
+
+        if(category && tableCode){
+          currentCategoryByTable[tableCode]=category;
+        }
+
+        if(!title && splitParts.length){
+          title=tidy(splitParts.join(' - '));
         }
 
         if(!title && !amounts.length) return;
