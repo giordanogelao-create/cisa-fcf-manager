@@ -2699,7 +2699,9 @@ for(const t of ['1A','2A','3A','4A','5A']){
       return rows;
     }
 
-        function renderInvImportPreview(files, previews=[], parsedRows=[]){
+      let currentImportedInvestmentRows=[];
+
+    function renderInvImportPreview(files, previews=[], parsedRows=[]){
       const box=$('#invImportPreview');
       if(!box) return;
 
@@ -2728,7 +2730,10 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
         <div style="height:10px"></div>
         <div class="card" style="padding:10px;background:rgba(110,168,255,.04)">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px"><b>Preview righe OCR</b> • ${parsedRows.length} riga${parsedRows.length===1?'':'he'} rilevata${parsedRows.length===1?'':'e'}</div>
+          <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="font-size:12px;color:var(--muted)"><b>Preview righe OCR</b> • ${parsedRows.length} riga${parsedRows.length===1?'':'he'} rilevata${parsedRows.length===1?'':'e'}</div>
+            <button class="btn pri" id="invImportCreateBtn" ${parsedRows.length ? '' : 'disabled'}>Crea investimenti dalla preview</button>
+          </div>
           ${
             parsedRows.length
               ? `<div class="table-wrap" style="max-height:320px">
@@ -2787,6 +2792,16 @@ for(const t of ['1A','2A','3A','4A','5A']){
           </div>
         `).join('') : ''}
       `;
+
+      const createBtn=$('#invImportCreateBtn');
+      if(createBtn){
+        createBtn.onclick=()=>{
+          if(!currentImportedInvestmentRows.length){
+            return toast('Nessuna riga disponibile da importare', true);
+          }
+          toast(`Preview pronta: ${currentImportedInvestmentRows.length} investimenti rilevati. Nel prossimo step collegheremo il salvataggio massivo.`);
+        };
+      }
     }
 
     $('#selInvBen').onchange=paint;
@@ -2796,6 +2811,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
     if($('#iimpFiles')){
       $('#iimpFiles').onchange=async(e)=>{
         const files=[...(e.target.files||[])];
+        currentImportedInvestmentRows=[];
         renderInvImportPreview(files, files.map(()=>({status:'Analisi in corso...',text:''})), []);
 
         const previews=[];
@@ -2812,6 +2828,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
           }
         }
 
+        currentImportedInvestmentRows=parsedRows;
         renderInvImportPreview(files, previews, parsedRows);
       };
     }
