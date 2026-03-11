@@ -2544,6 +2544,12 @@ for(const t of ['1A','2A','3A','4A','5A']){
       await fillRelations();
 
       const currentBid=$('#iv_ben').value;
+            const currentSuppliers=(await sb
+        .from('suppliers')
+        .select('*')
+        .eq('beneficiary_id', currentBid)
+        .order('name')
+      ).data || [];
 
       const supplierScopeText=normalizeTextKeepLines([
         pdfText,
