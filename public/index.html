@@ -2878,7 +2878,25 @@ for(const t of ['1A','2A','3A','4A','5A']){
                 }
               };
             })
-            .filter(r=>r.table_code && r.title && r.approved_amount > 0);
+            .filter(r=>{
+              const titleText=String(r.title || '').toLowerCase().trim();
+              const isSummaryRow=
+                !titleText ||
+                /\btotale\b/.test(titleText) ||
+                /\bsubtotale\b/.test(titleText) ||
+                /\briepilogo\b/.test(titleText) ||
+                /\bsommario\b/.test(titleText) ||
+                /\bimporto approvato\b/.test(titleText) ||
+                /\bfinanziamento agevolato\b/.test(titleText) ||
+                /\bmezzi propri\b/.test(titleText) ||
+                /\bcontributo\b/.test(titleText) ||
+                /^iva\b/.test(titleText) ||
+                /\btabella investimento\b/.test(titleText) ||
+                /\bcategoria\b/.test(titleText) ||
+                /\btitolo investimento\b/.test(titleText);
+
+              return r.table_code && r.title && r.approved_amount > 0 && !isSummaryRow;
+            });
 
           if(!rowsToInsert.length){
             return toast('Nessuna riga valida da importare: servono almeno Tabella, Titolo e Importo approvato', true);
