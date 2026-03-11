@@ -2488,7 +2488,60 @@ for(const t of ['1A','2A','3A','4A','5A']){
       });
     }
 
-    function renderInvImportPreview(files){
+    async function ocrInvestmentImage(file){
+      const Tesseract=await ensureTesseract();
+
+      const loadImage=(file)=>new Promise((resolve,reject)=>{
+        const url=URL.createObjectURL(file);
+        const img=new Image();
+        img.onload=()=>{
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror=(err)=>{
+          URL.revokeObjectURL(url);
+          reject(err);
+        };
+        img.src=url;
+      });
+
+      const preprocessCanvas=(canvas)=>{
+        const ctx=canvas.getContext('2d',{willReadFrequently:true}) || canvas.getContext('2d');
+        const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const d=imgData.data;
+
+        for(let i=0;i<d.length;i+=4){
+          const gray=Math.round(d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+          const v=gray > 180 ? 255 : 0;
+          d[i]=v;
+          d[i+1]=v;
+          d[i+2]=v;
+          d[i+3]=255;
+        }
+
+        ctx.putImageData(imgData,0,0);
+        return canvas;
+      };
+
+      const img=await loadImage(file);
+      const scale=Math.min(2.2, Math.max(1.4, 2200 / Math.max(img.width || 1, 1)));
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true}) || canvas.getContext('2d');
+
+      canvas.width=Math.max(1,Math.round(img.width * scale));
+      canvas.height=Math.max(1,Math.round(img.height * scale));
+
+      ctx.fillStyle='#fff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+      const prepared=preprocessCanvas(canvas);
+      const {data:{text}}=await Tesseract.recognize(prepared,'ita+eng');
+
+      return normalizeTextKeepLines(text || '');
+    }
+
+    function renderInvImportPreview(files, previews=[]){
       const box=$('#invImportPreview');
       if(!box) return;
 
@@ -2501,14 +2554,27 @@ for(const t of ['1A','2A','3A','4A','5A']){
       box.innerHTML=`
         <div><b>${list.length}</b> immagine${list.length===1?'':'i'} pronta${list.length===1?'':'e'} per l'import.</div>
         <div style="height:8px"></div>
-        <div class="table-wrap" style="max-height:160px">
+        <div class="table-wrap" style="max-height:180px">
           <table class="table">
-            <thead><tr><th>#</th><th>File</th><th>Dimensione</th></tr></thead>
+            <thead><tr><th>#</th><th>File</th><th>Dimensione</th><th>OCR</th></tr></thead>
             <tbody>
-              ${list.map((f,idx)=>`<tr><td>${idx+1}</td><td>${esc(f.name||'')}</td><td>${Math.max(1,Math.round((f.size||0)/1024))} KB</td></tr>`).join('')}
+              ${list.map((f,idx)=>`<tr>
+                <td>${idx+1}</td>
+                <td>${esc(f.name||'')}</td>
+                <td>${Math.max(1,Math.round((f.size||0)/1024))} KB</td>
+                <td>${previews[idx]?.status ? esc(previews[idx].status) : 'In attesa'}</td>
+              </tr>`).join('')}
             </tbody>
           </table>
-        </div>`;
+        </div>
+        <div style="height:10px"></div>
+        ${previews.length ? previews.map((p,idx)=>`
+          <div class="card" style="margin-top:8px;padding:10px;background:rgba(110,168,255,.04)">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px"><b>OCR ${idx+1}</b> • ${esc(list[idx]?.name || '')}</div>
+            <pre style="white-space:pre-wrap;margin:0;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text)">${esc((p.text || '').slice(0,2500) || 'Nessun testo rilevato')}</pre>
+          </div>
+        `).join('') : ''}
+      `;
     }
 
     $('#selInvBen').onchange=paint;
@@ -2516,7 +2582,23 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
     if($('#iimp')) $('#iimp').onclick=()=>$('#iimpFiles').click();
     if($('#iimpFiles')){
-      $('#iimpFiles').onchange=(e)=>renderInvImportPreview(e.target.files);
+      $('#iimpFiles').onchange=async(e)=>{
+        const files=[...(e.target.files||[])];
+        renderInvImportPreview(files, files.map(()=>({status:'Analisi in corso...',text:''})));
+
+        const previews=[];
+        for(const file of files){
+          try{
+            const text=await ocrInvestmentImage(file);
+            previews.push({status:text ? 'OCR completato' : 'Nessun testo', text});
+          }catch(err){
+            console.error(err);
+            previews.push({status:'Errore OCR', text:''});
+          }
+        }
+
+        renderInvImportPreview(files, previews);
+      };
     }
 
     renderInvImportPreview($('#iimpFiles') ? $('#iimpFiles').files : []);
