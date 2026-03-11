@@ -2806,18 +2806,62 @@ for(const t of ['1A','2A','3A','4A','5A']){
             return toast('Nessuna riga disponibile da importare', true);
           }
 
+          const normCat=(v)=>String(v || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g,'')
+            .replace(/[^a-z0-9]+/g,' ')
+            .trim();
+
+          const resolveCategoryCode=(tableCode, rawCategory, rawTitle)=>{
+            const cats=TABLES[tableCode] || [];
+            if(!cats.length) return '';
+
+            const categoryText=normCat(rawCategory);
+            const titleText=normCat(rawTitle);
+
+            if(categoryText){
+              const exact=cats.find(c=>
+                normCat(c.code)===categoryText ||
+                normCat(c.label)===categoryText
+              );
+              if(exact) return exact.code;
+
+              const partial=cats.find(c=>{
+                const label=normCat(c.label);
+                return (
+                  (categoryText && label && (label.includes(categoryText) || categoryText.includes(label))) ||
+                  (categoryText && normCat(c.code).includes(categoryText))
+                );
+              });
+              if(partial) return partial.code;
+            }
+
+            if(titleText){
+              const titleMatch=cats.find(c=>{
+                const label=normCat(c.label);
+                return label && titleText && (titleText.includes(label) || label.includes(titleText));
+              });
+              if(titleMatch) return titleMatch.code;
+            }
+
+            return cats[0]?.code || '';
+          };
+
           const rowsToInsert=currentImportedInvestmentRows
             .map(r=>{
               const approved=num(r.approved_amount);
               const grant=num(r.contribution);
               const loan=num(r.soft_loan);
               const own=r.own_funds ? num(r.own_funds) : Math.max(0, approved - grant - loan);
+              const tableCode=(r.table_code || '').trim();
+              const title=(r.title || r.description || '').trim();
 
               return {
                 beneficiary_id: bid,
-                table_code: (r.table_code || '').trim(),
-                category_code: '',
-                title: (r.title || r.description || '').trim(),
+                table_code: tableCode,
+                category_code: resolveCategoryCode(tableCode, r.category || '', title),
+                title,
                 approved_amount: approved,
                 grant_amount: grant,
                 loan_amount: loan,
