@@ -2884,16 +2884,54 @@ for(const t of ['1A','2A','3A','4A','5A']){
             return toast('Nessuna riga valida da importare: servono almeno Tabella, Titolo e Importo approvato', true);
           }
 
-          if(!confirm(`Creare ${rowsToInsert.length} investimenti dalla preview OCR?`)){
+          const {data:existingRows,error:existingErr}=await sb
+            .from('investments')
+            .select('table_code,title,approved_amount')
+            .eq('beneficiary_id', bid);
+
+          if(existingErr){
+            return toast('Errore lettura investimenti esistenti', true, existingErr.message);
+          }
+
+          const normalizeImportKey=(tableCode,title,amount)=>{
+            const norm=(v)=>String(v || '')
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g,'')
+              .replace(/[^a-z0-9]+/g,' ')
+              .trim();
+
+            return [
+              norm(tableCode),
+              norm(title),
+              Number(num(amount).toFixed(2))
+            ].join('|');
+          };
+
+          const existingKeys=new Set(
+            (existingRows || []).map(x=>normalizeImportKey(x.table_code, x.title, x.approved_amount))
+          );
+
+          const uniqueRowsToInsert=rowsToInsert.filter(r=>
+            !existingKeys.has(normalizeImportKey(r.table_code, r.title, r.approved_amount))
+          );
+
+          const skippedDuplicates=rowsToInsert.length - uniqueRowsToInsert.length;
+
+          if(!uniqueRowsToInsert.length){
+            return toast('Tutti gli investimenti della preview risultano già presenti', true);
+          }
+
+          if(!confirm(`Creare ${uniqueRowsToInsert.length} investimenti dalla preview OCR?${skippedDuplicates ? ` (${skippedDuplicates} duplicati saltati)` : ''}`)){
             return;
           }
 
-          const {error}=await sb.from('investments').insert(rowsToInsert);
+          const {error}=await sb.from('investments').insert(uniqueRowsToInsert);
           if(error){
             return toast('Errore import investimenti', true, error.message);
           }
 
-          toast(`${rowsToInsert.length} investimenti creati`);
+          toast(`${uniqueRowsToInsert.length} investimenti creati${skippedDuplicates ? ` • ${skippedDuplicates} duplicati saltati` : ''}`);
           currentImportedInvestmentRows=[];
           if($('#iimpFiles')) $('#iimpFiles').value='';
           renderInvImportPreview([], [], []);
