@@ -2633,35 +2633,21 @@ for(const t of ['1A','2A','3A','4A','5A']){
         extractedSupplierName='';
         normalizedSupplierName='';
       }
-if(extractedSupplierPiva || extractedSupplierCf){
-        let globalSupplierByTax=null;
-
-        if(extractedSupplierPiva){
-          const q=await sb
-            .from('suppliers')
-            .select('name,piva,cf')
-            .eq('piva', extractedSupplierPiva)
-            .limit(1);
-          globalSupplierByTax=q.data?.[0] || null;
-        }
-
-        if(!globalSupplierByTax && extractedSupplierCf){
-          const q=await sb
-            .from('suppliers')
-            .select('name,piva,cf')
-            .eq('cf', extractedSupplierCf)
-            .limit(1);
-          globalSupplierByTax=q.data?.[0] || null;
-        }
+if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
+        const supplierByTaxForBeneficiary=currentSuppliers.find(s=>{
+          if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
+          if(extractedSupplierCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(extractedSupplierCf)) return true;
+          return false;
+        }) || null;
 
         if(
-          globalSupplierByTax?.name &&
+          supplierByTaxForBeneficiary?.name &&
           (
             !normalizedSupplierName ||
-            normalizeForMatch(globalSupplierByTax.name) !== normalizedSupplierName
+            normalizeForMatch(supplierByTaxForBeneficiary.name) !== normalizedSupplierName
           )
         ){
-          extractedSupplierName=globalSupplierByTax.name.trim();
+          extractedSupplierName=supplierByTaxForBeneficiary.name.trim();
           normalizedSupplierName=normalizeForMatch(extractedSupplierName);
         }
       }
