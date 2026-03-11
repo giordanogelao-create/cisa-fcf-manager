@@ -2589,26 +2589,9 @@ for(const t of ['1A','2A','3A','4A','5A']){
         .replace(/\s{2,}/g,' ')
         .trim();
 
-      const currentBeneficiary=(ctx.beneficiaries||[]).find(b=>
-        String(b.id || '') === String(currentBid || '')
-      ) || null;
-
-      const normalizedBeneficiaryName=normalizeForMatch(currentBeneficiary?.ragione_sociale || '');
-
-      if(normalizeForMatch(extractedSupplierName) === normalizedBeneficiaryName){
-        extractedSupplierName='';
-      }
-
-      if(!extractedSupplierName){
-        const fileSupplierMatch=filename.match(/^\d{4}-\d{2}-\d{2}\s+\d+[_ ]+(.+?)\s+F\.\s*/i);
-        if(fileSupplierMatch){
-          extractedSupplierName=fileSupplierMatch[1].trim();
-        }
-      }
-
       if(!/[A-ZÀ-Úa-zà-ú]{2,}/.test(extractedSupplierName)){
-        extractedSupplierName='';
-      }
+  extractedSupplierName='';
+}
 
       const extractedSupplierPiva=firstMatch(supplierBlock,[
         /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
