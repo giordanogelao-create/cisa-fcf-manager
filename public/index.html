@@ -2579,6 +2579,13 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       const rows=[];
       let current=[];
+      let currentTableCode='';
+
+      const detectTableCode=(value)=>
+        firstMatch(value,[
+          /\btabella\s+investimento\s*[:\-]?\s*(\d+[A-Z])\b/i,
+          /^(\d+[A-Z])\b/i
+        ]) || '';
 
       const flush=()=>{
         if(!current.length) return;
@@ -2588,11 +2595,8 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
         if(!raw) return;
 
-        const tableCode=
-          firstMatch(raw,[
-            /\btabella\s+investimento\s*[:\-]?\s*(\d+[A-Z])\b/i,
-            /^(\d+[A-Z])\b/i
-          ]) || '';
+        const tableCode=detectTableCode(raw) || currentTableCode || '';
+        if(tableCode) currentTableCode=tableCode;
 
         const amounts=(raw.match(moneyRe) || []).slice(0,5);
 
@@ -2686,6 +2690,9 @@ for(const t of ['1A','2A','3A','4A','5A']){
       };
 
       for(const line of lines){
+        const detectedTableCode=detectTableCode(line);
+        if(detectedTableCode) currentTableCode=detectedTableCode;
+
         if(isHeaderLine(line)) continue;
 
         if(startsNewRow(line) && current.length){
