@@ -2564,6 +2564,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
       ]) || supplierScopeText.slice(0, 1600);
 
               let extractedSupplierName=String(
+        extractSupplierNameFromInvoiceText(supplierScopeText) ||
         firstMatch(supplierBlock,[
           /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
           /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
@@ -2587,6 +2588,23 @@ for(const t of ['1A','2A','3A','4A','5A']){
         .replace(/[^A-ZÀ-Úa-zà-ú0-9\.\-'& ]+$/,'')
         .replace(/\s{2,}/g,' ')
         .trim();
+
+      const currentBeneficiary=(ctx.beneficiaries||[]).find(b=>
+        String(b.id || '') === String(currentBid || '')
+      ) || null;
+
+      const normalizedBeneficiaryName=normalizeForMatch(currentBeneficiary?.ragione_sociale || '');
+
+      if(normalizeForMatch(extractedSupplierName) === normalizedBeneficiaryName){
+        extractedSupplierName='';
+      }
+
+      if(!extractedSupplierName){
+        const fileSupplierMatch=filename.match(/^\d{4}-\d{2}-\d{2}\s+\d+[_ ]+(.+?)\s+F\.\s*/i);
+        if(fileSupplierMatch){
+          extractedSupplierName=fileSupplierMatch[1].trim();
+        }
+      }
 
       if(!/[A-ZÀ-Úa-zà-ú]{2,}/.test(extractedSupplierName)){
         extractedSupplierName='';
