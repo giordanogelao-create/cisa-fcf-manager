@@ -2770,11 +2770,7 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         if(extractedSupplierCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(extractedSupplierCf)) return true;
 
         const dbName=normalizeForMatch(s.name || '');
-        return normalizedSupplierName && dbName && (
-          dbName===normalizedSupplierName ||
-          dbName.includes(normalizedSupplierName) ||
-          normalizedSupplierName.includes(dbName)
-        );
+        return normalizedSupplierName && dbName && dbName===normalizedSupplierName;
       }) || null;
 
       if(!supplier){
