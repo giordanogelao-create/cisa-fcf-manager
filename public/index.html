@@ -522,17 +522,21 @@
     const t=normalizeTextKeepLines(text);
 
     const block=firstMatch(t,[
-      /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,450}?)(?:\bcessionario\/committente\b|\btipologia\s+documento\b)/i
+      /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+      /\bcedente\/prestatore\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i
     ]);
 
     if(!block) return '';
 
     return firstMatch(block,[
+      /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
+      /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
       /\bdenominazione\s*:\s*([^\n]+)/i,
-      /\bdenominazione\s+([^\n]+)/i
+      /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+      /\bdenominazione\s+([^\n]+)/i,
+      /\bragione\s+sociale\s+([^\n]+)/i
     ]);
   }
-
   function normalizeTextKeepLines(s){
     return String(s || '')
       .replace(/\r/g, '\n')
@@ -650,21 +654,6 @@
 
     if(s.length > 500) s=s.slice(0,500).trim();
     return s;
-  }
-
-  function extractSupplierNameFromInvoiceText(text){
-    const t=normalizeTextKeepLines(text);
-
-    const block=firstMatch(t,[
-      /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,450}?)(?:\bcessionario\/committente\b|\btipologia\s+documento\b)/i
-    ]);
-
-    if(!block) return '';
-
-    return firstMatch(block,[
-      /\bdenominazione\s*:\s*([^\n]+)/i,
-      /\bdenominazione\s+([^\n]+)/i
-    ]);
   }
 
   function hasPnrrText(text){
