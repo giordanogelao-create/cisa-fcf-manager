@@ -2625,26 +2625,13 @@ for(const t of ['1A','2A','3A','4A','5A']){
         }
       }
 
-            let normalizedSupplierName=normalizeForMatch(extractedSupplierName);
-
-      const currentBeneficiary=(ctx.beneficiaries||[]).find(b=>
-        String(b.id || '') === String(currentBid || '')
-      ) || null;
-
-      const normalizedBeneficiaryName=normalizeForMatch(currentBeneficiary?.ragione_sociale || '');
-
-      if(normalizedSupplierName && normalizedSupplierName===normalizedBeneficiaryName){
-        extractedSupplierName='';
-        normalizedSupplierName='';
-      }
+           const normalizedSupplierName=normalizeForMatch(extractedSupplierName);
 
       let supplier=currentSuppliers.find(s=>{
         if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
         if(extractedSupplierCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(extractedSupplierCf)) return true;
 
         const dbName=normalizeForMatch(s.name || '');
-        if(dbName && normalizedBeneficiaryName && dbName===normalizedBeneficiaryName) return false;
-
         return normalizedSupplierName && dbName && (
           dbName===normalizedSupplierName ||
           dbName.includes(normalizedSupplierName) ||
@@ -2652,19 +2639,15 @@ for(const t of ['1A','2A','3A','4A','5A']){
         );
       }) || null;
 
-      if(!supplier && supplierBlock){
-        const guessedExisting=guessSupplierFromText(supplierBlock, currentSuppliers);
-        const guessedName=normalizeForMatch(guessedExisting?.name || '');
-        if(guessedExisting && guessedName && guessedName!==normalizedBeneficiaryName){
-          supplier=guessedExisting;
-        }
+      if(!supplier){
+        const guessedExisting=guessSupplierFromText(sourceText, currentSuppliers);
+        if(guessedExisting) supplier=guessedExisting;
       }
 
       const canAutoCreateSupplier =
         currentBid &&
         normalizedSupplierName &&
         normalizedSupplierName.length >= 6 &&
-        normalizedSupplierName !== normalizedBeneficiaryName &&
         !/^(?:cliente|committente|cessionario|beneficiario|destinatario|fornitore)$/i.test(extractedSupplierName);
       if(!supplier && canAutoCreateSupplier){
         const payload={
