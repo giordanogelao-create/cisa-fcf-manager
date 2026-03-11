@@ -2795,11 +2795,65 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       const createBtn=$('#invImportCreateBtn');
       if(createBtn){
-        createBtn.onclick=()=>{
+        createBtn.onclick=async()=>{
+          const bid=$('#selInvBen').value;
+
+          if(!bid){
+            return toast('Seleziona prima un beneficiario', true);
+          }
+
           if(!currentImportedInvestmentRows.length){
             return toast('Nessuna riga disponibile da importare', true);
           }
-          toast(`Preview pronta: ${currentImportedInvestmentRows.length} investimenti rilevati. Nel prossimo step collegheremo il salvataggio massivo.`);
+
+          const rowsToInsert=currentImportedInvestmentRows
+            .map(r=>{
+              const approved=num(r.approved_amount);
+              const grant=num(r.contribution);
+              const loan=num(r.soft_loan);
+              const own=r.own_funds ? num(r.own_funds) : Math.max(0, approved - grant - loan);
+
+              return {
+                beneficiary_id: bid,
+                table_code: (r.table_code || '').trim(),
+                category_code: '',
+                title: (r.title || r.description || '').trim(),
+                approved_amount: approved,
+                grant_amount: grant,
+                loan_amount: loan,
+                own_funds: own,
+                tag: (r.tag || '').trim(),
+                state: 'Da verificare',
+                location: {
+                  via: (r.via || '').trim(),
+                  civico: (r.civico || '').trim(),
+                  comune: (r.comune || '').trim(),
+                  provincia: (r.provincia || '').trim(),
+                  foglio: (r.foglio || '').trim(),
+                  particella: (r.particella || '').trim()
+                }
+              };
+            })
+            .filter(r=>r.table_code && r.title && r.approved_amount > 0);
+
+          if(!rowsToInsert.length){
+            return toast('Nessuna riga valida da importare: servono almeno Tabella, Titolo e Importo approvato', true);
+          }
+
+          if(!confirm(`Creare ${rowsToInsert.length} investimenti dalla preview OCR?`)){
+            return;
+          }
+
+          const {error}=await sb.from('investments').insert(rowsToInsert);
+          if(error){
+            return toast('Errore import investimenti', true, error.message);
+          }
+
+          toast(`${rowsToInsert.length} investimenti creati`);
+          currentImportedInvestmentRows=[];
+          if($('#iimpFiles')) $('#iimpFiles').value='';
+          renderInvImportPreview([], [], []);
+          await paint();
         };
       }
     }
