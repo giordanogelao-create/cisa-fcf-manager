@@ -2486,87 +2486,49 @@ for(const t of ['1A','2A','3A','4A','5A']){
   async function importInvoicePdf(file){
     try{
       $('#iv_ai_msg').textContent='Analisi PDF in corso...';
+
       const fid=activeFiliera();
       const ctx=await getInvoiceImportContext(fid);
-            const res=await extractTextFromPdfWithFallback(file);
+      const res=await extractTextFromPdfWithFallback(file);
+
       const filename=file?.name || '';
-      const pdfText=res.pdfText || '';
-      const ocrText=res.ocrText || '';
-      const sourceText=[filename, pdfText, ocrText, res.text || ''].filter(Boolean).join('\n');
+      const pdfText=res?.pdfText || '';
+      const ocrText=res?.ocrText || '';
+      const sourceText=[filename, pdfText, ocrText, res?.text || ''].filter(Boolean).join('\n');
+
+      const keepLines=(s)=>String(s || '')
+        .replace(/\r/g,'\n')
+        .replace(/\u00a0/g,' ')
+        .replace(/[‐-‒–—]/g,'-')
+        .replace(/[“”]/g,'"')
+        .replace(/[‘’]/g,"'")
+        .replace(/[ \t]+/g,' ')
+        .replace(/\n[ \t]+/g,'\n')
+        .replace(/[ \t]+\n/g,'\n')
+        .replace(/\n{3,}/g,'\n\n')
+        .trim();
+
+      const textLines=keepLines(sourceText);
       const parsed=extractInvoiceFields(sourceText);
 
-      const headerText=normalizeTextKeepLines(sourceText);
-      const pdfHeaderText=normalizeTextKeepLines(pdfText);
-      const ocrHeaderText=normalizeTextKeepLines(ocrText);
+      const normalizedInvoiceNumber=(parsed.invoice_number || '').trim();
+      const suspiciousInvoiceNumber =
+        !normalizedInvoiceNumber ||
+        /^[A-ZÀ-Úa-zà-ú]+$/.test(normalizedInvoiceNumber) ||
+        /^(?:differita|immediata|elettronica|accompagnatoria|td\d+|fattura|documento)$/i.test(normalizedInvoiceNumber) ||
+        (/^\d{1,4}$/.test(normalizedInvoiceNumber) && !/[\/.-]/.test(normalizedInvoiceNumber));
 
-      const invoicePatterns=[
-        /\bnumero\s+documento\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-        /\bnumero\s+fattura\b[\s\S]{0,120}?\b([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-        /\bfattura\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i,
-        /\bdoc(?:umento)?\s*(?:n\.?|nr\.?|numero)\s*[:\-]?\s*([A-Z0-9]*\d[A-Z0-9\/._-]*)\b/i
-      ];
-
-      const invoiceCandidates=[];
-      const pushInvoiceCandidate=(value, score)=>{
-        const raw=String(value || '').trim();
-        if(!raw) return;
-
-        if(
-          /^[A-ZÀ-Úa-zà-ú]+$/.test(raw) ||
-          /^(?:differita|immediata|elettronica|accompagnatoria|td\d+|fattura|documento)$/i.test(raw) ||
-          !/\d/.test(raw)
-        ){
-          return;
-        }
-
-        let finalScore=score;
-        if(/^\d{1,4}$/.test(raw) && !/[\/.-]/.test(raw)) finalScore-=35;
-        if(/[\/.-]/.test(raw)) finalScore+=5;
-
-        invoiceCandidates.push({ value: raw, score: finalScore });
-      };
-
-      pushInvoiceCandidate(firstMatch(pdfHeaderText, invoicePatterns), 100);
-      pushInvoiceCandidate(firstMatch(headerText, invoicePatterns), 92);
-      pushInvoiceCandidate(parsed.invoice_number, 90);
-      pushInvoiceCandidate(firstMatch(ocrHeaderText, invoicePatterns), 70);
-
-      const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
-      const fileInvoiceNumber=fileInvoiceMatch ? fileInvoiceMatch[1] : '';
-      pushInvoiceCandidate(fileInvoiceNumber, 85);
-
-      invoiceCandidates.sort((a,b)=>(b.score-a.score) || (b.value.length-a.value.length));
-      parsed.invoice_number=invoiceCandidates[0]?.value || '';
-
-      const datePatterns=[
-        /\bdata\s+documento\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-        /\bdata\s+fattura\b[\s\S]{0,80}?(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-        /\bfattura\s+del\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-        /\bemessa\s+il\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i
-      ];
-
-      const dateCandidates=[];
-      const pushDateCandidate=(value, score)=>{
-        const iso=toIsoDateGuess(value);
-        if(!iso) return;
-        dateCandidates.push({ value: iso, score });
-      };
-
-      pushDateCandidate(firstMatch(pdfHeaderText, datePatterns), 100);
-      pushDateCandidate(firstMatch(headerText, datePatterns), 92);
-      pushDateCandidate(parsed.invoice_date, 90);
-      pushDateCandidate(firstMatch(ocrHeaderText, datePatterns), 70);
-
-      const fileDateMatch=filename.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
-      if(fileDateMatch){
-        dateCandidates.push({
-          value:`${fileDateMatch[1]}-${fileDateMatch[2]}-${fileDateMatch[3]}`,
-          score:80
-        });
+      if(suspiciousInvoiceNumber){
+        const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
+        if(fileInvoiceMatch) parsed.invoice_number=fileInvoiceMatch[1];
       }
 
-      dateCandidates.sort((a,b)=>b.score-a.score);
-      parsed.invoice_date=dateCandidates[0]?.value || '';
+      if(!parsed.invoice_date){
+        const fileDateMatch=filename.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+        if(fileDateMatch){
+          parsed.invoice_date=`${fileDateMatch[1]}-${fileDateMatch[2]}-${fileDateMatch[3]}`;
+        }
+      }
 
       if((!parsed.net_amount || parsed.net_amount===0)){
         const m=sourceText.match(/\bspesa\s+di\s+€?\s*(\d{1,3}(?:\.\d{3})*,\d{2})\b/i);
@@ -2586,10 +2548,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         parsed.total_amount=Number((parsed.net_amount + (parsed.vat_amount || 0)).toFixed(2));
       }
 
-            const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
-      let supplier=guessSupplierFromText(sourceText, ctx.suppliers);
-      const investment=guessInvestmentFromText(sourceText, ctx.investments);
-
+      const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
       if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
         $('#iv_ben').value=beneficiary.id;
       }
@@ -2597,18 +2556,26 @@ for(const t of ['1A','2A','3A','4A','5A']){
       await fillRelations();
 
       const currentBid=$('#iv_ben').value;
-      const supplierScopeText=normalizeTextKeepLines(sourceText);
+      const currentSuppliers=(await sb
+        .from('suppliers')
+        .select('*')
+        .eq('beneficiary_id', currentBid)
+        .order('name')
+      ).data || [];
 
-      const supplierBlock=firstMatch(supplierScopeText,[
-        /\bcedente\/prestatore\b([\s\S]{0,500}?)(?:\bcessionario\/committente\b|\bcliente\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i,
-        /\bfornitore\b([\s\S]{0,400}?)(?:\bcliente\b|\bcommittente\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
-      ]) || supplierScopeText;
+      const investment=guessInvestmentFromText(sourceText, ctx.investments);
 
-      const extractedSupplierName=normalizeText(
+      const supplierBlock=firstMatch(textLines,[
+        /\bcedente\/prestatore\b([\s\S]{0,700}?)(?:\bcessionario\/committente\b|\bcliente\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bfornitore\b([\s\S]{0,500}?)(?:\bcliente\b|\bcommittente\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
+      ]) || textLines;
+
+      const extractedSupplierName=String(
         firstMatch(supplierBlock,[
           /\bdenominazione\s*[:\-]?\s*([^\n]+)/i,
           /\bragione\s+sociale\s*[:\-]?\s*([^\n]+)/i,
-          /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|SOCIETA'? COOPERATIVA|COOP(?:ERATIVA)?))\b/i
+          /\bfornitore\s*[:\-]?\s*([^\n]+)/i,
+          /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
         ]) || ''
       ).replace(/\s{2,}/g,' ').trim();
 
@@ -2631,33 +2598,35 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i
       ]) || '';
 
-      const extractedSupplierAddress=normalizeText(firstMatch(supplierBlock,[
+      const extractedSupplierAddress=String(firstMatch(supplierBlock,[
         /\bindirizzo\s*[:\-]?\s*([^\n]+)/i,
         /\bsede\s+legale\s*[:\-]?\s*([^\n]+)/i
-      ]) || '');
+      ]) || '').replace(/\s{2,}/g,' ').trim();
 
-      const normalizedExtractedSupplierName=normalizeForMatch(extractedSupplierName);
-      const currentSuppliers=(ctx.suppliers||[]).filter(s=>s.beneficiary_id===currentBid);
+      const normalizedSupplierName=normalizeForMatch(extractedSupplierName);
 
-      const explicitMatchedSupplier=currentSuppliers.find(s=>{
-        const nameToken=normalizeForMatch(s.name || '');
-        if(normalizedExtractedSupplierName && nameToken && (
-          nameToken === normalizedExtractedSupplierName ||
-          nameToken.includes(normalizedExtractedSupplierName) ||
-          normalizedExtractedSupplierName.includes(nameToken)
-        )) return true;
-
+      let supplier=currentSuppliers.find(s=>{
         if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
         if(extractedSupplierCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(extractedSupplierCf)) return true;
-        return false;
+
+        const dbName=normalizeForMatch(s.name || '');
+        return normalizedSupplierName && dbName && (
+          dbName===normalizedSupplierName ||
+          dbName.includes(normalizedSupplierName) ||
+          normalizedSupplierName.includes(dbName)
+        );
       }) || null;
 
-      if(!supplier && explicitMatchedSupplier) supplier=explicitMatchedSupplier;
+      if(!supplier){
+        const guessedExisting=guessSupplierFromText(sourceText, currentSuppliers);
+        if(guessedExisting) supplier=guessedExisting;
+      }
 
       const canAutoCreateSupplier =
         currentBid &&
-        normalizedExtractedSupplierName.length >= 6 &&
-        !/^(?:cliente|committente|cessionario|beneficiario|destinatario)$/i.test(extractedSupplierName);
+        normalizedSupplierName &&
+        normalizedSupplierName.length >= 6 &&
+        !/^(?:cliente|committente|cessionario|beneficiario|destinatario|fornitore)$/i.test(extractedSupplierName);
 
       if(!supplier && canAutoCreateSupplier){
         const payload={
@@ -2672,10 +2641,14 @@ for(const t of ['1A','2A','3A','4A','5A']){
           note: 'Creato automaticamente da import fattura PDF'
         };
 
-        const created=await sb.from('suppliers').insert(payload).select('*').single();
-        if(!created.error && created.data){
+        const created=await sb.from('suppliers').insert(payload).select().single();
+
+        if(created.error){
+          console.error(created.error);
+          $('#iv_ai_msg').textContent=`Fornitore estratto ma non salvato: ${created.error.message}`;
+          toast('Fornitore non creato', true, created.error.message);
+        }else if(created.data){
           supplier=created.data;
-          ctx.suppliers=[...(ctx.suppliers||[]), created.data];
           await fillRelations();
         }
       }
@@ -2684,12 +2657,14 @@ for(const t of ['1A','2A','3A','4A','5A']){
       if(parsed.invoice_date) $('#iv_date').value=parsed.invoice_date;
       if(parsed.pnrr_text) $('#iv_pnrr').value=parsed.pnrr_text;
       if(parsed.cup) $('#iv_cup').value=parsed.cup;
+
       if(parsed.net_amount || parsed.net_amount===0){
         $('#iv_net').value=Number(parsed.net_amount).toLocaleString('it-IT',{
           minimumFractionDigits:2,
           maximumFractionDigits:2
         });
       }
+
       if(parsed.vat_amount || parsed.vat_amount===0){
         $('#iv_vat').value=Number(parsed.vat_amount).toLocaleString('it-IT',{
           minimumFractionDigits:2,
@@ -2697,21 +2672,22 @@ for(const t of ['1A','2A','3A','4A','5A']){
         });
       }
 
-      const supplierWanted = normalizeForMatch(extractedSupplierName || supplier?.name || '');
-
-      const supplierOption = [...$('#iv_sup').options].find(o=>{
-        const label = normalizeForMatch(o.textContent || '');
-        return supplierWanted && (
-          label === supplierWanted ||
-          label.includes(supplierWanted) ||
-          supplierWanted.includes(label)
-        );
-      });
-
-      if(supplierOption) $('#iv_sup').value = supplierOption.value;
-      else if(supplier){
+      if(supplier){
         const hasOption=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
-        if(hasOption) $('#iv_sup').value=supplier.id;
+        if(!hasOption) await fillRelations();
+
+        const hasOptionAfterReload=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
+        if(hasOptionAfterReload) $('#iv_sup').value=supplier.id;
+      }else if(normalizedSupplierName){
+        const supplierOption=[...$('#iv_sup').options].find(o=>{
+          const label=normalizeForMatch(o.textContent || '');
+          return label && (
+            label===normalizedSupplierName ||
+            label.includes(normalizedSupplierName) ||
+            normalizedSupplierName.includes(label)
+          );
+        });
+        if(supplierOption) $('#iv_sup').value=supplierOption.value;
       }
 
       if(investment){
@@ -2721,12 +2697,16 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       calcTotal();
 
-      $('#iv_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
+      const supplierMsg = supplier
+        ? ` • fornitore: ${supplier.name || extractedSupplierName || 'riconosciuto'}`
+        : (extractedSupplierName ? ` • fornitore estratto: ${extractedSupplierName}` : '');
+
+      $('#iv_ai_msg').textContent=`Documento analizzato ${res?.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare${supplierMsg}.`;
     }catch(err){
-  console.error(err);
-  $('#iv_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
-  toast('Analisi PDF non riuscita', true, err?.message || 'Errore sconosciuto');
-}
+      console.error(err);
+      $('#iv_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
+      toast('Analisi PDF non riuscita', true, err?.message || 'Errore sconosciuto');
+    }
   }
 
   $('#iv_ben').onchange=fillRelations;
