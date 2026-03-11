@@ -1022,29 +1022,68 @@
   }
   function extractPaymentFields(text){
     const t=normalizeText(text);
+    const flat=t.replace(/\s+/g,' ').trim();
 
-    const paymentDate=toIsoDateGuess(firstMatch(t,[
-      /\b(?:data\s+esecuzione|data\s+operazione|data\s+bonifico|data)\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-      /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+    const toIsoDateLoose=(raw)=>{
+      if(!raw) return '';
+      const m=String(raw).match(/(\d{2})[\/.\-](\d{2})[\/.\-](\d{2,4})/);
+      if(!m) return toIsoDateGuess(raw) || '';
+      let y=m[3];
+      if(y.length===2) y=`20${y}`;
+      return `${y}-${m[2]}-${m[1]}`;
+    };
+
+    const parseMoneyLoose=(raw)=>{
+      if(!raw) return 0;
+      let s=String(raw).replace(/\s+/g,'').trim();
+
+      const lastComma=s.lastIndexOf(',');
+      const lastDot=s.lastIndexOf('.');
+
+      if(lastComma >= 0 && lastDot >= 0){
+        if(lastComma > lastDot){
+          s=s.replace(/\./g,'').replace(',','.');
+        }else{
+          s=s.replace(/,/g,'');
+        }
+      }else if(lastComma >= 0){
+        s=s.replace(/\./g,'').replace(',','.');
+      }else{
+        s=s.replace(/,/g,'');
+      }
+
+      const n=Number(s.replace(/[^0-9.\-]/g,''));
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const paymentDate=toIsoDateLoose(firstMatch(flat,[
+      /\brequested\s+execution\s+date\b\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{2,4})/i,
+      /\bstatus\s+date\b\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{2,4})/i,
+      /\b(?:data\s+esecuzione|data\s+operazione|data\s+bonifico|data)\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{2,4})/i,
+      /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{2,4})\b/
     ]));
 
-    const amount=parseItalianAmount(firstMatch(t,[
-      /\b(?:importo|totale|amount)\s*[:\-]?\s*([0-9\.\,]+)/i
+    const amount=parseMoneyLoose(firstMatch(flat,[
+      /\bcurrency\s*\/\s*amount\b[\s:]*[A-Z]{3}\s*\([^)]+\)\s*([0-9][0-9\.,]+)/i,
+      /\bcurrency\s*\/\s*amount\b[\s:]*([0-9][0-9\.,]+)/i,
+      /\b(?:importo|totale|amount)\b\s*[:\-]?\s*(?:eur\s*)?([0-9][0-9\.,]+)/i,
+      /\b(?:eur|euro)\b[^\d]{0,8}([0-9][0-9\.,]+)/i
     ]));
 
-    const cro=firstMatch(t,[
-      /\b(?:cro|trn|transaction\s+id|id\s+operazione)\s*[:\-]?\s*([A-Z0-9\-]+)/i
+    const cro=firstMatch(flat,[
+      /\b(?:cro|trn|transaction\s+id|id\s+operazione|payment\s+reference|receiver\s+reference)\b\s*[:\-]?\s*([A-Z0-9\-]{6,})/i
     ]);
 
-    const invoiceNumber=firstMatch(t,[
-      /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*[:\-]?\s*([A-Z0-9\/\-_]+)/i
+    const invoiceNumber=firstMatch(flat,[
+      /\b(?:saldo|acconto)\s+ft\.?\s*(?:fpr|fpa|td\d{2})?\s*([A-Z0-9]+(?:[\/\-_][A-Z0-9]+)+|[A-Z0-9]{2,})\b/i,
+      /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*(?:fpr|fpa|td\d{2})?\s*[:\-]?\s*([A-Z0-9]+(?:[\/\-_][A-Z0-9]+)+|[A-Z0-9]{2,})\b/i
     ]);
 
-    const cup=extractCup(t);
-    const pnrr=hasPnrrText(t) ? firstMatch(t,[/(.{0,40}pnrr.{0,80})/i]) || 'PNRR rilevato nel documento' : '';
+    const cup=extractCup(flat);
+    const pnrr=hasPnrrText(flat) ? firstMatch(flat,[/(.{0,40}pnrr.{0,80})/i]) || 'PNRR rilevato nel documento' : '';
 
     let kind='Saldo';
-    const low=t.toLowerCase();
+    const low=flat.toLowerCase();
     if(low.includes('acconto')) kind='Acconto';
     else if(low.includes('saldo')) kind='Saldo';
 
@@ -1056,9 +1095,11 @@
       kind,
       cup,
       pnrr_text: pnrr,
-      bank: firstMatch(t,[
+      bank: firstMatch(flat,[
+        /\bbic\b\s*[:\-]?\s*([A-Z0-9]{8,11})\b/i,
+        /\bbank\s+access\b\s*[:\-]?\s*([A-Z0-9_ \-]{4,})/i,
         /\b(?:banca|istituto)\s*[:\-]?\s*([A-ZÀ-Ú0-9 \.\-']{4,})/i
-      ])
+      ]) || ''
     };
   }
 
