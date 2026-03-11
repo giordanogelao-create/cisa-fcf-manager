@@ -2488,8 +2488,38 @@ for(const t of ['1A','2A','3A','4A','5A']){
       });
     }
 
+    function renderInvImportPreview(files){
+      const box=$('#invImportPreview');
+      if(!box) return;
+
+      const list=[...(files||[])];
+      if(!list.length){
+        box.innerHTML='Nessuna immagine caricata.';
+        return;
+      }
+
+      box.innerHTML=`
+        <div><b>${list.length}</b> immagine${list.length===1?'':'i'} pronta${list.length===1?'':'e'} per l'import.</div>
+        <div style="height:8px"></div>
+        <div class="table-wrap" style="max-height:160px">
+          <table class="table">
+            <thead><tr><th>#</th><th>File</th><th>Dimensione</th></tr></thead>
+            <tbody>
+              ${list.map((f,idx)=>`<tr><td>${idx+1}</td><td>${esc(f.name||'')}</td><td>${Math.max(1,Math.round((f.size||0)/1024))} KB</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
     $('#selInvBen').onchange=paint;
     $('#inew').onclick=()=>openInvestimentoModal(null, beneficiaries);
+
+    if($('#iimp')) $('#iimp').onclick=()=>$('#iimpFiles').click();
+    if($('#iimpFiles')){
+      $('#iimpFiles').onchange=(e)=>renderInvImportPreview(e.target.files);
+    }
+
+    renderInvImportPreview($('#iimpFiles') ? $('#iimpFiles').files : []);
     paint();
   }
 
