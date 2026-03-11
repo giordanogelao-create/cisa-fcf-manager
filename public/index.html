@@ -2621,7 +2621,15 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const normalizedBeneficiaryName=normalizeForMatch(currentBeneficiary?.ragione_sociale || '');
       let normalizedSupplierName=normalizeForMatch(extractedSupplierName);
 
-      if(normalizedSupplierName && normalizedSupplierName===normalizedBeneficiaryName){
+      if(
+        normalizedSupplierName &&
+        normalizedBeneficiaryName &&
+        (
+          normalizedSupplierName===normalizedBeneficiaryName ||
+          (normalizedSupplierName.length >= 12 && normalizedBeneficiaryName.includes(normalizedSupplierName)) ||
+          (normalizedBeneficiaryName.length >= 12 && normalizedSupplierName.includes(normalizedBeneficiaryName))
+        )
+      ){
         extractedSupplierName='';
         normalizedSupplierName='';
       }
