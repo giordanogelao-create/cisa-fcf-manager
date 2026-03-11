@@ -2581,11 +2581,14 @@ for(const t of ['1A','2A','3A','4A','5A']){
         .order('name')
       ).data || [];
 
-      const supplierScopeText=normalizeTextKeepLines([
-        pdfText,
-        ocrText,
-        res?.text || ''
-      ].filter(Boolean).join('\n'));
+      const supplierScopeText=normalizeTextKeepLines(
+        res?.pdfTopLeftText ||
+        [
+          pdfText,
+          ocrText,
+          res?.text || ''
+        ].filter(Boolean).join('\n')
+      );
 
       const supplierBlock=firstMatch(supplierScopeText,[
         /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
