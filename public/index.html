@@ -2777,10 +2777,34 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         if(guessedExisting) supplier=guessedExisting;
       }
 
+      const beneficiaryPiva=normalizeText(currentBeneficiary?.piva || '');
+      const beneficiaryCf=normalizeForMatch(currentBeneficiary?.cf || '');
+      const supplierMatchesBeneficiary =
+        (
+          normalizedSupplierName &&
+          normalizedBeneficiaryName &&
+          (
+            normalizedSupplierName===normalizedBeneficiaryName ||
+            (normalizedSupplierName.length >= 12 && normalizedBeneficiaryName.includes(normalizedSupplierName)) ||
+            (normalizedBeneficiaryName.length >= 12 && normalizedSupplierName.includes(normalizedBeneficiaryName))
+          )
+        ) ||
+        (
+          extractedSupplierPiva &&
+          beneficiaryPiva &&
+          normalizeText(extractedSupplierPiva)===beneficiaryPiva
+        ) ||
+        (
+          extractedSupplierCf &&
+          beneficiaryCf &&
+          normalizeForMatch(extractedSupplierCf)===beneficiaryCf
+        );
+
       const canAutoCreateSupplier =
         currentBid &&
         normalizedSupplierName &&
         normalizedSupplierName.length >= 6 &&
+        !supplierMatchesBeneficiary &&
         !/^(?:cliente|committente|cessionario|beneficiario|destinatario|fornitore)$/i.test(extractedSupplierName);
       if(!supplier && canAutoCreateSupplier){
         const payload={
