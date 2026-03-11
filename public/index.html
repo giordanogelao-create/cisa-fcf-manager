@@ -2601,9 +2601,11 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
       ]) || supplierFallbackText.slice(0, 1600);
 
-      const supplierBlock=supplierPrimaryBlock || supplierFallbackBlock;
-      const supplierScopeText=supplierBlock || supplierPrimaryText || supplierFallbackText;
-
+      const supplierBlock=supplierPrimaryBlock || supplierFallbackBlock || '';
+      const supplierScopeText=normalizeTextKeepLines([
+        supplierPrimaryText,
+        supplierFallbackText
+      ].filter(Boolean).join('\n'));
         const extractedSupplierPiva=firstMatch(supplierBlock,[
         /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
         /\bPARTITA\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
