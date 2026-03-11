@@ -3247,6 +3247,8 @@ $('#ivt').onclick=(e)=>{
         syncFieldsFromSelectedInvoice(false);
       }
 
+      $('#p_cup').value=parsed.cup || '';
+
       $('#p_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
     }catch(err){
   console.error(err);
