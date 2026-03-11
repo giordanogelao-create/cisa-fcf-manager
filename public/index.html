@@ -2581,20 +2581,28 @@ for(const t of ['1A','2A','3A','4A','5A']){
         .order('name')
       ).data || [];
 
-      const supplierScopeText=normalizeTextKeepLines(
-        res?.pdfTopLeftText ||
-        [
-          pdfText,
-          ocrText,
-          res?.text || ''
-        ].filter(Boolean).join('\n')
-      );
+      const supplierPrimaryText=normalizeTextKeepLines(res?.pdfTopLeftText || '');
 
-      const supplierBlock=firstMatch(supplierScopeText,[
+      const supplierFallbackText=normalizeTextKeepLines([
+        pdfText,
+        ocrText,
+        res?.text || ''
+      ].filter(Boolean).join('\n'));
+
+      const supplierPrimaryBlock=firstMatch(supplierPrimaryText,[
         /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
         /\bcedente\/prestatore\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
-      ]) || supplierScopeText.slice(0, 1600);
+      ]) || supplierPrimaryText.slice(0, 700);
+
+      const supplierFallbackBlock=firstMatch(supplierFallbackText,[
+        /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bcedente\/prestatore\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
+      ]) || supplierFallbackText.slice(0, 1600);
+
+      const supplierBlock=supplierPrimaryBlock || supplierFallbackBlock;
+      const supplierScopeText=supplierBlock || supplierPrimaryText || supplierFallbackText;
 
                 const extractedSupplierPiva=firstMatch(supplierBlock,[
         /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
