@@ -2541,7 +2541,88 @@ for(const t of ['1A','2A','3A','4A','5A']){
       return normalizeTextKeepLines(text || '');
     }
 
-    function renderInvImportPreview(files, previews=[]){
+    function parseInvestmentImageText(text){
+      const clean=normalizeTextKeepLines(text)
+        .replace(/\r/g,'')
+        .replace(/[|¦]/g,' ')
+        .trim();
+
+      if(!clean) return [];
+
+      const lines=clean
+        .split('\n')
+        .map(x=>x.trim())
+        .filter(Boolean);
+
+      const isHeaderLine=(line)=>
+        /\btabella\s+investimento\b|\bcategoria\b|\btitolo\s+investimento\b|\bimporto\s+approvato\b|\bcontributo\b|\bfinanziamento\s+agevolato\b|\bmezzi\s+propri\b/i.test(line);
+
+      const startsNewRow=(line)=>
+        /^(?:tabella\s+investimento\s*[:\-]?\s*)?\d+[A-Z]\b/i.test(line) ||
+        /^(?:\d+[A-Z])\s+[A-ZÀ-Úa-zà-ú]/.test(line);
+
+      const moneyRe=/(?:€\s*)?\d{1,3}(?:[.\s]\d{3})*,\d{2}|\d{1,3}(?:,\d{3})*\.\d{2}/g;
+
+      const rows=[];
+      let current=[];
+
+      const flush=()=>{
+        if(!current.length) return;
+
+        const raw=current.join(' ').replace(/\s{2,}/g,' ').trim();
+        current=[];
+
+        if(!raw) return;
+
+        const tableCode=
+          firstMatch(raw,[
+            /\btabella\s+investimento\s*[:\-]?\s*(\d+[A-Z])\b/i,
+            /^(\d+[A-Z])\b/i
+          ]) || '';
+
+        const amounts=(raw.match(moneyRe) || []).slice(0,5);
+
+        let description=raw;
+        if(tableCode){
+          description=description
+            .replace(new RegExp(`^\\s*(?:tabella\\s+investimento\\s*[:\\-]?\\s*)?${tableCode}\\s*`,'i'),'')
+            .trim();
+        }
+
+        if(amounts.length){
+          const cutAt=description.indexOf(amounts[0]);
+          if(cutAt > 0) description=description.slice(0,cutAt).trim();
+        }
+
+        if(!description && !amounts.length) return;
+
+        rows.push({
+          table_code: tableCode,
+          description,
+          approved_amount: amounts[0] || '',
+          contribution: amounts[1] || '',
+          soft_loan: amounts[2] || '',
+          vat: amounts[3] || '',
+          own_funds: amounts[4] || '',
+          raw
+        });
+      };
+
+      for(const line of lines){
+        if(isHeaderLine(line)) continue;
+
+        if(startsNewRow(line) && current.length){
+          flush();
+        }
+
+        current.push(line);
+      }
+
+      flush();
+      return rows;
+    }
+
+    function renderInvImportPreview(files, previews=[], parsedRows=[]){
       const box=$('#invImportPreview');
       if(!box) return;
 
@@ -2567,6 +2648,44 @@ for(const t of ['1A','2A','3A','4A','5A']){
             </tbody>
           </table>
         </div>
+
+        <div style="height:10px"></div>
+        <div class="card" style="padding:10px;background:rgba(110,168,255,.04)">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px"><b>Preview righe OCR</b> • ${parsedRows.length} riga${parsedRows.length===1?'':'he'} rilevata${parsedRows.length===1?'':'e'}</div>
+          ${
+            parsedRows.length
+              ? `<div class="table-wrap" style="max-height:260px">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Tabella</th>
+                        <th>Descrizione grezza</th>
+                        <th>Importo approvato</th>
+                        <th>Contributo</th>
+                        <th>Fin. agevolato</th>
+                        <th>IVA</th>
+                        <th>Mezzi propri</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${parsedRows.map((r,idx)=>`<tr>
+                        <td>${idx+1}</td>
+                        <td>${esc(r.table_code || '')}</td>
+                        <td>${esc((r.description || '').slice(0,180))}</td>
+                        <td>${esc(r.approved_amount || '')}</td>
+                        <td>${esc(r.contribution || '')}</td>
+                        <td>${esc(r.soft_loan || '')}</td>
+                        <td>${esc(r.vat || '')}</td>
+                        <td>${esc(r.own_funds || '')}</td>
+                      </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>`
+              : `<div style="color:var(--muted);font-size:13px">Nessuna riga investimento riconosciuta per ora. Nel prossimo step raffineremo il parser delle colonne.</div>`
+          }
+        </div>
+
         <div style="height:10px"></div>
         ${previews.length ? previews.map((p,idx)=>`
           <div class="card" style="margin-top:8px;padding:10px;background:rgba(110,168,255,.04)">
@@ -2584,20 +2703,23 @@ for(const t of ['1A','2A','3A','4A','5A']){
     if($('#iimpFiles')){
       $('#iimpFiles').onchange=async(e)=>{
         const files=[...(e.target.files||[])];
-        renderInvImportPreview(files, files.map(()=>({status:'Analisi in corso...',text:''})));
+        renderInvImportPreview(files, files.map(()=>({status:'Analisi in corso...',text:''})), []);
 
         const previews=[];
+        let parsedRows=[];
+
         for(const file of files){
           try{
             const text=await ocrInvestmentImage(file);
             previews.push({status:text ? 'OCR completato' : 'Nessun testo', text});
+            parsedRows=parsedRows.concat(parseInvestmentImageText(text));
           }catch(err){
             console.error(err);
             previews.push({status:'Errore OCR', text:''});
           }
         }
 
-        renderInvImportPreview(files, previews);
+        renderInvImportPreview(files, previews, parsedRows);
       };
     }
 
