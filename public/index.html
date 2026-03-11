@@ -2628,7 +2628,12 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const supplierTopLeftText=supplierPrimaryText || supplierScopeText || '';
       const supplierTopLeftBlock=supplierPrimaryBlock || supplierTopLeftText.slice(0,700);
 
-      extractedSupplierName=firstMatch(supplierTopLeftBlock,[
+      const supplierCedenteSectionPrimary=firstMatch(supplierFallbackText,[
+        /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,1200}?)(?=\bcessionario\/committente\b)/i,
+        /\bcedente\/prestatore\b([\s\S]{0,1200}?)(?=\bcessionario\/committente\b)/i
+      ]) || supplierPrimaryBlock || supplierTopLeftBlock || '';
+
+      extractedSupplierName=firstMatch(supplierCedenteSectionPrimary,[
         /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
         /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
         /\bdenominazione\s*:\s*([^\n]+)/i,
