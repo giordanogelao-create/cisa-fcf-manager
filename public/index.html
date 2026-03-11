@@ -3152,23 +3152,42 @@ $('#ivt').onclick=(e)=>{
   );
 
   let currentInvoices=[];
+  let currentPaymentSuppliers=[];
+  let currentPaymentAccounts=[];
 
   async function fillInvoices(preferredInvoiceId=null){
     const currentBid=$('#p_ben').value;
 
-    const invRows=(await sb
-      .from('invoices')
-      .select('id,beneficiary_id,invoice_number,invoice_date,net_amount,vat_amount,cup')
-      .eq('filiera_id',fid)
-      .eq('beneficiary_id',currentBid)
-      .order('created_at',{ascending:false})
-    ).data || [];
+    const [invQ,supQ,accQ]=await Promise.all([
+      sb.from('invoices')
+        .select('id,beneficiary_id,invoice_number,invoice_date,net_amount,vat_amount,cup,supplier_id')
+        .eq('filiera_id',fid)
+        .eq('beneficiary_id',currentBid)
+        .order('created_at',{ascending:false}),
+      sb.from('suppliers')
+        .select('id,name')
+        .eq('beneficiary_id',currentBid)
+        .order('name'),
+      sb.from('bank_accounts')
+        .select('id,iban,bank,dedicated')
+        .eq('beneficiary_id',currentBid)
+        .order('created_at',{ascending:false})
+    ]);
 
+    const invRows=invQ.data || [];
     currentInvoices=invRows;
+    currentPaymentSuppliers=supQ.data || [];
+    currentPaymentAccounts=accQ.data || [];
 
     $('#p_invSel').innerHTML =
       `<option value="">Seleziona fattura / nessuna associazione</option>` +
       invRows.map(i=>`<option value="${i.id}">${esc(i.invoice_number)} • ${esc(i.invoice_date)} • ${eur(num(i.net_amount)+num(i.vat_amount))}</option>`).join('');
+
+    if($('#p_sup')){
+      $('#p_sup').innerHTML =
+        `<option value="">Seleziona fornitore / nessuna associazione</option>` +
+        currentPaymentSuppliers.map(s=>`<option value="${s.id}">${esc(s.name || '')}</option>`).join('');
+    }
 
     const wantedId = preferredInvoiceId || prefill?.invoice_id || pay?.invoice_id || '';
     if(wantedId && invRows.some(x=>x.id===wantedId)){
@@ -3176,6 +3195,12 @@ $('#ivt').onclick=(e)=>{
     }
 
     syncFieldsFromSelectedInvoice(false);
+
+    if($('#p_iban') && !$('#p_iban').value.trim()){
+      const preferredAccount=currentPaymentAccounts.find(a=>a.dedicated) || currentPaymentAccounts[0] || null;
+      if(preferredAccount?.iban) $('#p_iban').value=preferredAccount.iban;
+      if(!$('#p_bank').value.trim() && preferredAccount?.bank) $('#p_bank').value=preferredAccount.bank;
+    }
 
     if(!$('#p_cup').value){
       $('#p_cup').value=benMap[currentBid]?.cup || '';
@@ -3194,6 +3219,16 @@ $('#ivt').onclick=(e)=>{
         $('#p_cup').value=chosen.cup || benMap[currentBid]?.cup || '';
       }
 
+      if($('#p_sup') && chosen.supplier_id && [...$('#p_sup').options].some(o=>o.value===chosen.supplier_id)){
+        $('#p_sup').value=chosen.supplier_id;
+      }
+
+      if($('#p_iban') && !$('#p_iban').value.trim()){
+        const preferredAccount=currentPaymentAccounts.find(a=>a.dedicated) || currentPaymentAccounts[0] || null;
+        if(preferredAccount?.iban) $('#p_iban').value=preferredAccount.iban;
+        if(!$('#p_bank').value.trim() && preferredAccount?.bank) $('#p_bank').value=preferredAccount.bank;
+      }
+
       const total = Number((num(chosen.net_amount)+num(chosen.vat_amount)).toFixed(2));
       const amount = num($('#p_amt').value);
 
@@ -3205,6 +3240,12 @@ $('#ivt').onclick=(e)=>{
         }
       }
     }else{
+      if($('#p_sup')) $('#p_sup').value='';
+      if($('#p_iban') && !$('#p_iban').value.trim()){
+        const preferredAccount=currentPaymentAccounts.find(a=>a.dedicated) || currentPaymentAccounts[0] || null;
+        if(preferredAccount?.iban) $('#p_iban').value=preferredAccount.iban;
+        if(!$('#p_bank').value.trim() && preferredAccount?.bank) $('#p_bank').value=preferredAccount.bank;
+      }
       if(!$('#p_cup').value.trim()){
         $('#p_cup').value=benMap[currentBid]?.cup || '';
       }
