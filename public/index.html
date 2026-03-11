@@ -2384,8 +2384,23 @@ for(const t of ['1A','2A','3A','4A','5A']){
         <div><h2 class="ct">Investimenti</h2><p class="sub">Gestione investimenti per beneficiario, tabella e categoria.</p></div>
         <div class="row">
           <select id="selInvBen" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <button class="btn sec" id="iimp">🖼️ Importa tabella investimenti</button>
           <button class="btn pri" id="inew">＋ Nuovo investimento</button>
         </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" id="invImportBox">
+        <div class="card h" style="border:none;box-shadow:none;padding:0">
+          <div>
+            <h3 class="ct" style="font-size:15px">Import massivo da immagine</h3>
+            <p class="sub">Carica una o più immagini contenenti le tabelle investimenti del beneficiario selezionato. Nel prossimo step collegheremo OCR, preview righe e salvataggio massivo.</p>
+          </div>
+          <span class="badge">Bozza UI</span>
+        </div>
+        <div style="height:10px"></div>
+        <input id="iimpFiles" class="input" type="file" accept="image/*" multiple>
+        <div style="height:10px"></div>
+        <div id="invImportPreview" style="color:var(--muted);font-size:13px">Nessuna immagine caricata.</div>
       </div>
       <div style="height:12px"></div>
       <div id="invArea"></div>`;
