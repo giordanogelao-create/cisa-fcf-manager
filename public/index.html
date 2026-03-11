@@ -2633,8 +2633,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         extractedSupplierName='';
         normalizedSupplierName='';
       }
-
-      if((!extractedSupplierName || !normalizedSupplierName) && (extractedSupplierPiva || extractedSupplierCf)){
+if(extractedSupplierPiva || extractedSupplierCf){
         let globalSupplierByTax=null;
 
         if(extractedSupplierPiva){
@@ -2655,7 +2654,13 @@ for(const t of ['1A','2A','3A','4A','5A']){
           globalSupplierByTax=q.data?.[0] || null;
         }
 
-        if(globalSupplierByTax?.name){
+        if(
+          globalSupplierByTax?.name &&
+          (
+            !normalizedSupplierName ||
+            normalizeForMatch(globalSupplierByTax.name) !== normalizedSupplierName
+          )
+        ){
           extractedSupplierName=globalSupplierByTax.name.trim();
           normalizedSupplierName=normalizeForMatch(extractedSupplierName);
         }
