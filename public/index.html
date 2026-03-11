@@ -2624,21 +2624,39 @@ for(const t of ['1A','2A','3A','4A','5A']){
 
       let extractedSupplierName='';
 
-      const supplierTaxAnchor=extractedSupplierPiva || extractedSupplierCf || '';
-      if(supplierTaxAnchor){
-        const anchorIndex=supplierScopeText.indexOf(supplierTaxAnchor);
-        if(anchorIndex >= 0){
-          const anchoredSlice=supplierScopeText.slice(
-            Math.max(0, anchorIndex - 80),
-            Math.min(supplierScopeText.length, anchorIndex + 260)
-          );
+      const supplierTopLeftText=normalizeTextKeepLines(res?.pdfTopLeftText || supplierScopeText || '');
 
-          extractedSupplierName=firstMatch(anchoredSlice,[
-            /\bdenominazione\s*:\s*([^\n]+)/i,
-            /\bragione\s+sociale\s*:\s*([^\n]+)/i,
-            /\bdenominazione\s+([^\n]+)/i,
-            /\bragione\s+sociale\s+([^\n]+)/i
-          ]);
+      const supplierTopLeftBlock=firstMatch(supplierTopLeftText,[
+        /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,700}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bcedente\/prestatore\b([\s\S]{0,700}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i
+      ]) || supplierTopLeftText.slice(0,700);
+
+      extractedSupplierName=firstMatch(supplierTopLeftBlock,[
+        /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
+        /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
+        /\bdenominazione\s*:\s*([^\n]+)/i,
+        /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+        /\bdenominazione\s+([^\n]+)/i,
+        /\bragione\s+sociale\s+([^\n]+)/i
+      ]) || '';
+
+      if(!extractedSupplierName){
+        const supplierTaxAnchor=extractedSupplierPiva || extractedSupplierCf || '';
+        if(supplierTaxAnchor){
+          const anchorIndex=supplierScopeText.indexOf(supplierTaxAnchor);
+          if(anchorIndex >= 0){
+            const anchoredSlice=supplierScopeText.slice(
+              Math.max(0, anchorIndex - 80),
+              Math.min(supplierScopeText.length, anchorIndex + 260)
+            );
+
+            extractedSupplierName=firstMatch(anchoredSlice,[
+              /\bdenominazione\s*:\s*([^\n]+)/i,
+              /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+              /\bdenominazione\s+([^\n]+)/i,
+              /\bragione\s+sociale\s+([^\n]+)/i
+            ]);
+          }
         }
       }
 
