@@ -2537,7 +2537,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         (/^\d{1,4}$/.test(normalizedInvoiceNumber) && !/[\/.-]/.test(normalizedInvoiceNumber));
 
       if(suspiciousInvoiceNumber){
-        const fileInvoiceMatch=filename.match(/\bF\.\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
+        const fileInvoiceMatch=filename.match(/\b(?:F|FATTURA)\.?\s*([A-Z0-9][A-Z0-9\/._-]{1,})\b/i);
         if(fileInvoiceMatch) parsed.invoice_number=fileInvoiceMatch[1];
       }
 
