@@ -2552,8 +2552,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
       ]) || supplierScopeText.slice(0, 1600);
 
-              let extractedSupplierName=String(
-        extractSupplierNameFromInvoiceText(supplierScopeText) ||
+        let extractedSupplierName=String(
         firstMatch(supplierBlock,[
           /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
           /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
@@ -2564,6 +2563,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
           /\bfornitore\s*:\s*([^\n]+)/i,
           /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
         ]) ||
+        extractSupplierNameFromInvoiceText(supplierBlock || supplierScopeText) ||
         firstMatch(supplierScopeText,[
           /\bcedente\/prestatore\s*\(fornitore\)\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i,
           /\bcedente\/prestatore\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i
