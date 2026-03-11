@@ -815,11 +815,53 @@
   }
 
     async function extractTextFromPdfWithFallback(file){
+    async function extractPdfTopLeftText(file){
+      const pdfjsLib=await ensurePdfJs();
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+      const page=await pdf.getPage(1);
+      const content=await page.getTextContent();
+
+      if(!Array.isArray(content?.items) || !content.items.length) return '';
+
+      const xs=content.items
+        .map(it=>Number(it?.transform?.[4]))
+        .filter(v=>Number.isFinite(v));
+
+      const ys=content.items
+        .map(it=>Number(it?.transform?.[5]))
+        .filter(v=>Number.isFinite(v));
+
+      const minX=xs.length ? Math.min(...xs) : 0;
+      const maxY=ys.length ? Math.max(...ys) : 0;
+
+      const topLeftItems=content.items.filter(it=>{
+        const x=Number(it?.transform?.[4]);
+        const y=Number(it?.transform?.[5]);
+        if(!Number.isFinite(x) || !Number.isFinite(y)) return false;
+        return x <= (minX + 260) && y >= (maxY - 220);
+      });
+
+      if(!topLeftItems.length) return '';
+
+      return normalizeTextKeepLines(extractPdfPageTextLines({
+        ...content,
+        items: topLeftItems
+      }));
+    }
+
     let pdfText='';
+    let pdfTopLeftText='';
     let ocrText='';
 
     try{
       pdfText=normalizeTextKeepLines(await extractPdfText(file));
+    }catch(err){
+      console.error(err);
+    }
+
+    try{
+      pdfTopLeftText=normalizeTextKeepLines(await extractPdfTopLeftText(file));
     }catch(err){
       console.error(err);
     }
@@ -847,9 +889,8 @@
     const usedOcr=!!ocrText;
     const text=mergeExtractedTextBlocks(pdfText, ocrText);
 
-    return { text, usedOcr, pdfText, ocrText };
+    return { text, usedOcr, pdfText, pdfTopLeftText, ocrText };
   }
-
     function extractInvoiceFields(text){
     const multiline=normalizeTextKeepLines(text);
     const flat=normalizeText(multiline);
