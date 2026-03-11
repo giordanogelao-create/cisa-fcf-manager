@@ -2643,23 +2643,10 @@ for(const t of ['1A','2A','3A','4A','5A']){
       ]) || '';
 
       if(!extractedSupplierName){
-        const supplierTaxAnchor=extractedSupplierPiva || extractedSupplierCf || '';
-        if(supplierTaxAnchor){
-          const anchorIndex=supplierScopeText.indexOf(supplierTaxAnchor);
-          if(anchorIndex >= 0){
-            const anchoredSlice=supplierScopeText.slice(
-              Math.max(0, anchorIndex - 80),
-              Math.min(supplierScopeText.length, anchorIndex + 260)
-            );
-
-            extractedSupplierName=firstMatch(anchoredSlice,[
-              /\bdenominazione\s*:\s*([^\n]+)/i,
-              /\bragione\s+sociale\s*:\s*([^\n]+)/i,
-              /\bdenominazione\s+([^\n]+)/i,
-              /\bragione\s+sociale\s+([^\n]+)/i
-            ]);
-          }
-        }
+        // fallback disabilitato:
+        // se P.IVA / CF sono stati letti dal blocco cliente, il tax-anchor riporta
+        // inevitabilmente alla denominazione del beneficiario (es. COVALPA).
+        // Il nome fornitore deve arrivare solo dal blocco Cedente/prestatore.
       }
 
       if(!extractedSupplierName){
