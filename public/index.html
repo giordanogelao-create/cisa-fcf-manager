@@ -2557,13 +2557,15 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
       ]) || supplierScopeText.slice(0, 1600);
 
-      let extractedSupplierName = String(
-        extractSupplierNameFromInvoiceText(supplierScopeText) ||
+            let extractedSupplierName = String(
+        extractSupplierNameFromInvoiceText(supplierBlock) ||
         firstMatch(supplierBlock,[
-          /\bdenominazione\s*:\s*([^\n]+)/i,
-          /\bragione\s+sociale\s*:\s*([^\n]+)/i,
-          /\bdenominazione\s+([^\n]+)/i,
-          /\bragione\s+sociale\s+([^\n]+)/i,
+          /\bdenominazione\s*[:\-]?\s*([^\n]+)/i,
+          /\bragione\s+sociale\s*[:\-]?\s*([^\n]+)/i,
+          /\bfornitore\s*[:\-]?\s*([^\n]+)/i,
+          /\bcodice\s+fiscale\b[^\n]*\n\s*(?:denominazione\s*[:\-]?\s*)?([^\n]+)/i,
+          /\bp\.?\s*iva\b[^\n]*\n(?:[^\n]*\n)?\s*(?:denominazione\s*[:\-]?\s*)?([^\n]+)/i,
+          /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n(?:[^\n]*\n)?\s*(?:denominazione\s*[:\-]?\s*)?([^\n]+)/i,
           /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
         ]) ||
         ''
@@ -2611,6 +2613,17 @@ for(const t of ['1A','2A','3A','4A','5A']){
           /\bindirizzo\s+([^\n]+)/i
         ]) || ''
       ).replace(/\s{2,}/g,' ').trim();
+
+      if(!extractedSupplierName && (extractedSupplierPiva || extractedSupplierCf)){
+        const knownSupplierByTax=(ctx.suppliers||[]).find(s=>{
+          if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
+          if(extractedSupplierCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(extractedSupplierCf)) return true;
+          return false;
+        });
+        if(knownSupplierByTax?.name){
+          extractedSupplierName=knownSupplierByTax.name.trim();
+        }
+      }
 
       const normalizedSupplierName=normalizeForMatch(extractedSupplierName);
 
