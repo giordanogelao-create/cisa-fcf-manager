@@ -2624,14 +2624,63 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bsede\s+legale\s*[:\-]?\s*([^\n]+)/i
       ]) || '').replace(/\s{2,}/g,' ').trim();
 
-      if(!extractedSupplierName){
-        const fileSupplierMatch=filename.match(/^\d{4}-\d{2}-\d{2}\s+\d+[_ ]+(.+?)\s+F\.\s*/i);
-        if(fileSupplierMatch){
-          extractedSupplierName=fileSupplierMatch[1].trim();
+            const currentBeneficiary=(ctx.beneficiaries||[]).find(b=>
+        String(b.id || '') === String(currentBid || '')
+      ) || null;
+
+      const normalizedBeneficiaryName=normalizeForMatch(currentBeneficiary?.ragione_sociale || '');
+      let normalizedSupplierName=normalizeForMatch(extractedSupplierName);
+
+      if(normalizedSupplierName && normalizedSupplierName===normalizedBeneficiaryName){
+        extractedSupplierName='';
+        normalizedSupplierName='';
+      }
+
+      if((!extractedSupplierName || !normalizedSupplierName) && (extractedSupplierPiva || extractedSupplierCf)){
+        let globalSupplierByTax=null;
+
+        if(extractedSupplierPiva){
+          const q=await sb
+            .from('suppliers')
+            .select('name,piva,cf')
+            .eq('piva', extractedSupplierPiva)
+            .limit(1);
+          globalSupplierByTax=q.data?.[0] || null;
+        }
+
+        if(!globalSupplierByTax && extractedSupplierCf){
+          const q=await sb
+            .from('suppliers')
+            .select('name,piva,cf')
+            .eq('cf', extractedSupplierCf)
+            .limit(1);
+          globalSupplierByTax=q.data?.[0] || null;
+        }
+
+        if(globalSupplierByTax?.name){
+          extractedSupplierName=globalSupplierByTax.name.trim();
+          normalizedSupplierName=normalizeForMatch(extractedSupplierName);
         }
       }
 
-           const normalizedSupplierName=normalizeForMatch(extractedSupplierName);
+      if((!extractedSupplierName || !normalizedSupplierName)){
+        const fileSupplierMatch=filename.match(/^\d{4}-\d{2}-\d{2}\s+\d+[_ ]+(.+?)\s+F\.\s*/i);
+        if(fileSupplierMatch){
+          const fileSupplierToken=fileSupplierMatch[1].trim();
+
+          const q=await sb
+            .from('suppliers')
+            .select('name')
+            .ilike('name', `%${fileSupplierToken}%`)
+            .limit(1);
+
+          const supplierByAlias=q.data?.[0] || null;
+          if(supplierByAlias?.name){
+            extractedSupplierName=supplierByAlias.name.trim();
+            normalizedSupplierName=normalizeForMatch(extractedSupplierName);
+          }
+        }
+      }
 
       let supplier=currentSuppliers.find(s=>{
         if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
