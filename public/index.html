@@ -2604,11 +2604,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const supplierBlock=supplierPrimaryBlock || supplierFallbackBlock;
       const supplierScopeText=supplierBlock || supplierPrimaryText || supplierFallbackText;
 
-        const extractedSupplierPiva=firstMatch(supplierTopLeftBlock,[
-        /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
-        /\bPARTITA\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
-        /\bIDENTIFICATIVO\s+FISCALE\s+AI\s+FINI\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
-      ]) || firstMatch(supplierTopLeftText,[
+        const extractedSupplierPiva=firstMatch(supplierBlock,[
         /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
         /\bPARTITA\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
         /\bIDENTIFICATIVO\s+FISCALE\s+AI\s+FINI\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
@@ -2618,17 +2614,13 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bIDENTIFICATIVO\s+FISCALE\s+AI\s+FINI\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
       ]) || '';
 
-      const extractedSupplierCf=firstMatch(supplierTopLeftBlock,[
-        /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
-        /\bCODICE\s+FISCALE\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
-      ]) || firstMatch(supplierTopLeftText,[
+      const extractedSupplierCf=firstMatch(supplierBlock,[
         /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
         /\bCODICE\s+FISCALE\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
       ]) || firstMatch(supplierScopeText,[
         /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
         /\bCODICE\s+FISCALE\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
       ]) || '';
-
       let extractedSupplierName='';
 
       const supplierTopLeftText=normalizeTextKeepLines(res?.pdfTopLeftText || supplierScopeText || '');
