@@ -2552,37 +2552,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
       ]) || supplierScopeText.slice(0, 1600);
 
-        let extractedSupplierName=String(
-        firstMatch(supplierBlock,[
-          /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
-          /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
-          /\bdenominazione\s*:\s*([^\n]+)/i,
-          /\bragione\s+sociale\s*:\s*([^\n]+)/i,
-          /\bdenominazione\s+([^\n]+)/i,
-          /\bragione\s+sociale\s+([^\n]+)/i,
-          /\bfornitore\s*:\s*([^\n]+)/i,
-          /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
-        ]) ||
-        extractSupplierNameFromInvoiceText(supplierBlock || supplierScopeText) ||
-        firstMatch(supplierScopeText,[
-          /\bcedente\/prestatore\s*\(fornitore\)\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i,
-          /\bcedente\/prestatore\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i
-        ]) ||
-        ''
-      );
-
-      extractedSupplierName = normalizeTextKeepLines(extractedSupplierName)
-        .split('\n')[0]
-        .replace(/^[^A-ZÀ-Úa-zà-ú0-9]+/,'')
-        .replace(/[^A-ZÀ-Úa-zà-ú0-9\.\-'& ]+$/,'')
-        .replace(/\s{2,}/g,' ')
-        .trim();
-
-      if(!/[A-ZÀ-Úa-zà-ú]{2,}/.test(extractedSupplierName)){
-  extractedSupplierName='';
-}
-
-      const extractedSupplierPiva=firstMatch(supplierBlock,[
+                const extractedSupplierPiva=firstMatch(supplierBlock,[
         /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
         /\bPARTITA\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
         /\bIDENTIFICATIVO\s+FISCALE\s+AI\s+FINI\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
@@ -2599,6 +2569,58 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
         /\bCODICE\s+FISCALE\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
       ]) || '';
+
+      let extractedSupplierName='';
+
+      const supplierTaxAnchor=extractedSupplierPiva || extractedSupplierCf || '';
+      if(supplierTaxAnchor){
+        const anchorIndex=supplierScopeText.indexOf(supplierTaxAnchor);
+        if(anchorIndex >= 0){
+          const anchoredSlice=supplierScopeText.slice(
+            Math.max(0, anchorIndex - 80),
+            Math.min(supplierScopeText.length, anchorIndex + 260)
+          );
+
+          extractedSupplierName=firstMatch(anchoredSlice,[
+            /\bdenominazione\s*:\s*([^\n]+)/i,
+            /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+            /\bdenominazione\s+([^\n]+)/i,
+            /\bragione\s+sociale\s+([^\n]+)/i
+          ]);
+        }
+      }
+
+      if(!extractedSupplierName){
+        extractedSupplierName=String(
+          firstMatch(supplierBlock,[
+            /\bidentificativo\s+fiscale\s+ai\s+fini\s+iva\b[^\n]*\n\s*codice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
+            /\bcodice\s+fiscale\b[^\n]*\n\s*denominazione\s*:\s*([^\n]+)/i,
+            /\bdenominazione\s*:\s*([^\n]+)/i,
+            /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+            /\bdenominazione\s+([^\n]+)/i,
+            /\bragione\s+sociale\s+([^\n]+)/i,
+            /\bfornitore\s*:\s*([^\n]+)/i,
+            /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
+          ]) ||
+          extractSupplierNameFromInvoiceText(supplierBlock || supplierScopeText) ||
+          firstMatch(supplierScopeText,[
+            /\bcedente\/prestatore\s*\(fornitore\)\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i,
+            /\bcedente\/prestatore\b[\s\S]{0,300}?\bdenominazione\s*:\s*([^\n]+)/i
+          ]) ||
+          ''
+        );
+      }
+
+      extractedSupplierName = normalizeTextKeepLines(extractedSupplierName)
+        .split('\n')[0]
+        .replace(/^[^A-ZÀ-Úa-zà-ú0-9]+/,'')
+        .replace(/[^A-ZÀ-Úa-zà-ú0-9\.\-'& ]+$/,'')
+        .replace(/\s{2,}/g,' ')
+        .trim();
+
+      if(!/[A-ZÀ-Úa-zà-ú]{2,}/.test(extractedSupplierName)){
+  extractedSupplierName='';
+}
 
       const extractedSupplierPec=firstMatch(supplierBlock,[
         /\bpec\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i
