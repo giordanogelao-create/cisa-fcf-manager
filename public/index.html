@@ -2483,7 +2483,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
     });
   }
 
-  async function importInvoicePdf(file){
+    async function importInvoicePdf(file){
     try{
       $('#iv_ai_msg').textContent='Analisi PDF in corso...';
 
@@ -2495,20 +2495,8 @@ for(const t of ['1A','2A','3A','4A','5A']){
       const pdfText=res?.pdfText || '';
       const ocrText=res?.ocrText || '';
       const sourceText=[filename, pdfText, ocrText, res?.text || ''].filter(Boolean).join('\n');
+      const textLines=normalizeTextKeepLines(sourceText);
 
-      const keepLines=(s)=>String(s || '')
-        .replace(/\r/g,'\n')
-        .replace(/\u00a0/g,' ')
-        .replace(/[‐-‒–—]/g,'-')
-        .replace(/[“”]/g,'"')
-        .replace(/[‘’]/g,"'")
-        .replace(/[ \t]+/g,' ')
-        .replace(/\n[ \t]+/g,'\n')
-        .replace(/[ \t]+\n/g,'\n')
-        .replace(/\n{3,}/g,'\n\n')
-        .trim();
-
-      const textLines=keepLines(sourceText);
       const parsed=extractInvoiceFields(sourceText);
 
       const normalizedInvoiceNumber=(parsed.invoice_number || '').trim();
@@ -2556,54 +2544,81 @@ for(const t of ['1A','2A','3A','4A','5A']){
       await fillRelations();
 
       const currentBid=$('#iv_ben').value;
-      const currentSuppliers=(await sb
-        .from('suppliers')
-        .select('*')
-        .eq('beneficiary_id', currentBid)
-        .order('name')
-      ).data || [];
 
-      const investment=guessInvestmentFromText(sourceText, ctx.investments);
+      const supplierScopeText=normalizeTextKeepLines([
+        pdfText,
+        ocrText,
+        res?.text || ''
+      ].filter(Boolean).join('\n'));
 
-      const supplierBlock=firstMatch(textLines,[
-        /\bcedente\/prestatore\b([\s\S]{0,700}?)(?:\bcessionario\/committente\b|\bcliente\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
-        /\bfornitore\b([\s\S]{0,500}?)(?:\bcliente\b|\bcommittente\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
-      ]) || textLines;
+      const supplierBlock=firstMatch(supplierScopeText,[
+        /\bcedente\/prestatore\s*\(fornitore\)\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bcedente\/prestatore\b([\s\S]{0,900}?)(?:\bcessionario\/committente\b|\bcliente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b|\btipologia\s+documento\b)/i,
+        /\bfornitore\b([\s\S]{0,700}?)(?:\bcliente\b|\bcommittente\b|\bdati\s+generali\b|\bnumero\s+documento\b|\bdata\s+documento\b)/i
+      ]) || supplierScopeText.slice(0, 1600);
 
-      const extractedSupplierName=String(
+      let extractedSupplierName = String(
+        extractSupplierNameFromInvoiceText(supplierScopeText) ||
         firstMatch(supplierBlock,[
-          /\bdenominazione\s*[:\-]?\s*([^\n]+)/i,
-          /\bragione\s+sociale\s*[:\-]?\s*([^\n]+)/i,
-          /\bfornitore\s*[:\-]?\s*([^\n]+)/i,
+          /\bdenominazione\s*:\s*([^\n]+)/i,
+          /\bragione\s+sociale\s*:\s*([^\n]+)/i,
+          /\bdenominazione\s+([^\n]+)/i,
+          /\bragione\s+sociale\s+([^\n]+)/i,
           /\b([A-Z][A-Z0-9 '&\.\-]{5,}(?:S\.?R\.?L\.?|S\.?P\.?A\.?|SNC|SAS|SRLS|COOP(?:ERATIVA)?|SOCIETA'? COOPERATIVA))\b/i
+        ]) ||
+        ''
+      );
+
+      extractedSupplierName = normalizeTextKeepLines(extractedSupplierName)
+        .split('\n')[0]
+        .replace(/\b(?:P\.?\s*IVA|PARTITA\s+IVA|C\.?\s*F\.?|CODICE\s+FISCALE)\b[\s\S]*$/i,'')
+        .replace(/\s{2,}/g,' ')
+        .trim();
+
+      const extractedSupplierPiva =
+        firstMatch(supplierBlock,[
+          /\b(?:identificativo\s+fiscale\s+ai\s+fini\s+iva|p\.?\s*iva|partita\s+iva)\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
+        ]) ||
+        firstMatch(supplierScopeText,[
+          /\b(?:identificativo\s+fiscale\s+ai\s+fini\s+iva|p\.?\s*iva|partita\s+iva)\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
+        ]) ||
+        '';
+
+      const extractedSupplierCf =
+        firstMatch(supplierBlock,[
+          /\b(?:codice\s+fiscale|c\.?\s*f\.?)\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
+        ]) ||
+        firstMatch(supplierScopeText,[
+          /\b(?:codice\s+fiscale|c\.?\s*f\.?)\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
+        ]) ||
+        '';
+
+      const extractedSupplierPec =
+        firstMatch(supplierBlock,[
+          /\bpec\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i
+        ]) || '';
+
+      const extractedSupplierEmail =
+        firstMatch(supplierBlock,[
+          /\bemail\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
+          /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i
+        ]) || '';
+
+      const extractedSupplierAddress = String(
+        firstMatch(supplierBlock,[
+          /\bindirizzo\s*:\s*([^\n]+)/i,
+          /\bsede\s+legale\s*:\s*([^\n]+)/i,
+          /\bindirizzo\s+([^\n]+)/i
         ]) || ''
       ).replace(/\s{2,}/g,' ').trim();
 
-      const extractedSupplierPiva=firstMatch(supplierBlock,[
-        /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i,
-        /\bPARTITA\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?([0-9]{11})\b/i
-      ]) || '';
-
-      const extractedSupplierCf=firstMatch(supplierBlock,[
-        /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
-        /\bCODICE\s+FISCALE\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
-      ]) || '';
-
-      const extractedSupplierPec=firstMatch(supplierBlock,[
-        /\bPEC\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i
-      ]) || '';
-
-      const extractedSupplierEmail=firstMatch(supplierBlock,[
-        /\bEMAIL\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
-        /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i
-      ]) || '';
-
-      const extractedSupplierAddress=String(firstMatch(supplierBlock,[
-        /\bindirizzo\s*[:\-]?\s*([^\n]+)/i,
-        /\bsede\s+legale\s*[:\-]?\s*([^\n]+)/i
-      ]) || '').replace(/\s{2,}/g,' ').trim();
-
       const normalizedSupplierName=normalizeForMatch(extractedSupplierName);
+
+      let currentSuppliers=[];
+      if(currentBid){
+        const supQ=await sb.from('suppliers').select('*').eq('beneficiary_id', currentBid).order('name');
+        currentSuppliers=supQ.data || [];
+      }
 
       let supplier=currentSuppliers.find(s=>{
         if(extractedSupplierPiva && s.piva && normalizeText(s.piva)===normalizeText(extractedSupplierPiva)) return true;
@@ -2618,7 +2633,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
       }) || null;
 
       if(!supplier){
-        const guessedExisting=guessSupplierFromText(sourceText, currentSuppliers);
+        const guessedExisting=guessSupplierFromText(supplierScopeText, currentSuppliers);
         if(guessedExisting) supplier=guessedExisting;
       }
 
@@ -2641,12 +2656,11 @@ for(const t of ['1A','2A','3A','4A','5A']){
           note: 'Creato automaticamente da import fattura PDF'
         };
 
-        const created=await sb.from('suppliers').insert(payload).select().single();
+        const created=await sb.from('suppliers').insert(payload).select('*').single();
 
         if(created.error){
           console.error(created.error);
           $('#iv_ai_msg').textContent=`Fornitore estratto ma non salvato: ${created.error.message}`;
-          toast('Fornitore non creato', true, created.error.message);
         }else if(created.data){
           supplier=created.data;
           await fillRelations();
@@ -2672,12 +2686,11 @@ for(const t of ['1A','2A','3A','4A','5A']){
         });
       }
 
-      if(supplier){
-        const hasOption=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
-        if(!hasOption) await fillRelations();
-
-        const hasOptionAfterReload=[...$('#iv_sup').options].some(o=>o.value===supplier.id);
-        if(hasOptionAfterReload) $('#iv_sup').value=supplier.id;
+      if(supplier?.id){
+        await fillRelations();
+        const supplierId=String(supplier.id);
+        const hasOption=[...$('#iv_sup').options].some(o=>String(o.value)===supplierId);
+        if(hasOption) $('#iv_sup').value=supplierId;
       }else if(normalizedSupplierName){
         const supplierOption=[...$('#iv_sup').options].find(o=>{
           const label=normalizeForMatch(o.textContent || '');
@@ -2690,6 +2703,7 @@ for(const t of ['1A','2A','3A','4A','5A']){
         if(supplierOption) $('#iv_sup').value=supplierOption.value;
       }
 
+      const investment=guessInvestmentFromText(sourceText, ctx.investments);
       if(investment){
         const hasOption=[...$('#iv_inv').options].some(o=>o.value===investment.id);
         if(hasOption) $('#iv_inv').value=investment.id;
