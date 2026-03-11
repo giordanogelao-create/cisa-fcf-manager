@@ -2778,8 +2778,8 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
       }) || null;
 
       if(!supplier){
-        const guessedExisting=guessSupplierFromText(sourceText, currentSuppliers);
-        if(guessedExisting) supplier=guessedExisting;
+        // disabilitato fallback "familiarità" sui fornitori già censiti:
+        // il fornitore deve emergere dal parser fattura, non da guessSupplierFromText
       }
 
       const beneficiaryPiva=normalizeText(currentBeneficiary?.piva || '');
