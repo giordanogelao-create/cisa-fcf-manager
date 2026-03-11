@@ -3137,6 +3137,9 @@ $('#ivt').onclick=(e)=>{
       <div><label style="color:var(--muted);font-size:12px">Importo</label><input id="p_amt" class="input" value="${esc(prefill?.amount ?? pay?.amount ?? '')}"></div>
       <div><label style="color:var(--muted);font-size:12px">Banca</label><input id="p_bank" class="input" value="${esc(prefill?.bank || pay?.bank || '')}"></div>
 
+      <div><label style="color:var(--muted);font-size:12px">IBAN</label><input id="p_iban" class="input" value="${esc(prefill?.iban || pay?.iban || '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Fornitore</label><select id="p_sup" class="input"><option value="">Seleziona fornitore / nessuna associazione</option></select></div>
+
       <div><label style="color:var(--muted);font-size:12px">Acconto/Saldo</label><select id="p_kind" class="input">${['Acconto','Saldo'].map(x=>`<option ${x===((prefill?.kind)||(pay?.kind)||'Saldo')?'selected':''}>${x}</option>`).join('')}</select></div>
       <div><label style="color:var(--muted);font-size:12px">CRO / TRN</label><input id="p_cro" class="input" value="${esc(prefill?.cro || pay?.cro || '')}"></div>
 
