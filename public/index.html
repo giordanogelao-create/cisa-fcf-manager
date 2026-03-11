@@ -2978,7 +2978,12 @@ for(const t of ['1A','2A','3A','4A','5A']){
       }
     }
 
-    $('#selInvBen').onchange=paint;
+   $('#selInvBen').onchange=()=>{
+      currentImportedInvestmentRows=[];
+      if($('#iimpFiles')) $('#iimpFiles').value='';
+      renderInvImportPreview([], [], []);
+      paint();
+    };
     $('#inew').onclick=()=>openInvestimentoModal(null, beneficiaries);
 
     if($('#iimp')) $('#iimp').onclick=()=>$('#iimpFiles').click();
