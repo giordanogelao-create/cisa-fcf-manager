@@ -2396,29 +2396,32 @@ for(const t of ['1A','2A','3A','4A','5A']){
         </div>
       </div>
       <div style="height:12px"></div>
-      <div class="card" id="invImportBox">
-        <div class="card h" style="border:none;box-shadow:none;padding:0">
+            <div class="card" id="invImportBox" style="padding:14px">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
           <div>
-            <h3 class="ct" style="font-size:15px">Import massivo da immagine</h3>
+            <h3 class="ct" style="font-size:15px">Import massivo investimenti da documento</h3>
             <div class="sub" style="margin-top:6px">
-              Carica una o più immagini contenenti <b>tabelle investimenti leggibili e complete</b> del beneficiario selezionato.<br><br>
-              <b>Intestazioni attese della tabella:</b><br>
-              Tabella investimento | Categoria | Titolo investimento | Importo approvato | Contributo | Finanziamento agevolato | IVA | Mezzi Propri | TAG | Via | Civico | Comune | Provincia | Foglio | Particella<br><br>
-              <b>Come strutturare l’immagine:</b><br>
-              • una riga per ogni investimento;<br>
-              • se possibile mantieni visibile anche il codice tabella (es. 1A, 2A, 3A);<br>
-              • evita immagini tagliate, sfocate o ruotate;<br>
-              • meglio sfondo chiaro, testo scuro e tabella completa dentro la foto;<br>
-              • puoi caricare anche più immagini, una per ciascuna tabella o pagina.<br><br>
-              Dopo il caricamento l’app farà OCR, mostrerà una preview delle righe riconosciute e solo dopo potrai creare gli investimenti.
+              Carica il <b>documento del beneficiario selezionato</b> da cui l’app dovrà leggere automaticamente gli investimenti.<br><br>
+              Formati consigliati: immagine della tabella, tabella esportata o testo strutturato.<br><br>
+              <b>Intestazioni attese:</b><br>
+              Tabella investimento | Categoria | Titolo investimento | Importo approvato | Contributo | Finanziamento agevolato | IVA | Mezzi Propri | TAG | Via | Civico | Comune | Provincia | Foglio | Particella
             </div>
           </div>
-          <span class="badge">Guida import</span>
+          <div class="row" style="gap:8px">
+            <span class="badge">Beneficiario attivo</span>
+            <label class="btn pri" for="iimpFiles">Seleziona documento</label>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <input id="iimpFiles" type="file" accept="image/*,.csv,.tsv,.txt" multiple style="display:none">
+        <div id="iimpDrop" class="drop">
+          <b>Trascina qui il documento degli investimenti</b>
+          <div style="margin-top:8px;color:var(--muted)">
+            Puoi caricare una o più immagini oppure un file tabellare/testuale riferito al beneficiario selezionato.
+          </div>
         </div>
         <div style="height:10px"></div>
-        <input id="iimpFiles" class="input" type="file" accept="image/*" multiple>
-        <div style="height:10px"></div>
-        <div id="invImportPreview" style="color:var(--muted);font-size:13px">Nessuna immagine caricata.</div>
+        <div id="invImportPreview" style="color:var(--muted);font-size:13px">Nessun documento caricato.</div>
       </div>
       <div style="height:12px"></div>
       <div id="invArea"></div>`;
