@@ -2559,16 +2559,137 @@ for(const t of ['1A','2A','3A','4A','5A']){
       return normalizeTextKeepLines(text || '');
     }
 
-    function parseInvestmentImageText(text){
+        function parseInvestmentImageText(text){
       const clean=normalizeTextKeepLines(text)
         .replace(/\r/g,'')
-        .replace(/[|¦]/g,' ')
         .replace(/[–—]/g,'-')
         .trim();
 
       if(!clean) return [];
 
-      const lines=clean
+      const tidy=(v)=>String(v || '')
+        .replace(/\s{2,}/g,' ')
+        .replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g,'')
+        .trim();
+
+      const normalizeHeader=(v)=>String(v || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,'')
+        .replace(/[^a-z0-9]+/g,' ')
+        .trim();
+
+      const splitDelimitedLine=(line, delimiter)=>String(line || '')
+        .split(delimiter)
+        .map(x=>tidy(x));
+
+      const tableLines=clean
+        .split('\n')
+        .map(x=>x.trim())
+        .filter(Boolean);
+
+      const headerLine=tableLines.find(line=>{
+        const h=normalizeHeader(line);
+        return (
+          (h.includes('tabella investimento') || h.includes('tabella')) &&
+          (h.includes('titolo investimento') || h.includes('titolo')) &&
+          (h.includes('importo approvato') || h.includes('contributo'))
+        );
+      });
+
+      const delimiter=(headerLine && headerLine.includes('\t')) ? '\t'
+        : (headerLine && headerLine.includes(';')) ? ';'
+        : (headerLine && headerLine.includes('|')) ? '|'
+        : '';
+
+      if(headerLine && delimiter){
+        const headers=splitDelimitedLine(headerLine, delimiter).map(normalizeHeader);
+
+        const findHeaderIndex=(patterns)=>headers.findIndex(h=>patterns.some(p=>h===p || h.includes(p)));
+
+        const idx={
+          table_code: findHeaderIndex(['tabella investimento','tabella']),
+          category: findHeaderIndex(['categoria']),
+          title: findHeaderIndex(['titolo investimento','titolo']),
+          approved_amount: findHeaderIndex(['importo approvato']),
+          contribution: findHeaderIndex(['contributo']),
+          soft_loan: findHeaderIndex(['finanziamento agevolato','fin agevolato','finanziamento']),
+          vat: findHeaderIndex(['iva']),
+          own_funds: findHeaderIndex(['mezzi propri']),
+          tag: findHeaderIndex(['tag']),
+          via: findHeaderIndex(['via','indirizzo']),
+          civico: findHeaderIndex(['civico','numero civico','n civico']),
+          comune: findHeaderIndex(['comune']),
+          provincia: findHeaderIndex(['provincia','prov']),
+          foglio: findHeaderIndex(['foglio']),
+          particella: findHeaderIndex(['particella'])
+        };
+
+        const structuredRows=[];
+        let currentTableCode='';
+        const currentCategoryByTable={};
+        const headerIdx=tableLines.indexOf(headerLine);
+
+        for(const rawLine of tableLines.slice(headerIdx+1)){
+          if(!rawLine) continue;
+          if(normalizeHeader(rawLine)===normalizeHeader(headerLine)) continue;
+
+          const cells=splitDelimitedLine(rawLine, delimiter);
+          if(cells.length < 3) continue;
+
+          const read=(key)=>idx[key] >= 0 ? tidy(cells[idx[key]]) : '';
+
+          const tableCode=read('table_code') || currentTableCode;
+          if(tableCode) currentTableCode=tableCode;
+
+          let category=read('category') || '';
+          if(!category && tableCode && currentCategoryByTable[tableCode]){
+            category=currentCategoryByTable[tableCode];
+          }
+          if(category && tableCode){
+            currentCategoryByTable[tableCode]=category;
+          }
+
+          const title=read('title');
+          const titleText=title.toLowerCase();
+          const isSummaryRow=
+            !title ||
+            /\btotale\b/.test(titleText) ||
+            /\bsubtotale\b/.test(titleText) ||
+            /\briepilogo\b/.test(titleText) ||
+            /\bsommario\b/.test(titleText);
+
+          if(isSummaryRow) continue;
+
+          structuredRows.push({
+            table_code: tableCode,
+            category,
+            title,
+            description: title,
+            approved_amount: read('approved_amount'),
+            contribution: read('contribution'),
+            soft_loan: read('soft_loan'),
+            vat: read('vat'),
+            own_funds: read('own_funds'),
+            tag: read('tag'),
+            via: read('via'),
+            civico: read('civico'),
+            comune: read('comune'),
+            provincia: read('provincia'),
+            foglio: read('foglio'),
+            particella: read('particella'),
+            raw: rawLine
+          });
+        }
+
+        if(structuredRows.length) return structuredRows;
+      }
+
+      const ocrClean=clean
+        .replace(/[|¦]/g,' ')
+        .trim();
+
+      const lines=ocrClean
         .split('\n')
         .map(x=>x.trim())
         .filter(Boolean);
@@ -2581,11 +2702,6 @@ for(const t of ['1A','2A','3A','4A','5A']){
         /^(?:\d+[A-Z])\s+[A-ZÀ-Úa-zà-ú]/.test(line);
 
       const moneyRe=/(?:€\s*)?\d{1,3}(?:[.\s]\d{3})*,\d{2}|\d{1,3}(?:,\d{3})*\.\d{2}/g;
-
-      const tidy=(v)=>String(v || '')
-        .replace(/\s{2,}/g,' ')
-        .replace(/^[\s,;:.\-]+|[\s,;:.\-]+$/g,'')
-        .trim();
 
       const stripPatterns=(value, patterns)=>{
         let out=String(value || '');
@@ -2736,7 +2852,6 @@ for(const t of ['1A','2A','3A','4A','5A']){
       flush();
       return rows;
     }
-
       let currentImportedInvestmentRows=[];
 
     function renderInvImportPreview(files, previews=[], parsedRows=[]){
