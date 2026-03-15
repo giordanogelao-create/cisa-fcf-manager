@@ -1104,16 +1104,23 @@
   }
 
   async function getInvoiceImportContext(fid){
-    const [benQ,supQ,invQ]=await Promise.all([
-      sb.from('beneficiaries').select('id,ragione_sociale,cup,cf,piva').eq('filiera_id',fid),
+    const benQ=await sb
+      .from('beneficiaries')
+      .select('id,ragione_sociale,cup,cf,piva')
+      .eq('filiera_id',fid);
+
+    const beneficiaries=(benQ.data||[]);
+    const beneficiaryIds=beneficiaries.map(x=>x.id);
+
+    const [supQ,invQ]=await Promise.all([
       sb.from('suppliers').select('id,beneficiary_id,name,piva,cf'),
       sb.from('investments').select('id,beneficiary_id,title,table_code,category_code,tag')
     ]);
 
     return {
-      beneficiaries:(benQ.data||[]),
-      suppliers:(supQ.data||[]),
-      investments:(invQ.data||[])
+      beneficiaries,
+      suppliers:(supQ.data||[]).filter(x=>beneficiaryIds.includes(x.beneficiary_id)),
+      investments:(invQ.data||[]).filter(x=>beneficiaryIds.includes(x.beneficiary_id))
     };
   }
 
