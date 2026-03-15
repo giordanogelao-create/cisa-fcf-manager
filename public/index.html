@@ -2393,9 +2393,20 @@ for(const t of ['1A','2A','3A','4A','5A']){
         <div class="card h" style="border:none;box-shadow:none;padding:0">
           <div>
             <h3 class="ct" style="font-size:15px">Import massivo da immagine</h3>
-            <p class="sub">Carica una o più immagini contenenti le tabelle investimenti del beneficiario selezionato. Nel prossimo step collegheremo OCR, preview righe e salvataggio massivo.</p>
+            <div class="sub" style="margin-top:6px">
+              Carica una o più immagini contenenti <b>tabelle investimenti leggibili e complete</b> del beneficiario selezionato.<br><br>
+              <b>Intestazioni attese della tabella:</b><br>
+              Tabella investimento | Categoria | Titolo investimento | Importo approvato | Contributo | Finanziamento agevolato | IVA | Mezzi Propri | TAG | Via | Civico | Comune | Provincia | Foglio | Particella<br><br>
+              <b>Come strutturare l’immagine:</b><br>
+              • una riga per ogni investimento;<br>
+              • se possibile mantieni visibile anche il codice tabella (es. 1A, 2A, 3A);<br>
+              • evita immagini tagliate, sfocate o ruotate;<br>
+              • meglio sfondo chiaro, testo scuro e tabella completa dentro la foto;<br>
+              • puoi caricare anche più immagini, una per ciascuna tabella o pagina.<br><br>
+              Dopo il caricamento l’app farà OCR, mostrerà una preview delle righe riconosciute e solo dopo potrai creare gli investimenti.
+            </div>
           </div>
-          <span class="badge">Bozza UI</span>
+          <span class="badge">Guida import</span>
         </div>
         <div style="height:10px"></div>
         <input id="iimpFiles" class="input" type="file" accept="image/*" multiple>
