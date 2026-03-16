@@ -2509,7 +2509,40 @@ for(const t of ['1A','2A','3A','4A','5A']){
       });
     }
 
-    async function ocrInvestmentImage(file){
+        async function ocrInvestmentImage(file){
+      const fileName=String(file?.name || '').toLowerCase();
+      const isExcel=/\.(xlsx|xls)$/i.test(fileName);
+      const isDelimited=/\.(csv|tsv|txt)$/i.test(fileName);
+
+      if(isExcel){
+        if(!window.XLSX){
+          await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+        }
+        if(!window.XLSX) throw new Error('Libreria Excel non disponibile');
+
+        const buffer=await file.arrayBuffer();
+        const workbook=window.XLSX.read(buffer,{type:'array'});
+        const firstSheetName=workbook.SheetNames?.[0];
+        if(!firstSheetName) return '';
+
+        const sheet=workbook.Sheets[firstSheetName];
+        const csv=window.XLSX.utils.sheet_to_csv(sheet,{
+          FS:';',
+          RS:'\n',
+          blankrows:false
+        });
+
+        return normalizeTextKeepLines(csv || '');
+      }
+
+      if(isDelimited){
+        const raw=await file.text();
+        return String(raw || '')
+          .replace(/\r\n/g,'\n')
+          .replace(/\r/g,'\n')
+          .trim();
+      }
+
       const Tesseract=await ensureTesseract();
 
       const loadImage=(file)=>new Promise((resolve,reject)=>{
