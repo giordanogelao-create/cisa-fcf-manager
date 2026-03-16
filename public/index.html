@@ -3153,31 +3153,70 @@ for(const t of ['1A','2A','3A','4A','5A']){
       renderInvImportPreview([], [], []);
       paint();
     };
-    $('#inew').onclick=()=>openInvestimentoModal(null, beneficiaries);
+        $('#inew').onclick=()=>openInvestimentoModal(null, beneficiaries);
+
+    const handleInvestmentImportFiles=async(files)=>{
+      const validFiles=[...(files||[])].filter(Boolean);
+      if(!validFiles.length) return;
+
+      currentImportedInvestmentRows=[];
+      renderInvImportPreview(validFiles, validFiles.map(()=>({status:'Analisi in corso...',text:''})), []);
+
+      const previews=[];
+      let parsedRows=[];
+
+      for(const file of validFiles){
+        try{
+          const text=await ocrInvestmentImage(file);
+          previews.push({status:text ? 'Analisi completata' : 'Nessun testo', text});
+          parsedRows=parsedRows.concat(parseInvestmentImageText(text));
+        }catch(err){
+          console.error(err);
+          previews.push({status:'Errore analisi', text:''});
+        }
+      }
+
+      currentImportedInvestmentRows=parsedRows;
+      renderInvImportPreview(validFiles, previews, parsedRows);
+    };
+
+    if($('#iimpFiles')){
+      $('#iimpFiles').setAttribute('accept','image/*,.xlsx,.xls,.csv,.tsv,.txt');
+    }
+
+    if($('#invImportBox') && !$('#iimpDrop')){
+      $('#invImportPreview')?.insertAdjacentHTML(
+        'beforebegin',
+        `<div id="iimpDrop" class="drop" style="margin-bottom:10px">
+          Trascina qui il documento degli investimenti del beneficiario selezionato
+          <div style="margin-top:8px;color:var(--muted)">
+            Formati supportati: immagini, Excel, CSV, TSV e TXT
+          </div>
+        </div>`
+      );
+    }
 
     if($('#iimp')) $('#iimp').onclick=()=>$('#iimpFiles').click();
+
+    if($('#iimpDrop')){
+      $('#iimpDrop').addEventListener('click',()=>$('#iimpFiles')?.click());
+      $('#iimpDrop').addEventListener('dragover',e=>{
+        e.preventDefault();
+        $('#iimpDrop').classList.add('drag');
+      });
+      $('#iimpDrop').addEventListener('dragleave',()=>{
+        $('#iimpDrop').classList.remove('drag');
+      });
+      $('#iimpDrop').addEventListener('drop',e=>{
+        e.preventDefault();
+        $('#iimpDrop').classList.remove('drag');
+        handleInvestmentImportFiles(Array.from(e.dataTransfer?.files||[]));
+      });
+    }
+
     if($('#iimpFiles')){
       $('#iimpFiles').onchange=async(e)=>{
-        const files=[...(e.target.files||[])];
-        currentImportedInvestmentRows=[];
-        renderInvImportPreview(files, files.map(()=>({status:'Analisi in corso...',text:''})), []);
-
-        const previews=[];
-        let parsedRows=[];
-
-        for(const file of files){
-          try{
-            const text=await ocrInvestmentImage(file);
-            previews.push({status:text ? 'OCR completato' : 'Nessun testo', text});
-            parsedRows=parsedRows.concat(parseInvestmentImageText(text));
-          }catch(err){
-            console.error(err);
-            previews.push({status:'Errore OCR', text:''});
-          }
-        }
-
-        currentImportedInvestmentRows=parsedRows;
-        renderInvImportPreview(files, previews, parsedRows);
+        await handleInvestmentImportFiles(Array.from(e.target.files||[]));
       };
     }
 
