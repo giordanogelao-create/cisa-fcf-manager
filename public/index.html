@@ -1572,49 +1572,65 @@
     const docQ=await sb.from('documents').select('id',{count:'exact',head:true}).eq('filiera_id',fid);
     const issQ=await sb.from('issues').select('*').eq('filiera_id',fid).order('created_at',{ascending:false}).limit(8);
 
-    const inv=invQ.data||[];
-    const totA=inv.reduce((a,x)=>a+num(x.approved_amount),0);
-    const totG=inv.reduce((a,x)=>a+num(x.grant_amount),0);
-    const totL=inv.reduce((a,x)=>a+num(x.loan_amount),0);
-    const totO=inv.reduce((a,x)=>a+num(x.own_funds),0);
+       const inv=invQ.data||[];
+
+    const normalizeTableCode=(value)=>{
+      const raw=String(value || '').trim().toUpperCase();
+      return (firstMatch(raw,[
+        /\b(\d+[A-Z])\b/i
+      ]) || raw).toUpperCase();
+    };
+
+    const visibleInv=inv.filter(x=>{
+      const tableCode=normalizeTableCode(x.table_code);
+      const title=String(x.title || '').trim();
+      const category=String(x.category_code || '').trim();
+      return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
+    });
+
+    const totA=visibleInv.reduce((a,x)=>a+num(x.approved_amount),0);
+    const totG=visibleInv.reduce((a,x)=>a+num(x.grant_amount),0);
+    const totL=visibleInv.reduce((a,x)=>a+num(x.loan_amount),0);
+    const totO=visibleInv.reduce((a,x)=>a+num(x.own_funds),0);
 
     const byTable=['1A','2A','3A','4A','5A'].map(t=>({
-  t,
-  n:inv.filter(x=>x.table_code===t).length,
-  sum:inv.filter(x=>x.table_code===t).reduce((a,x)=>a+num(x.approved_amount),0)
-}));
-const summaryRows = [];
-for(const t of ['1A','2A','3A','4A','5A']){
-  const cats = TABLES[t] || [];
-  for(const c of cats){
-    const items = inv.filter(x => x.table_code===t && x.category_code===c.code);
-    const approved = items.reduce((s,x)=>s+num(x.approved_amount),0);
-    const grant = items.reduce((s,x)=>s+num(x.grant_amount),0);
-    const loan = items.reduce((s,x)=>s+num(x.loan_amount),0);
-    const own = items.reduce((s,x)=>s+num(x.own_funds),0);
-    const realized = items.filter(x => (x.state||'')==='Rendicontato totale').length;
+      t,
+      n:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).length,
+      sum:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).reduce((a,x)=>a+num(x.approved_amount),0)
+    }));
 
-    const tagCounts = {};
-    for(const it of items){
-      const tg = (it.tag||'').trim();
-      if(!tg) continue;
-      tagCounts[tg] = (tagCounts[tg]||0)+1;
+    const summaryRows = [];
+    for(const t of ['1A','2A','3A','4A','5A']){
+      const cats = TABLES[t] || [];
+      for(const c of cats){
+        const items = visibleInv.filter(x => normalizeTableCode(x.table_code)===t && String(x.category_code || '').trim()===c.code);
+        const approved = items.reduce((s,x)=>s+num(x.approved_amount),0);
+        const grant = items.reduce((s,x)=>s+num(x.grant_amount),0);
+        const loan = items.reduce((s,x)=>s+num(x.loan_amount),0);
+        const own = items.reduce((s,x)=>s+num(x.own_funds),0);
+        const realized = items.filter(x => (x.state||'')==='Rendicontato totale').length;
+
+        const tagCounts = {};
+        for(const it of items){
+          const tg = (it.tag||'').trim();
+          if(!tg) continue;
+          tagCounts[tg] = (tagCounts[tg]||0)+1;
+        }
+        const tagStr = Object.keys(tagCounts).length
+          ? Object.entries(tagCounts).map(([k,v])=>`${k}:${v}`).join(' • ')
+          : '—';
+
+        summaryRows.push({
+          table:t,
+          catCode:c.code,
+          catLabel:c.label,
+          n:items.length,
+          realized,
+          approved, grant, loan, own,
+          tagStr
+        });
+      }
     }
-    const tagStr = Object.keys(tagCounts).length
-      ? Object.entries(tagCounts).map(([k,v])=>`${k}:${v}`).join(' • ')
-      : '—';
-
-    summaryRows.push({
-      table:t,
-      catCode:c.code,
-      catLabel:c.label,
-      n:items.length,
-      realized,
-      approved, grant, loan, own,
-      tagStr
-    });
-  }
-}
     view.innerHTML=`
       <div class="card h">
         <div><h2 class="ct">Dashboard</h2><p class="sub">Panoramica completa della filiera attiva.</p></div>
