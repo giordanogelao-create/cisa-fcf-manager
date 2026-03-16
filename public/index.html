@@ -3316,7 +3316,7 @@
      <button class="btn pri" id="ivs">Salva</button>`
   );
 
-  async function fillRelations(){
+    async function fillRelations(){
     const currentBid=$('#iv_ben').value;
 
     const [supQ,invQ]=await Promise.all([
@@ -3327,14 +3327,28 @@
     const sups=supQ.data||[];
     const invs=invQ.data||[];
 
+    const normalizeTableCode=(value)=>{
+      const raw=String(value || '').trim().toUpperCase();
+      return (firstMatch(raw,[
+        /\b(\d+[A-Z])\b/i
+      ]) || raw).toUpperCase();
+    };
+
+    const validInvs=invs.filter(i=>{
+      const tableCode=normalizeTableCode(i.table_code);
+      const title=String(i.title || '').trim();
+      const category=String(i.category_code || '').trim();
+      return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
+    });
+
     $('#iv_sup').innerHTML=sups.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">Nessun fornitore</option>';
-    $('#iv_inv').innerHTML=invs.map(i=>`<option value="${i.id}">${esc(i.table_code)}-${esc(i.category_code)} • ${esc(i.title)}</option>`).join('') || '<option value="">Nessun investimento</option>';
+    $('#iv_inv').innerHTML=validInvs.map(i=>`<option value="${i.id}">${esc(normalizeTableCode(i.table_code))}-${esc(i.category_code)} • ${esc(i.title)}</option>`).join('') || '<option value="">Nessun investimento</option>';
 
     if(prefill?.supplier_id && sups.some(x=>x.id===prefill.supplier_id)) $('#iv_sup').value=prefill.supplier_id;
     else if(invRow?.supplier_id && sups.some(x=>x.id===invRow.supplier_id)) $('#iv_sup').value=invRow.supplier_id;
 
-    if(prefill?.investment_id && invs.some(x=>x.id===prefill.investment_id)) $('#iv_inv').value=prefill.investment_id;
-    else if(invRow?.investment_id && invs.some(x=>x.id===invRow.investment_id)) $('#iv_inv').value=invRow.investment_id;
+    if(prefill?.investment_id && validInvs.some(x=>x.id===prefill.investment_id)) $('#iv_inv').value=prefill.investment_id;
+    else if(invRow?.investment_id && validInvs.some(x=>x.id===invRow.investment_id)) $('#iv_inv').value=invRow.investment_id;
 
     $('#iv_cup').value=$('#iv_cup').value || benMap[currentBid]?.cup || '';
   }
