@@ -2437,17 +2437,31 @@ for(const t of ['1A','2A','3A','4A','5A']){
     async function paint(){
       const bid=$('#selInvBen').value;
       const {data}=await sb.from('investments').select('*').eq('beneficiary_id',bid).order('created_at',{ascending:false});
-      const rows=data||[];
+            const rows=data||[];
 
-      const total=rows.reduce((a,x)=>a+num(x.approved_amount),0);
-      const grant=rows.reduce((a,x)=>a+num(x.grant_amount),0);
-      const loan=rows.reduce((a,x)=>a+num(x.loan_amount),0);
-      const own=rows.reduce((a,x)=>a+num(x.own_funds),0);
+      const normalizeTableCode=(value)=>{
+        const raw=String(value || '').trim().toUpperCase();
+        return (firstMatch(raw,[
+          /\b(\d+[A-Z])\b/i
+        ]) || raw).toUpperCase();
+      };
+
+      const visibleRows=rows.filter(x=>{
+        const tableCode=normalizeTableCode(x.table_code);
+        const title=String(x.title || '').trim();
+        const category=String(x.category_code || '').trim();
+        return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
+      });
+
+      const total=visibleRows.reduce((a,x)=>a+num(x.approved_amount),0);
+      const grant=visibleRows.reduce((a,x)=>a+num(x.grant_amount),0);
+      const loan=visibleRows.reduce((a,x)=>a+num(x.loan_amount),0);
+      const own=visibleRows.reduce((a,x)=>a+num(x.own_funds),0);
 
       function summarize(table){
         const cats=TABLES[table]||[];
         return cats.map(c=>{
-          const items=rows.filter(x=>x.table_code===table && x.category_code===c.code);
+          const items=visibleRows.filter(x=>normalizeTableCode(x.table_code)===table && String(x.category_code || '').trim()===c.code);
           return {
             code:c.code,label:c.label,n:items.length,
             a:items.reduce((s,x)=>s+num(x.approved_amount),0),
