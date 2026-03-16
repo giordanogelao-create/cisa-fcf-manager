@@ -3045,33 +3045,43 @@ for(const t of ['1A','2A','3A','4A','5A']){
             return cats[0]?.code || '';
           };
 
-          const rowsToInsert=currentImportedInvestmentRows
+                    const rowsToInsert=currentImportedInvestmentRows
             .map(r=>{
               const approved=num(r.approved_amount);
               const grant=num(r.contribution);
               const loan=num(r.soft_loan);
               const own=r.own_funds ? num(r.own_funds) : Math.max(0, approved - grant - loan);
-              const tableCode=(r.table_code || '').trim();
-              const title=(r.title || r.description || '').trim();
+
+              const rawTableCode=String(r.table_code || '').trim();
+              const tableCode=(
+                firstMatch(rawTableCode,[
+                  /\b(\d+[A-Z])\b/i
+                ]) || rawTableCode
+              ).toUpperCase();
+
+              const rawCategory=String(r.category || '').trim();
+              const categoryCode=rawCategory.replace(/\s+/g,' ').trim();
+
+              const title=String(r.title || r.description || '').replace(/\s{2,}/g,' ').trim();
 
               return {
                 beneficiary_id: bid,
                 table_code: tableCode,
-                category_code: resolveCategoryCode(tableCode, r.category || '', title),
+                category_code: categoryCode,
                 title,
                 approved_amount: approved,
                 grant_amount: grant,
                 loan_amount: loan,
                 own_funds: own,
-                tag: (r.tag || '').trim(),
+                tag: String(r.tag || '').trim(),
                 state: 'Da verificare',
                 location: {
-                  via: (r.via || '').trim(),
-                  civico: (r.civico || '').trim(),
-                  comune: (r.comune || '').trim(),
-                  provincia: (r.provincia || '').trim(),
-                  foglio: (r.foglio || '').trim(),
-                  particella: (r.particella || '').trim()
+                  via: String(r.via || '').trim(),
+                  civico: String(r.civico || '').trim(),
+                  comune: String(r.comune || '').trim(),
+                  provincia: String(r.provincia || '').trim(),
+                  foglio: String(r.foglio || '').trim(),
+                  particella: String(r.particella || '').trim()
                 }
               };
             })
@@ -3092,9 +3102,8 @@ for(const t of ['1A','2A','3A','4A','5A']){
                 /\bcategoria\b/.test(titleText) ||
                 /\btitolo investimento\b/.test(titleText);
 
-              return r.table_code && r.title && r.approved_amount > 0 && !isSummaryRow;
+              return r.table_code && r.category_code && r.title && r.approved_amount > 0 && !isSummaryRow;
             });
-
           if(!rowsToInsert.length){
             return toast('Nessuna riga valida da importare: servono almeno Tabella, Titolo e Importo approvato', true);
           }
