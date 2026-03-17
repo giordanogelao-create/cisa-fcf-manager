@@ -2211,11 +2211,18 @@
       const validFiles=[...(files||[])].filter(Boolean);
       if(!validFiles.length) return;
 
-      const readSupplierImportText=async(file)=>{
+            const readSupplierImportText=async(file)=>{
         const fileName=String(file?.name || '').toLowerCase();
 
-        if(/\.pdf$/i.test(fileName)){
-          return await extractTextFromPdfWithFallback(file);
+        if(/\.pdf$/i.test(fileName) || file.type==='application/pdf'){
+          const res=await extractTextFromPdfWithFallback(file);
+
+          return normalizeTextKeepLines([
+            res?.pdfTopLeftText || '',
+            res?.pdfText || '',
+            res?.ocrText || '',
+            res?.text || ''
+          ].filter(Boolean).join('\n\n'));
         }
 
         if(/\.(xlsx|xls)$/i.test(fileName)){
