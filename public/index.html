@@ -2211,13 +2211,69 @@
       const validFiles=[...(files||[])].filter(Boolean);
       if(!validFiles.length) return;
 
-            const readSupplierImportText=async(file)=>{
+                       const readSupplierImportText=async(file)=>{
         const fileName=String(file?.name || '').toLowerCase();
 
         if(/\.pdf$/i.test(fileName) || file.type==='application/pdf'){
           const res=await extractTextFromPdfWithFallback(file);
 
+          const extractSupplierTopLeftOcr=async(file)=>{
+            const pdfjsLib=await ensurePdfJs();
+            const Tesseract=await ensureTesseract();
+
+            const bytes=new Uint8Array(await file.arrayBuffer());
+            const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+            const page=await pdf.getPage(1);
+            const viewport=page.getViewport({scale:3.2});
+
+            const canvas=document.createElement('canvas');
+            const ctx=canvas.getContext('2d',{willReadFrequently:true}) || canvas.getContext('2d');
+            canvas.width=Math.ceil(viewport.width);
+            canvas.height=Math.ceil(viewport.height);
+
+            ctx.fillStyle='#fff';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            await page.render({canvasContext:ctx,viewport}).promise;
+
+            const sx=Math.max(0, Math.floor(canvas.width * 0.05));
+            const sy=Math.max(0, Math.floor(canvas.height * 0.05));
+            const sw=Math.max(1, Math.floor(canvas.width * 0.47));
+            const sh=Math.max(1, Math.floor(canvas.height * 0.20));
+
+            const crop=document.createElement('canvas');
+            const cropCtx=crop.getContext('2d',{willReadFrequently:true}) || crop.getContext('2d');
+            crop.width=sw;
+            crop.height=sh;
+
+            cropCtx.fillStyle='#fff';
+            cropCtx.fillRect(0,0,sw,sh);
+            cropCtx.drawImage(canvas,sx,sy,sw,sh,0,0,sw,sh);
+
+            const img=cropCtx.getImageData(0,0,crop.width,crop.height);
+            const d=img.data;
+            for(let i=0;i<d.length;i+=4){
+              const gray=Math.round(d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+              const v=gray > 190 ? 255 : 0;
+              d[i]=v;
+              d[i+1]=v;
+              d[i+2]=v;
+              d[i+3]=255;
+            }
+            cropCtx.putImageData(img,0,0);
+
+            const {data:{text}}=await Tesseract.recognize(crop,'ita+eng');
+            return normalizeTextKeepLines(text || '');
+          };
+
+          let ocrTopLeftText='';
+          try{
+            ocrTopLeftText=await extractSupplierTopLeftOcr(file);
+          }catch(err){
+            console.error(err);
+          }
+
           return normalizeTextKeepLines([
+            ocrTopLeftText || '',
             res?.pdfTopLeftText || '',
             res?.pdfText || '',
             res?.ocrText || '',
