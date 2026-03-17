@@ -2446,15 +2446,42 @@
 
             <div style="height:10px"></div>
 
-            <div class="form">
-              <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input class="input" value="${esc(r.fields.name || '')}" disabled></div>
-              <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input class="input" value="${esc(r.fields.piva || '')}" disabled></div>
-              <div><label style="color:var(--muted);font-size:12px">CF</label><input class="input" value="${esc(r.fields.cf || '')}" disabled></div>
-              <div><label style="color:var(--muted);font-size:12px">PEC</label><input class="input" value="${esc(r.fields.pec || '')}" disabled></div>
-              <div><label style="color:var(--muted);font-size:12px">Email</label><input class="input" value="${esc(r.fields.email || '')}" disabled></div>
-              <div><label style="color:var(--muted);font-size:12px">Telefono</label><input class="input" value="${esc(r.fields.phone || '')}" disabled></div>
-              <div class="full"><label style="color:var(--muted);font-size:12px">Indirizzo</label><input class="input" value="${esc(r.fields.address || '')}" disabled></div>
-              <div class="full"><label style="color:var(--muted);font-size:12px">Estratto testo</label><textarea class="input" rows="4" disabled>${esc(r.fields.raw_excerpt || '')}</textarea></div>
+                        <div class="form">
+              <div class="full">
+                <label style="color:var(--muted);font-size:12px">Ragione sociale</label>
+                <input class="input sup-prev-name" value="${esc(r.fields.name || '')}">
+              </div>
+              <div>
+                <label style="color:var(--muted);font-size:12px">P.IVA</label>
+                <input class="input sup-prev-piva" value="${esc(r.fields.piva || '')}">
+              </div>
+              <div>
+                <label style="color:var(--muted);font-size:12px">CF</label>
+                <input class="input sup-prev-cf" value="${esc(r.fields.cf || '')}">
+              </div>
+              <div>
+                <label style="color:var(--muted);font-size:12px">PEC</label>
+                <input class="input sup-prev-pec" value="${esc(r.fields.pec || '')}">
+              </div>
+              <div>
+                <label style="color:var(--muted);font-size:12px">Email</label>
+                <input class="input sup-prev-email" value="${esc(r.fields.email || '')}">
+              </div>
+              <div>
+                <label style="color:var(--muted);font-size:12px">Telefono</label>
+                <input class="input sup-prev-phone" value="${esc(r.fields.phone || '')}">
+              </div>
+              <div class="full">
+                <label style="color:var(--muted);font-size:12px">Indirizzo</label>
+                <input class="input sup-prev-address" value="${esc(r.fields.address || '')}">
+              </div>
+              <div class="full">
+                <label style="color:var(--muted);font-size:12px">Estratto testo</label>
+                <textarea class="input sup-prev-raw" rows="4">${esc(r.fields.raw_excerpt || '')}</textarea>
+              </div>
+              <div class="full" style="color:var(--muted);font-size:12px">
+                Puoi correggere manualmente i dati estratti prima del salvataggio.
+              </div>
             </div>
           </div>
         `).join('');
