@@ -2204,8 +2204,52 @@
       };
     }
 
-    $('#selSupBen').onchange=paint;
+        $('#selSupBen').onchange=paint;
     $('#snew').onclick=()=>openFornitoreModal(null, beneficiaries);
+
+    const handleSupplierImportFiles=(files)=>{
+      const validFiles=[...(files||[])].filter(Boolean);
+      if(!validFiles.length) return;
+
+      if($('#supImportPreview')){
+        $('#supImportPreview').innerHTML=`
+          <div><b>${validFiles.length}</b> documento/i caricati.</div>
+          <div style="margin-top:6px;color:var(--muted)">
+            ${validFiles.map(f=>esc(f.name)).join('<br>')}
+          </div>
+        `;
+      }
+
+      if($('#supFiles')){
+        $('#supFiles').value='';
+      }
+    };
+
+    if($('#supDrop')){
+      $('#supDrop').addEventListener('click',()=>$('#supFiles')?.click());
+
+      $('#supDrop').addEventListener('dragover',e=>{
+        e.preventDefault();
+        $('#supDrop').classList.add('drag');
+      });
+
+      $('#supDrop').addEventListener('dragleave',()=>{
+        $('#supDrop').classList.remove('drag');
+      });
+
+      $('#supDrop').addEventListener('drop',e=>{
+        e.preventDefault();
+        $('#supDrop').classList.remove('drag');
+        handleSupplierImportFiles(Array.from(e.dataTransfer?.files || []));
+      });
+    }
+
+    if($('#supFiles')){
+      $('#supFiles').onchange=(e)=>{
+        handleSupplierImportFiles(Array.from(e.target.files || []));
+      };
+    }
+
     paint();
   }
 
