@@ -2140,13 +2140,40 @@
     const beneficiaries=benQ.data||[];
     if(!beneficiaries.length){ view.innerHTML=routeError('Fornitori','Crea prima almeno un beneficiario.'); return; }
 
-    view.innerHTML=`
+        view.innerHTML=`
       <div class="card h">
         <div><h2 class="ct">Fornitori</h2><p class="sub">Fornitori per beneficiario.</p></div>
         <div class="row">
           <select id="selSupBen" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
           <button class="btn pri" id="snew">＋ Nuovo fornitore</button>
         </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" id="supImportBox" style="padding:14px">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+          <div>
+            <h3 class="ct" style="font-size:15px">Import automatico fornitore da documento</h3>
+            <div class="sub" style="margin-top:6px">
+              Carica un <b>PDF o file tabellare</b> relativo al fornitore del beneficiario selezionato.<br><br>
+              Il documento potrà essere, ad esempio, una <b>fattura</b>, un <b>contratto</b> o un file <b>Excel/CSV</b> contenente i dati del fornitore.<br><br>
+              Obiettivo del flusso: estrarre automaticamente ragione sociale, P.IVA, codice fiscale, PEC, email, telefono e altri dati utili del fornitore.
+            </div>
+          </div>
+          <div class="row" style="gap:8px">
+            <span class="badge">Beneficiario attivo</span>
+            <label class="btn pri" for="supFiles">Seleziona documento</label>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <input id="supFiles" type="file" accept=".pdf,.xlsx,.xls,.csv,.tsv,.txt,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain" multiple style="display:none">
+        <div id="supDrop" class="drop">
+          <b>Trascina qui il documento del fornitore</b>
+          <div style="margin-top:8px;color:var(--muted)">
+            Formati supportati: PDF, Excel, CSV, TSV e TXT.
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div id="supImportPreview" style="color:var(--muted);font-size:13px">Nessun documento caricato.</div>
       </div>
       <div style="height:12px"></div>
       <div class="card">
