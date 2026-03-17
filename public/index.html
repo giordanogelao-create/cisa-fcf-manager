@@ -2207,17 +2207,172 @@
         $('#selSupBen').onchange=paint;
     $('#snew').onclick=()=>openFornitoreModal(null, beneficiaries);
 
-    const handleSupplierImportFiles=(files)=>{
+        const handleSupplierImportFiles=async(files)=>{
       const validFiles=[...(files||[])].filter(Boolean);
       if(!validFiles.length) return;
 
+      const readSupplierImportText=async(file)=>{
+        const fileName=String(file?.name || '').toLowerCase();
+
+        if(/\.pdf$/i.test(fileName)){
+          return await extractTextFromPdfWithFallback(file);
+        }
+
+        if(/\.(xlsx|xls)$/i.test(fileName)){
+          if(!window.XLSX){
+            await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+          }
+          if(!window.XLSX) throw new Error('Libreria Excel non disponibile');
+
+          const buffer=await file.arrayBuffer();
+          const workbook=window.XLSX.read(buffer,{type:'array'});
+          const firstSheetName=workbook.SheetNames?.[0];
+          if(!firstSheetName) return '';
+
+          const sheet=workbook.Sheets[firstSheetName];
+          const csv=window.XLSX.utils.sheet_to_csv(sheet,{
+            FS:';',
+            RS:'\n',
+            blankrows:false
+          });
+
+          return normalizeTextKeepLines(csv || '');
+        }
+
+        if(/\.(csv|tsv|txt)$/i.test(fileName)){
+          const raw=await file.text();
+          return normalizeTextKeepLines(raw || '');
+        }
+
+        return '';
+      };
+
+      const parseSupplierFromText=(text,fileName='')=>{
+        const clean=normalizeTextKeepLines(text || '');
+        const tidy=(v)=>String(v || '').replace(/\s{2,}/g,' ').trim();
+
+        const piva=tidy(firstMatch(clean,[
+          /\bpartita\s*iva\b\s*[:\-]?\s*(?:IT\s*)?(\d{11})\b/i,
+          /\bp\.?\s*iva\b\s*[:\-]?\s*(?:IT\s*)?(\d{11})\b/i,
+          /\bid\.?\s*fiscale\s*iva\b[^\n:]*[:\-]?\s*(?:IT\s*)?(\d{11})\b/i
+        ]) || '');
+
+        const cf=tidy(firstMatch(clean,[
+          /\bcodice\s*fiscale\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
+          /\bc\.?\s*f\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
+        ]) || '');
+
+        const pec=tidy(firstMatch(clean,[
+          /\bpec\b\s*[:\-]?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i
+        ]) || '');
+
+        const allEmails=Array.from(new Set(
+          [...clean.matchAll(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/ig)].map(x=>x[0])
+        ));
+
+        const email=tidy(
+          allEmails.find(x=>pec ? x.toLowerCase()!==pec.toLowerCase() : true) || ''
+        );
+
+        const phone=tidy(firstMatch(clean,[
+          /\b(?:tel|telefono|cell|cellulare)\b\s*[:\-]?\s*([\+\d][\d\s\/.-]{5,})/i
+        ]) || '');
+
+        const address=tidy(firstMatch(clean,[
+          /\b(?:indirizzo|sede\s+legale|sede)\b\s*[:\-]?\s*([^\n]+)/i,
+          /((?:via|viale|piazza|contrada|c\/da|strada|localita|loc\.?)\s+[^\n,;]{4,120})/i
+        ]) || '');
+
+        const explicitName=tidy(
+          extractSupplierNameFromInvoiceText(clean) ||
+          firstMatch(clean,[
+            /\bragione\s+sociale\b\s*[:\-]?\s*([^\n]+)/i,
+            /\bdenominazione\b\s*[:\-]?\s*([^\n]+)/i,
+            /\bfornitore\b\s*[:\-]?\s*([^\n]+)/i
+          ]) || ''
+        );
+
+        const fallbackName=tidy(
+          clean
+            .split('\n')
+            .map(x=>x.trim())
+            .find(line=>
+              line &&
+              line.length >= 4 &&
+              line.length <= 120 &&
+              !/\b(?:fattura|documento|numero|data|pag\w*|iban|banca|cliente|cessionario|committente|importo|totale|imponibile|iva)\b/i.test(line) &&
+              /[A-ZÀ-Úa-zà-ú]/.test(line)
+            ) || ''
+        );
+
+        const name=explicitName || fallbackName || tidy(fileName.replace(/\.[a-z0-9]+$/i,''));
+
+        return {
+          name,
+          piva,
+          cf,
+          pec,
+          email,
+          phone,
+          address,
+          raw_excerpt: tidy(clean).slice(0,500)
+        };
+      };
+
       if($('#supImportPreview')){
-        $('#supImportPreview').innerHTML=`
-          <div><b>${validFiles.length}</b> documento/i caricati.</div>
-          <div style="margin-top:6px;color:var(--muted)">
-            ${validFiles.map(f=>esc(f.name)).join('<br>')}
+        $('#supImportPreview').innerHTML=`Analisi in corso di <b>${validFiles.length}</b> documento/i...`;
+      }
+
+      const results=[];
+
+      for(const file of validFiles){
+        try{
+          const text=await readSupplierImportText(file);
+          const fields=parseSupplierFromText(text, file.name);
+
+          results.push({
+            fileName:file.name,
+            ok:Boolean(fields.name || fields.piva || fields.cf || fields.pec || fields.email),
+            fields
+          });
+        }catch(err){
+          console.error(err);
+          results.push({
+            fileName:file.name,
+            ok:false,
+            error:err?.message || 'Errore analisi documento',
+            fields:{}
+          });
+        }
+      }
+
+      if($('#supImportPreview')){
+        $('#supImportPreview').innerHTML=results.map(r=>`
+          <div class="card" style="padding:12px;margin-top:10px">
+            <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start">
+              <div>
+                <div style="font-weight:700">${esc(r.fileName)}</div>
+                <div style="color:var(--muted);font-size:12px;margin-top:4px">
+                  ${r.ok ? 'Estrazione completata' : `Analisi incompleta${r.error ? ` • ${esc(r.error)}` : ''}`}
+                </div>
+              </div>
+              <span class="badge">${r.ok ? 'Preview dati' : 'Verifica manuale'}</span>
+            </div>
+
+            <div style="height:10px"></div>
+
+            <div class="form">
+              <div class="full"><label style="color:var(--muted);font-size:12px">Ragione sociale</label><input class="input" value="${esc(r.fields.name || '')}" disabled></div>
+              <div><label style="color:var(--muted);font-size:12px">P.IVA</label><input class="input" value="${esc(r.fields.piva || '')}" disabled></div>
+              <div><label style="color:var(--muted);font-size:12px">CF</label><input class="input" value="${esc(r.fields.cf || '')}" disabled></div>
+              <div><label style="color:var(--muted);font-size:12px">PEC</label><input class="input" value="${esc(r.fields.pec || '')}" disabled></div>
+              <div><label style="color:var(--muted);font-size:12px">Email</label><input class="input" value="${esc(r.fields.email || '')}" disabled></div>
+              <div><label style="color:var(--muted);font-size:12px">Telefono</label><input class="input" value="${esc(r.fields.phone || '')}" disabled></div>
+              <div class="full"><label style="color:var(--muted);font-size:12px">Indirizzo</label><input class="input" value="${esc(r.fields.address || '')}" disabled></div>
+              <div class="full"><label style="color:var(--muted);font-size:12px">Estratto testo</label><textarea class="input" rows="4" disabled>${esc(r.fields.raw_excerpt || '')}</textarea></div>
+            </div>
           </div>
-        `;
+        `).join('');
       }
 
       if($('#supFiles')){
