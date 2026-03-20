@@ -4820,11 +4820,13 @@ $('#pt').onclick=(e)=>{
       drop.classList.remove('drag');
     });
 
-    drop.addEventListener('drop',e=>{
+        drop.addEventListener('drop',e=>{
       e.preventDefault();
       drop.classList.remove('drag');
       paintFiles(e.dataTransfer?.files || []);
     });
+  }
+
   async function renderDocumenti(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Document Center','Crea prima una filiera.'); return; }
