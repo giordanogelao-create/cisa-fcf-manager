@@ -4632,11 +4632,41 @@ $('#pt').onclick=(e)=>{
     const beneficiaries=benQ.data||[];
     if(!beneficiaries.length){ view.innerHTML=routeError('Contratti e preventivi','Crea prima almeno un beneficiario.'); return; }
 
+        const invQ=await sb.from('investments').select('id,beneficiary_id,title,table_code,category_code').eq('filiera_id',fid).order('created_at',{ascending:false});
+    const investments=invQ.data||[];
+
+    const investmentLabel=(i)=>{
+      const tc=String(i.table_code||'').trim().toUpperCase();
+      const cc=String(i.category_code||'').trim();
+      const tt=String(i.title||'').trim();
+      return [tc&&cc?`${tc}-${cc}`:(tc||cc), tt].filter(Boolean).join(' • ');
+    };
+
+    const renderInvestmentOptions=(bid)=>{
+      const filtered=investments.filter(i=>i.beneficiary_id===bid && String(i.title||'').trim());
+      return filtered.length
+        ? `<option value="">Seleziona investimento</option>${filtered.map(i=>`<option value="${i.id}">${esc(investmentLabel(i))}</option>`).join('')}`
+        : '<option value="">Nessun investimento disponibile</option>';
+    };
+
     view.innerHTML=`
       <div class="card h">
         <div><h2 class="ct">Contratti e preventivi</h2><p class="sub">Sezione unica per contratti, preventivi e documenti collegati a un solo investimento.</p></div>
-        <div class="row">
+        <div class="row" style="flex-wrap:wrap">
+          <select id="cp_doc_type" class="input" style="width:min(240px,24vw)">
+            <option value="Contratto">Contratto</option>
+            <option value="Preventivo">Preventivo</option>
+            <option value="Ordine di acquisto">Ordine di acquisto</option>
+            <option value="DDT">DDT</option>
+            <option value="Titolo autorizzativo">Titolo autorizzativo</option>
+            <option value="Contratto di compravendita">Contratto di compravendita</option>
+            <option value="Atto notarile">Atto notarile</option>
+            <option value="Certificato di agibilità">Certificato di agibilità</option>
+            <option value="Perizia di stima">Perizia di stima</option>
+            <option value="Altro documento collegato">Altro documento collegato</option>
+          </select>
           <select id="cp_ben_sel" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <select id="cp_inv_sel" class="input" style="min-width:280px;flex:1"></select>
           <label class="btn pri" for="cp_up">＋ Seleziona file</label>
           <input id="cp_up" type="file" multiple style="display:none">
         </div>
@@ -4655,7 +4685,7 @@ $('#pt').onclick=(e)=>{
           <table class="table">
             <thead><tr><th>Tipo documento</th><th>Numero</th><th>Data</th><th>Fornitore</th><th>Investimento</th><th>Totale</th><th>Esito</th></tr></thead>
             <tbody>
-              <tr><td colspan="7" style="color:var(--muted)">Sezione preparata. Nel prossimo step colleghiamo rotta e menu, poi aggiungiamo upload e preview modificabile.</td></tr>
+              <tr><td colspan="7" style="color:var(--muted)">Sezione preparata. Ora puoi già scegliere manualmente tipo documento e investimento univoco prima del parser e del salvataggio.</td></tr>
             </tbody>
           </table>
         </div>
@@ -4664,6 +4694,15 @@ $('#pt').onclick=(e)=>{
     const fileInput=$('#cp_up');
     const drop=$('#cp_drop');
     const preview=$('#cp_preview');
+    const benSel=$('#cp_ben_sel');
+    const invSel=$('#cp_inv_sel');
+
+    const syncInvestments=()=>{
+      invSel.innerHTML=renderInvestmentOptions(benSel.value);
+    };
+
+    syncInvestments();
+    benSel.onchange=syncInvestments;
 
     const paintFiles=(files)=>{
       const list=[...(files||[])];
