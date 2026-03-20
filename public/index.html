@@ -4809,11 +4809,7 @@ $('#pt').onclick=(e)=>{
       if(fileInput.files?.length) paintFiles(fileInput.files);
     };
 
-        const applyPickedFiles=(files)=>{
-      paintFiles(files||[]);
-    };
-
-    fileInput.onchange=(e)=>applyPickedFiles(e.target.files);
+            fileInput.onchange=(e)=>paintFiles(e.target.files);
 
     drop.addEventListener('dragover',e=>{
       e.preventDefault();
@@ -4827,17 +4823,8 @@ $('#pt').onclick=(e)=>{
     drop.addEventListener('drop',e=>{
       e.preventDefault();
       drop.classList.remove('drag');
-      const files=e.dataTransfer?.files || [];
-      try{
-        if(files.length && typeof DataTransfer!=='undefined'){
-          const dt=new DataTransfer();
-          [...files].forEach(f=>dt.items.add(f));
-          fileInput.files=dt.files;
-        }
-      }catch(_){}
-      applyPickedFiles(files);
+      paintFiles(e.dataTransfer?.files || []);
     });
-
   async function renderDocumenti(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Document Center','Crea prima una filiera.'); return; }
