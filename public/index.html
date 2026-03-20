@@ -4701,14 +4701,42 @@ $('#pt').onclick=(e)=>{
       invSel.innerHTML=renderInvestmentOptions(benSel.value);
     };
 
-    syncInvestments();
-    benSel.onchange=syncInvestments;
+        syncInvestments();
+    benSel.onchange=()=>{
+      syncInvestments();
+      if(fileInput.files?.length) paintFiles(fileInput.files);
+    };
 
     const paintFiles=(files)=>{
       const list=[...(files||[])];
+      const type=$('#cp_doc_type')?.value || '';
+      const invTxt=invSel.options[invSel.selectedIndex]?.text || 'Nessun investimento selezionato';
       preview.innerHTML=list.length
-        ? `<b>${list.length}</b> file selezionato${list.length===1?'':'i'} in attesa del parser.`
+        ? `
+          <div style="margin-bottom:8px">
+            <b>${list.length}</b> file selezionato${list.length===1?'':'i'} in attesa del parser.
+          </div>
+          <div style="margin-bottom:8px;color:var(--muted)">
+            Tipo documento: <b>${esc(type||'-')}</b> · Investimento collegato: <b>${esc(invTxt)}</b>
+          </div>
+          <div style="display:grid;gap:6px">
+            ${list.map((f,idx)=>`
+              <div class="kv" style="grid-template-columns:36px 1fr auto;align-items:center">
+                <div>${idx+1}.</div>
+                <div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name||'')}</div>
+                <div style="color:var(--muted)">${humanSize(f.size||0)}</div>
+              </div>
+            `).join('')}
+          </div>`
         : 'Nessun documento caricato.';
+    };
+
+    $('#cp_doc_type').onchange=()=>{
+      if(fileInput.files?.length) paintFiles(fileInput.files);
+    };
+
+    invSel.onchange=()=>{
+      if(fileInput.files?.length) paintFiles(fileInput.files);
     };
 
     fileInput.onchange=(e)=>paintFiles(e.target.files);
