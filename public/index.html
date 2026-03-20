@@ -4622,6 +4622,72 @@ $('#pt').onclick=(e)=>{
 };
   }
 
+  async function renderContrattiPreventivi(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('Contratti e preventivi','Crea prima una filiera.'); return; }
+
+    const benQ=await sb.from('beneficiaries').select('id,ragione_sociale,cup').eq('filiera_id',fid).order('ragione_sociale');
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('Contratti e preventivi','Crea prima almeno un beneficiario.'); return; }
+
+    view.innerHTML=`
+      <div class="card h">
+        <div><h2 class="ct">Contratti e preventivi</h2><p class="sub">Sezione unica per contratti, preventivi e documenti collegati a un solo investimento.</p></div>
+        <div class="row">
+          <select id="cp_ben_sel" class="input" style="width:min(430px,42vw)">${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select>
+          <label class="btn pri" for="cp_up">＋ Seleziona file</label>
+          <input id="cp_up" type="file" multiple style="display:none">
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px">
+        <div id="cp_drop" class="drop">
+          Trascina qui contratti, preventivi e altri documenti collegati.
+          <div style="margin-top:8px;color:var(--muted)">Formati previsti in evoluzione: PDF, Excel, CSV, TSV, TXT, immagini, Word, XML e ZIP.</div>
+        </div>
+        <div id="cp_preview" style="margin-top:10px;color:var(--muted);font-size:13px">Nessun documento caricato.</div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Tipo documento</th><th>Numero</th><th>Data</th><th>Fornitore</th><th>Investimento</th><th>Totale</th><th>Esito</th></tr></thead>
+            <tbody>
+              <tr><td colspan="7" style="color:var(--muted)">Sezione preparata. Nel prossimo step colleghiamo rotta e menu, poi aggiungiamo upload e preview modificabile.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+    const fileInput=$('#cp_up');
+    const drop=$('#cp_drop');
+    const preview=$('#cp_preview');
+
+    const paintFiles=(files)=>{
+      const list=[...(files||[])];
+      preview.innerHTML=list.length
+        ? `<b>${list.length}</b> file selezionato${list.length===1?'':'i'} in attesa del parser.`
+        : 'Nessun documento caricato.';
+    };
+
+    fileInput.onchange=(e)=>paintFiles(e.target.files);
+
+    drop.addEventListener('dragover',e=>{
+      e.preventDefault();
+      drop.classList.add('drag');
+    });
+
+    drop.addEventListener('dragleave',()=>{
+      drop.classList.remove('drag');
+    });
+
+    drop.addEventListener('drop',e=>{
+      e.preventDefault();
+      drop.classList.remove('drag');
+      paintFiles(e.dataTransfer?.files || []);
+    });
+  }
+
   async function renderDocumenti(){
     const fid=activeFiliera();
     if(!fid){ view.innerHTML=routeError('Document Center','Crea prima una filiera.'); return; }
