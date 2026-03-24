@@ -4777,19 +4777,19 @@ $('#pt').onclick=(e)=>{
       if(fileInput.files?.length) paintFiles(fileInput.files);
     };
 
-    const paintFiles=(files)=>{
+        const paintFiles=(files,status='in attesa del parser')=>{
       const list=[...(files||[])];
       const type=$('#cp_doc_type')?.value || '';
       const invTxt=invSel.options[invSel.selectedIndex]?.text || 'Nessun investimento selezionato';
       preview.innerHTML=list.length
         ? `
           <div style="margin-bottom:8px">
-            <b>${list.length}</b> file selezionato${list.length===1?'':'i'} in attesa del parser.
+            <b>${list.length}</b> file selezionato${list.length===1?'':'i'} ${esc(status)}.
           </div>
           <div style="margin-bottom:8px;color:var(--muted)">
             Tipo documento: <b>${esc(type||'-')}</b> · Investimento collegato: <b>${esc(invTxt)}</b>
           </div>
-                    <div style="display:grid;gap:6px">
+          <div style="display:grid;gap:6px">
             ${list.map((f,idx)=>`
               <div class="kv" style="grid-template-columns:36px 1fr auto;align-items:center">
                 <div>${idx+1}.</div>
@@ -4801,15 +4801,136 @@ $('#pt').onclick=(e)=>{
         : 'Nessun documento caricato.';
     };
 
+    const formatMoneyPreview=(value)=>{
+      const n=num(value);
+      if(!n) return '';
+      return n.toFixed(2).replace('.',',');
+    };
+
+    const normalizeCmp=(s)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+    const fillContractPreviewFromText=(text)=>{
+      const raw=normalizeTextKeepLines(text||'');
+      const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
+      const benLabel=(benSel.options[benSel.selectedIndex]?.text || '').split('•')[0].trim();
+      const benNorm=normalizeCmp(benLabel);
+
+      if($('#cp_raw_text')) $('#cp_raw_text').value=raw;
+
+      if($('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
+        $('#cp_beneficiary_name').value=benLabel;
+      }
+
+      const autoType=
+        /\b(?:quote|quotation|preventivo|offerta)\b/i.test(raw) ? 'Preventivo' :
+        /\b(?:order confirmation|contract|contratto|agreement)\b/i.test(raw) ? 'Contratto' :
+        '';
+      if(autoType && $('#cp_doc_type')) $('#cp_doc_type').value=autoType;
+
+      const docNo=firstMatch(raw,[
+        /\bOrder Number\b\s*([A-Z0-9\/._-]{3,})/i,
+        /\bOrder Confirmation\b\s*([A-Z0-9\/._-]{3,})\s+\d{2}[\/.\-]\d{2}[\/.\-]\d{4}/i,
+        /\b(?:Numero documento|N\.?\s*documento|Document No\.?)\b\s*[:\-]?\s*([A-Z0-9\/._-]{3,})/i,
+        /\bCustomer Reference\b\s*([A-Z0-9\/._-]{3,})/i
+      ]);
+      if(docNo && $('#cp_doc_no') && !$('#cp_doc_no').value.trim()){
+        $('#cp_doc_no').value=docNo.trim();
+      }
+
+      const docDateRaw=firstMatch(raw,[
+        /\bOrder Confirmation\b\s*[A-Z0-9\/._-]{3,}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
+        /\b(?:Document Date|Data documento)\b\s*[:\-]?\s*([0-9\/.\-]{8,10})/i,
+        /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+      ]);
+      if(docDateRaw && $('#cp_doc_date') && !$('#cp_doc_date').value){
+        $('#cp_doc_date').value=toIsoDateGuess(docDateRaw) || docDateRaw;
+      }
+
+      const supplierLine=lines.find(l=>{
+        const norm=normalizeCmp(l);
+        if(!norm || (benNorm && norm.includes(benNorm))) return false;
+        if(/CUSTOMER REFERENCE|ORDER NUMBER|ORDER DATE|SOLUTION NUMBER|LOCAL CONTACT|PROJECT MANAGER|TECHNICAL SALES MANAGER|REGISTERED OFFICE|MANAGING DIRECTOR/i.test(l)) return false;
+        return /\b(?:S\.?\s*R\.?\s*L\.?|S\.?\s*P\.?\s*A\.?|B\.?\s*V\.?|LTD|GMBH|SOCIETA|COOP\.?VA|AGRICOLA)\b/i.test(l);
+      });
+      if(supplierLine && $('#cp_supplier') && !$('#cp_supplier').value.trim()){
+        $('#cp_supplier').value=supplierLine;
+      }
+
+      const objectText=firstMatch(raw,[
+        /\bSolution Number\b[^\n]*\n([^\n]{5,140})/i,
+        /\bObject\b\s*[:\-]?\s*([^\n]{5,140})/i,
+        /\bOggetto\b\s*[:\-]?\s*([^\n]{5,140})/i
+      ]);
+      if(objectText && $('#cp_object') && !$('#cp_object').value.trim()){
+        $('#cp_object').value=objectText.trim();
+      }
+
+      const totalRaw=firstMatch(raw,[
+        /\bTotal Amount\b\s*([0-9][0-9.,]*)/i,
+        /\bTotale\b\s*[:\-]?\s*([0-9][0-9.,]*)/i
+      ]);
+      if(totalRaw && $('#cp_total') && !$('#cp_total').value.trim()){
+        $('#cp_total').value=formatMoneyPreview(totalRaw);
+      }
+
+      const cup=firstMatch(raw,[
+        /\b([A-Z0-9]{15})\b/
+      ]);
+      if(cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
+        $('#cp_cup').value=cup.trim();
+      }
+
+      const deadline=firstMatch(raw,[
+        /\bDelivery shall take place\s*([^\n.]+)/i,
+        /\bConsegna\b\s*[:\-]?\s*([^\n.]+)/i,
+        /\bvalidity\b[\s\S]{0,120}?\bfor\s*([^\n.]+)/i
+      ]);
+      if(deadline && $('#cp_deadline') && !$('#cp_deadline').value.trim()){
+        $('#cp_deadline').value=deadline.trim();
+      }
+
+      if(/\bSIGNATURES?\b|\bSignature\b/i.test(raw)){
+        if($('#cp_signature') && !$('#cp_signature').value.trim()){
+          $('#cp_signature').value='Da firmare';
+        }
+      }
+
+      if($('#cp_note') && !$('#cp_note').value.trim()){
+        $('#cp_note').value='Dati precompilati automaticamente da PDF/OCR. Verificare prima del salvataggio.';
+      }
+    };
+
+    const applyPickedFiles=async(files)=>{
+      const list=[...(files||[])];
+      paintFiles(list);
+      if(!list.length) return;
+
+      const file=list[0];
+      const isPdf=/\.pdf$/i.test(file.name||'') || file.type==='application/pdf';
+      if(!isPdf) return;
+
+      paintFiles(list,'in analisi');
+      try{
+        const res=await extractTextFromPdfWithFallback(file);
+        fillContractPreviewFromText(res?.text || '');
+        paintFiles(list,`analizzato con ${res?.usedOcr?'OCR':'testo PDF'}`);
+      }catch(err){
+        console.error(err);
+        paintFiles(list,'caricato ma analisi non riuscita');
+      }
+    };
+
     $('#cp_doc_type').onchange=()=>{
-      if(fileInput.files?.length) paintFiles(fileInput.files);
+      if(fileInput.files?.length) paintFiles(fileInput.files,'già caricato');
     };
 
     invSel.onchange=()=>{
-      if(fileInput.files?.length) paintFiles(fileInput.files);
+      if(fileInput.files?.length) paintFiles(fileInput.files,'già caricato');
     };
 
-            fileInput.onchange=(e)=>paintFiles(e.target.files);
+    fileInput.onchange=(e)=>{
+      void applyPickedFiles(e.target.files);
+    };
 
     drop.addEventListener('dragover',e=>{
       e.preventDefault();
@@ -4820,10 +4941,18 @@ $('#pt').onclick=(e)=>{
       drop.classList.remove('drag');
     });
 
-        drop.addEventListener('drop',e=>{
+    drop.addEventListener('drop',e=>{
       e.preventDefault();
       drop.classList.remove('drag');
-      paintFiles(e.dataTransfer?.files || []);
+      const files=e.dataTransfer?.files || [];
+      try{
+        if(files.length && typeof DataTransfer!=='undefined'){
+          const dt=new DataTransfer();
+          [...files].forEach(f=>dt.items.add(f));
+          fileInput.files=dt.files;
+        }
+      }catch(_){}
+      void applyPickedFiles(files);
     });
   }
 
