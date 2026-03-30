@@ -5261,6 +5261,86 @@ $('#pt').onclick=(e)=>{
         const invoiced=invInvoices.reduce((s,x)=>s + num(x.net_amount) + num(x.vat_amount),0);
         const paid=invPayments.reduce((s,x)=>s + num(x.amount),0);
 
+                const detailRows=[];
+
+        if(invInvoices.length){
+          invInvoices.forEach(iv=>{
+            const invoicePayments=invPayments.filter(p=>{
+              if(iv?.id && p.invoice_id===iv.id) return true;
+              if(iv?.invoice_number && p.invoice_number){
+                return normalizeForMatch(iv.invoice_number||'')===normalizeForMatch(p.invoice_number||'');
+              }
+              return false;
+            });
+
+            const paymentLines=invoicePayments.length ? invoicePayments : [null];
+
+            paymentLines.forEach(p=>{
+              detailRows.push({
+                investment_id: inv.id,
+                investment_title: inv.title || '',
+                table_code: normalizeTableCode(inv.table_code),
+                category_code: inv.category_code || '',
+                location_text: [
+                  inv.location?.via || '',
+                  inv.location?.civico || '',
+                  inv.location?.comune || '',
+                  inv.location?.provincia ? `(${inv.location.provincia})` : ''
+                ].filter(Boolean).join(' ').trim(),
+                contract_number: '',
+                contract_date: '',
+                contract_pnrr_text: '',
+                contract_cup: '',
+                invoice_id: iv?.id || '',
+                invoice_number: iv?.invoice_number || '',
+                invoice_date: iv?.invoice_date || '',
+                invoice_net_amount: num(iv?.net_amount),
+                invoice_vat_amount: num(iv?.vat_amount),
+                invoice_cash_amount: '',
+                invoice_withholding: num(iv?.withholding),
+                invoice_total_amount: num(iv?.net_amount) + num(iv?.vat_amount),
+                invoice_pnrr_text: iv?.pnrr_text || '',
+                invoice_cup: iv?.cup || '',
+                payment_id: p?.id || '',
+                payment_date: p?.payment_date || '',
+                payment_amount: num(p?.amount),
+                notes: invDocs.map(d=>d.filename).filter(Boolean).join(' | ')
+              });
+            });
+          });
+        }else{
+          detailRows.push({
+            investment_id: inv.id,
+            investment_title: inv.title || '',
+            table_code: normalizeTableCode(inv.table_code),
+            category_code: inv.category_code || '',
+            location_text: [
+              inv.location?.via || '',
+              inv.location?.civico || '',
+              inv.location?.comune || '',
+              inv.location?.provincia ? `(${inv.location.provincia})` : ''
+            ].filter(Boolean).join(' ').trim(),
+            contract_number: '',
+            contract_date: '',
+            contract_pnrr_text: '',
+            contract_cup: '',
+            invoice_id: '',
+            invoice_number: '',
+            invoice_date: '',
+            invoice_net_amount: 0,
+            invoice_vat_amount: 0,
+            invoice_cash_amount: '',
+            invoice_withholding: 0,
+            invoice_total_amount: 0,
+            invoice_pnrr_text: '',
+            invoice_cup: '',
+            payment_id: '',
+            payment_date: '',
+            payment_amount: 0,
+            notes: invDocs.map(d=>d.filename).filter(Boolean).join(' | ')
+          });
+        }
+
         return {
           inv,
           approved,
@@ -5268,10 +5348,12 @@ $('#pt').onclick=(e)=>{
           paid,
           invoices:invInvoices,
           payments:invPayments,
-          documents:invDocs
+          documents:invDocs,
+          detail_rows:detailRows
         };
       });
 
+      const detailRows=rows.flatMap(x=>x.detail_rows || []);
       const totApproved=rows.reduce((s,x)=>s+x.approved,0);
       const totInvoiced=rows.reduce((s,x)=>s+x.invoiced,0);
       const totPaid=rows.reduce((s,x)=>s+x.paid,0);
