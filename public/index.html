@@ -2821,6 +2821,14 @@
       const loan=visibleRows.reduce((a,x)=>a+num(x.loan_amount),0);
       const own=visibleRows.reduce((a,x)=>a+num(x.own_funds),0);
 
+            const invVat=(x)=>num(x?.vat_amount ?? x?.vat ?? x?.iva);
+
+      const total=visibleRows.reduce((a,x)=>a+num(x.approved_amount),0);
+      const iva=visibleRows.reduce((a,x)=>a+invVat(x),0);
+      const grant=visibleRows.reduce((a,x)=>a+num(x.grant_amount),0);
+      const loan=visibleRows.reduce((a,x)=>a+num(x.loan_amount),0);
+      const own=visibleRows.reduce((a,x)=>a+num(x.own_funds),0);
+
       function summarize(table){
         const cats=TABLES[table]||[];
         return cats.map(c=>{
@@ -2828,6 +2836,7 @@
           return {
             code:c.code,label:c.label,n:items.length,
             a:items.reduce((s,x)=>s+num(x.approved_amount),0),
+            i:items.reduce((s,x)=>s+invVat(x),0),
             g:items.reduce((s,x)=>s+num(x.grant_amount),0),
             l:items.reduce((s,x)=>s+num(x.loan_amount),0),
             o:items.reduce((s,x)=>s+num(x.own_funds),0)
@@ -2837,10 +2846,11 @@
 
       $('#invArea').innerHTML=`
         <div class="grid">
-          <div class="card kpi" style="grid-column:span 3"><div class="l">Importo approvato</div><div class="v">${eur(total)}</div></div>
-          <div class="card kpi" style="grid-column:span 3"><div class="l">Contributo</div><div class="v">${eur(grant)}</div></div>
-          <div class="card kpi" style="grid-column:span 3"><div class="l">Finanz. agevolato</div><div class="v">${eur(loan)}</div></div>
-          <div class="card kpi" style="grid-column:span 3"><div class="l">Mezzi propri</div><div class="v">${eur(own)}</div></div>
+          <div class="card kpi" style="grid-column:span 2"><div class="l">Importo approvato</div><div class="v">${eur(total)}</div></div>
+          <div class="card kpi" style="grid-column:span 2"><div class="l">IVA</div><div class="v">${eur(iva)}</div></div>
+          <div class="card kpi" style="grid-column:span 2"><div class="l">Contributo</div><div class="v">${eur(grant)}</div></div>
+          <div class="card kpi" style="grid-column:span 2"><div class="l">Finanz. agevolato</div><div class="v">${eur(loan)}</div></div>
+          <div class="card kpi" style="grid-column:span 2"><div class="l">Mezzi propri</div><div class="v">${eur(own)}</div></div>
         </div>
         <div style="height:12px"></div>
         ${['1A','2A','3A','4A','5A'].map(t=>{
@@ -2857,9 +2867,9 @@
                   <b>Riepilogo categorie</b>
                   <div class="table-wrap" style="margin-top:10px;max-height:240px">
                     <table class="table">
-                      <thead><tr><th>Categoria</th><th>#</th><th>Importo</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th></tr></thead>
+                      <thead><tr><th>Categoria</th><th>#</th><th>Importo</th><th>IVA</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th></tr></thead>
                       <tbody>
-                        ${sums.map(s=>`<tr><td><span class="badge">${esc(s.code)}</span> ${esc(s.label)}</td><td>${s.n}</td><td>${eur(s.a)}</td><td>${eur(s.g)}</td><td>${eur(s.l)}</td><td>${eur(s.o)}</td></tr>`).join('')}
+                        ${sums.map(s=>`<tr><td><span class="badge">${esc(s.code)}</span> ${esc(s.label)}</td><td>${s.n}</td><td>${eur(s.a)}</td><td>${eur(s.i)}</td><td>${eur(s.g)}</td><td>${eur(s.l)}</td><td>${eur(s.o)}</td></tr>`).join('')}
                       </tbody>
                     </table>
                   </div>
@@ -2867,7 +2877,7 @@
               </div>
               <div class="table-wrap">
                 <table class="table invT">
-                  <thead><tr><th>Titolo</th><th>Categoria</th><th>Importo</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th><th>TAG</th><th>Stato</th></tr></thead>
+                  <thead><tr><th>Titolo</th><th>Categoria</th><th>Importo</th><th>IVA</th><th>Contributo</th><th>Finanz.</th><th>Mezzi propri</th><th>TAG</th><th>Stato</th></tr></thead>
                   <tbody>
                     ${items.map(x=>{
                       const cat=(TABLES[t]||[]).find(c=>c.code===x.category_code);
@@ -2875,13 +2885,14 @@
                         <td><b>${esc(x.title)}</b><div style="color:var(--muted);font-size:12px;margin-top:4px">${esc(x.location?.comune||'')}${x.location?.provincia?` (${esc(x.location.provincia)})`:''}</div></td>
                         <td>${esc(x.category_code)} • ${esc(cat?.label||'')}</td>
                         <td>${eur(x.approved_amount)}</td>
+                        <td>${eur(invVat(x))}</td>
                         <td>${eur(x.grant_amount)}</td>
                         <td>${eur(x.loan_amount)}</td>
                         <td>${eur(x.own_funds)}</td>
                         <td><span class="badge">${esc(x.tag||'')}</span></td>
                         <td>${esc(x.state||'')}</td>
                       </tr>`;
-                    }).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento in questa tabella.</td></tr>`}
+                    }).join('') || `<tr><td colspan="9" style="color:var(--muted)">Nessun investimento in questa tabella.</td></tr>`}
                   </tbody>
                 </table>
               </div>
