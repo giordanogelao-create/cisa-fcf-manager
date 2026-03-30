@@ -5279,9 +5279,9 @@ $('#pt').onclick=(e)=>{
               detailRows.push({
                 investment_id: inv.id,
                 investment_title: inv.title || '',
-                investment_imponibile: num(inv?.approved_amount),
-                investment_iva: '',
-                investment_totale: num(inv?.approved_amount),
+                                investment_imponibile: num(inv?.approved_amount),
+                investment_iva: num(inv?.vat_amount ?? inv?.vat ?? inv?.iva),
+                investment_totale: num(inv?.approved_amount) + num(inv?.vat_amount ?? inv?.vat ?? inv?.iva),
                 investment_contributi: num(inv?.grant_amount),
                 investment_finanziamento_agevolato: num(inv?.loan_amount),
                 table_code: normalizeTableCode(inv.table_code),
