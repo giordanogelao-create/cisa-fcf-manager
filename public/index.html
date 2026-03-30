@@ -5450,13 +5450,16 @@ $('#pt').onclick=(e)=>{
           </div>
         </div>
         <div style="height:12px"></div>
-        <div class="card">
+                <div class="card">
           <div class="card h" style="border:none;box-shadow:none">
             <div>
               <h3 class="ct" style="font-size:15px">Anteprima righe export SAL</h3>
               <p class="sub">Questa tabella prepara il tracciato che useremo per l’Excel per beneficiario.</p>
             </div>
-            <span class="badge">${detailRows.length} righe</span>
+            <div class="row">
+              <span class="badge">${detailRows.length} righe</span>
+              <button class="btn pri" id="salExportCsvBtn" ${detailRows.length ? '' : 'disabled'}>⬇ Export CSV</button>
+            </div>
           </div>
           <div class="table-wrap" style="max-height:48vh">
             <table class="table">
@@ -5513,6 +5516,105 @@ $('#pt').onclick=(e)=>{
             </table>
           </div>
         </div>`;
+
+      const csvEscape=(v)=>`"${String(v ?? '').replace(/"/g,'""')}"`;
+      const csvMoney=(v)=>{
+        const n=num(v);
+        return n ? n.toFixed(2).replace('.',',') : '';
+      };
+
+      const exportRows=detailRows.map(r=>({
+        investimento: r.investment_title || '',
+        tabella: r.table_code || '',
+        categoria: r.category_code || '',
+        ubicazione: r.location_text || '',
+        n_contratto: r.contract_number || '',
+        data_contratto: r.contract_date || '',
+        n_fattura: r.invoice_number || '',
+        data_fattura: r.invoice_date || '',
+        imponibile_fattura: csvMoney(r.invoice_net_amount),
+        iva_fattura: csvMoney(r.invoice_vat_amount),
+        cassa_fattura: r.invoice_cash_amount || '',
+        ritenuta_acconto_fattura: csvMoney(r.invoice_withholding),
+        totale: csvMoney(r.invoice_total_amount),
+        data_bonifico: r.payment_date || '',
+        importo_bonifico: csvMoney(r.payment_amount),
+        dicitura_pnrr_fattura: r.invoice_pnrr_text || '',
+        cup_fattura: r.invoice_cup || '',
+        dicitura_pnrr_contratto: r.contract_pnrr_text || '',
+        cup_contratto: r.contract_cup || '',
+        note: r.notes || ''
+      }));
+
+      const exportBtn=$('#salExportCsvBtn');
+      if(exportBtn){
+        exportBtn.onclick=()=>{
+          const currentBen=beneficiaries.find(x=>x.id==bid);
+          const safeBen=(currentBen?.ragione_sociale || 'beneficiario')
+            .replace(/[\\/:*?"<>|]+/g,' ')
+            .replace(/\s+/g,' ')
+            .trim();
+
+          const headers=[
+            'INVESTIMENTO',
+            'TABELLA',
+            'CATEGORIA',
+            'UBICAZIONE',
+            'N. CONTRATTO',
+            'DATA CONTRATTO',
+            'N. FATTURA',
+            'DATA FATTURA',
+            'IMPONIBILE FATTURA',
+            'IVA FATTURA',
+            'CASSA FATTURA',
+            'RITENUTA ACCONTO FATTURA',
+            'TOTALE',
+            'DATA BONIFICO',
+            'IMPORTO BONIFICO',
+            'DICITURA PNRR FATTURA',
+            'CUP FATTURA',
+            'DICITURA PNRR CONTRATTO',
+            'CUP CONTRATTO',
+            'NOTE'
+          ];
+
+          const lines=[
+            headers.map(csvEscape).join(';'),
+            ...exportRows.map(r=>[
+              r.investimento,
+              r.tabella,
+              r.categoria,
+              r.ubicazione,
+              r.n_contratto,
+              r.data_contratto,
+              r.n_fattura,
+              r.data_fattura,
+              r.imponibile_fattura,
+              r.iva_fattura,
+              r.cassa_fattura,
+              r.ritenuta_acconto_fattura,
+              r.totale,
+              r.data_bonifico,
+              r.importo_bonifico,
+              r.dicitura_pnrr_fattura,
+              r.cup_fattura,
+              r.dicitura_pnrr_contratto,
+              r.cup_contratto,
+              r.note
+            ].map(csvEscape).join(';'))
+          ];
+
+          const blob=new Blob(["\uFEFF"+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a');
+          a.href=url;
+          a.download=`SAL_${safeBen}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        };
+      }
     }
 
     $('#sal_ben').onchange=paintSAL;
