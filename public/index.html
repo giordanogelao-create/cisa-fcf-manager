@@ -5159,14 +5159,158 @@ $('#pt').onclick=(e)=>{
       <div class="card" style="padding:14px;color:var(--muted)">Questa build ripristina le sezioni operative principali. Le varianti restano predisposte.</div>`;
   }
 
-  function renderSAL(){
+    async function renderSAL(){
+    const fid=activeFiliera();
+    if(!fid){ view.innerHTML=routeError('SAL','Crea prima una filiera.'); return; }
+
+    const benQ=await sb
+      .from('beneficiaries')
+      .select('id,ragione_sociale,cup')
+      .eq('filiera_id',fid)
+      .order('ragione_sociale');
+
+    const beneficiaries=benQ.data||[];
+    if(!beneficiaries.length){ view.innerHTML=routeError('SAL','Crea prima almeno un beneficiario.'); return; }
+
     view.innerHTML=`
       <div class="card h">
-        <div><h2 class="ct">SAL</h2><p class="sub">Sezione SAL predisposta.</p></div>
-        <span class="badge warn">in costruzione</span>
+        <div>
+          <h2 class="ct">SAL</h2>
+          <p class="sub">Vista SAL per beneficiario e investimento, con riepilogo automatico di fatture, bonifici e documenti già presenti.</p>
+        </div>
+        <div class="row">
+          <select id="sal_ben" class="input" style="width:min(460px,44vw)">
+            ${beneficiaries.map(b=>`<option value="${b.id}">${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}
+          </select>
+        </div>
       </div>
       <div style="height:12px"></div>
-      <div class="card" style="padding:14px;color:var(--muted)">Nel prossimo step possiamo aggiungere wizard SAL e checklist documentale.</div>`;
+      <div id="salArea"></div>`;
+
+    const normalizeTableCode=(value)=>{
+      const raw=String(value || '').trim().toUpperCase();
+      return (firstMatch(raw,[
+        /\b(\d+[A-Z])\b/i
+      ]) || raw).toUpperCase();
+    };
+
+    async function paintSAL(){
+      const bid=$('#sal_ben').value;
+
+      const [invQ, fatQ, payQ, docQ] = await Promise.all([
+        sb.from('investments').select('*').eq('beneficiary_id',bid).order('created_at',{ascending:false}),
+        sb.from('invoices').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('invoice_date',{ascending:false}),
+        sb.from('payments').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('payment_date',{ascending:false}),
+        sb.from('documents').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false})
+      ]);
+
+      const investments=(invQ.data||[]).filter(x=>{
+        const tableCode=normalizeTableCode(x.table_code);
+        const title=String(x.title||'').trim();
+        const category=String(x.category_code||'').trim();
+        return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
+      });
+
+      const invoices=fatQ.data||[];
+      const payments=payQ.data||[];
+      const documents=docQ.data||[];
+
+      const invoiceMap={};
+      invoices.forEach(x=>{ invoiceMap[x.id]=x; });
+
+      const rows=investments.map(inv=>{
+        const invInvoices=invoices.filter(x=>x.investment_id===inv.id);
+        const invInvoiceIds=new Set(invInvoices.map(x=>x.id));
+
+        const invPayments=payments.filter(p=>{
+          if(p.invoice_id && invInvoiceIds.has(p.invoice_id)) return true;
+          if(p.invoice_number){
+            return invInvoices.some(i=>normalizeForMatch(i.invoice_number||'')===normalizeForMatch(p.invoice_number||''));
+          }
+          return false;
+        });
+
+        const invDocs=documents.filter(d=>{
+          const note=String(d.note||'');
+          return note.includes(`invoice_id: ${invInvoices[0]?.id || '__none__'}`) || false;
+        });
+
+        const approved=num(inv.approved_amount);
+        const invoiced=invInvoices.reduce((s,x)=>s + num(x.net_amount) + num(x.vat_amount),0);
+        const paid=invPayments.reduce((s,x)=>s + num(x.amount),0);
+
+        return {
+          inv,
+          approved,
+          invoiced,
+          paid,
+          invoices:invInvoices,
+          payments:invPayments,
+          documents:invDocs
+        };
+      });
+
+      const totApproved=rows.reduce((s,x)=>s+x.approved,0);
+      const totInvoiced=rows.reduce((s,x)=>s+x.invoiced,0);
+      const totPaid=rows.reduce((s,x)=>s+x.paid,0);
+      const totDocs=rows.reduce((s,x)=>s+x.documents.length,0);
+
+      $('#salArea').innerHTML=`
+        <div class="grid">
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Investimenti</div><div class="v">${rows.length}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Importo approvato</div><div class="v">${eur(totApproved)}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Fatturato rilevato</div><div class="v">${eur(totInvoiced)}</div></div>
+          <div class="card kpi" style="grid-column:span 3"><div class="l">Pagato rilevato</div><div class="v">${eur(totPaid)}</div></div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="card">
+          <div class="card h" style="border:none;box-shadow:none">
+            <div>
+              <h3 class="ct" style="font-size:15px">Quadro SAL per investimento</h3>
+              <p class="sub">Le righe sono già costruite per investimento, così nei prossimi step collegheremo anche i documenti contrattuali.</p>
+            </div>
+            <span class="badge">${totDocs} documenti</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Investimento</th>
+                  <th>Tab/Cat</th>
+                  <th>Approvato</th>
+                  <th>Fatture</th>
+                  <th>Tot. fatture</th>
+                  <th>Bonifici</th>
+                  <th>Tot. bonifici</th>
+                  <th>Documenti</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(r=>`
+                  <tr>
+                    <td>
+                      <b>${esc(r.inv.title||'')}</b>
+                      <div style="color:var(--muted);font-size:12px;margin-top:4px">
+                        ${esc(r.inv.location?.comune||'')}${r.inv.location?.provincia?` (${esc(r.inv.location.provincia)})`:''}
+                      </div>
+                    </td>
+                    <td>${esc(normalizeTableCode(r.inv.table_code))} • ${esc(r.inv.category_code||'')}</td>
+                    <td>${eur(r.approved)}</td>
+                    <td>${r.invoices.length}</td>
+                    <td>${eur(r.invoiced)}</td>
+                    <td>${r.payments.length}</td>
+                    <td>${eur(r.paid)}</td>
+                    <td>${r.documents.length}</td>
+                  </tr>
+                `).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento disponibile per questo beneficiario.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    $('#sal_ben').onchange=paintSAL;
+    paintSAL();
   }
 
   function renderDossier(){
