@@ -5468,9 +5468,14 @@ $('#pt').onclick=(e)=>{
           </div>
           <div class="table-wrap" style="max-height:48vh">
             <table class="table">
-              <thead>
+                            <thead>
                 <tr>
                   <th>Investimento</th>
+                  <th>Imponibile</th>
+                  <th>IVA</th>
+                  <th>Totale</th>
+                  <th>Contributi</th>
+                  <th>Finanziamento agevolato</th>
                   <th>Tabella</th>
                   <th>Categoria</th>
                   <th>Ubicazione</th>
@@ -5481,7 +5486,7 @@ $('#pt').onclick=(e)=>{
                   <th>Imponibile fattura</th>
                   <th>IVA fattura</th>
                   <th>Cassa fattura</th>
-                  <th>Ritenuta fattura</th>
+                  <th>Ritenuta acconto fattura</th>
                   <th>Totale</th>
                   <th>Data bonifico</th>
                   <th>Importo bonifico</th>
@@ -5496,6 +5501,11 @@ $('#pt').onclick=(e)=>{
                 ${detailRows.map(r=>`
                   <tr>
                     <td><b>${esc(r.investment_title||'')}</b></td>
+                    <td>${eur(r.investment_imponibile||0)}</td>
+                    <td>${esc(r.investment_iva||'')}</td>
+                    <td>${eur(r.investment_totale||0)}</td>
+                    <td>${eur(r.investment_contributi||0)}</td>
+                    <td>${eur(r.investment_finanziamento_agevolato||0)}</td>
                     <td>${esc(r.table_code||'')}</td>
                     <td>${esc(r.category_code||'')}</td>
                     <td>${esc(r.location_text||'')}</td>
@@ -5516,7 +5526,7 @@ $('#pt').onclick=(e)=>{
                     <td>${esc(r.contract_cup||'')}</td>
                     <td style="max-width:260px;white-space:normal">${esc(r.notes||'')}</td>
                   </tr>
-                `).join('') || `<tr><td colspan="20" style="color:var(--muted)">Nessuna riga di dettaglio disponibile per questo beneficiario.</td></tr>`}
+                `).join('') || `<tr><td colspan="25" style="color:var(--muted)">Nessuna riga di dettaglio disponibile per questo beneficiario.</td></tr>`}
               </tbody>
             </table>
           </div>
