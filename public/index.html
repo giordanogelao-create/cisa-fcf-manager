@@ -5309,7 +5309,7 @@ $('#pt').onclick=(e)=>{
               </thead>
               <tbody>
                 ${rows.map(r=>`
-                  <tr>
+                                    <tr>
                     <td>
                       <b>${esc(r.inv.title||'')}</b>
                       <div style="color:var(--muted);font-size:12px;margin-top:4px">
@@ -5318,11 +5318,49 @@ $('#pt').onclick=(e)=>{
                     </td>
                     <td>${esc(normalizeTableCode(r.inv.table_code))} • ${esc(r.inv.category_code||'')}</td>
                     <td>${eur(r.approved)}</td>
-                    <td>${r.invoices.length}</td>
+                    <td>
+                      <div><b>${r.invoices.length}</b></div>
+                      ${r.invoices.length
+                        ? `<div style="margin-top:6px;display:grid;gap:4px">
+                            ${r.invoices.map(i=>`
+                              <div style="font-size:12px;line-height:1.35">
+                                <b>${esc(i.invoice_number||'—')}</b>${i.invoice_date?` • ${esc(i.invoice_date)}`:''}
+                                <div style="color:var(--muted)">${eur(num(i.net_amount)+num(i.vat_amount))}</div>
+                              </div>
+                            `).join('')}
+                          </div>`
+                        : `<div style="margin-top:6px;color:var(--muted);font-size:12px">—</div>`}
+                    </td>
                     <td>${eur(r.invoiced)}</td>
-                    <td>${r.payments.length}</td>
+                    <td>
+                      <div><b>${r.payments.length}</b></div>
+                      ${r.payments.length
+                        ? `<div style="margin-top:6px;display:grid;gap:4px">
+                            ${r.payments.map(p=>`
+                              <div style="font-size:12px;line-height:1.35">
+                                <b>${esc(p.kind||'Bonifico')}</b>${p.payment_date?` • ${esc(p.payment_date)}`:''}
+                                <div style="color:var(--muted)">
+                                  ${p.invoice_number?`Fattura ${esc(p.invoice_number)} • `:''}${eur(num(p.amount))}
+                                </div>
+                              </div>
+                            `).join('')}
+                          </div>`
+                        : `<div style="margin-top:6px;color:var(--muted);font-size:12px">—</div>`}
+                    </td>
                     <td>${eur(r.paid)}</td>
-                    <td>${r.documents.length}</td>
+                    <td>
+                      <div><b>${r.documents.length}</b></div>
+                      ${r.documents.length
+                        ? `<div style="margin-top:6px;display:grid;gap:4px">
+                            ${r.documents.map(d=>`
+                              <div style="font-size:12px;line-height:1.35;overflow-wrap:anywhere">
+                                <b>${esc(d.doc_type||'Documento')}</b>
+                                <div style="color:var(--muted)">${esc(d.filename||'')}</div>
+                              </div>
+                            `).join('')}
+                          </div>`
+                        : `<div style="margin-top:6px;color:var(--muted);font-size:12px">—</div>`}
+                    </td>
                   </tr>
                 `).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento disponibile per questo beneficiario.</td></tr>`}
               </tbody>
