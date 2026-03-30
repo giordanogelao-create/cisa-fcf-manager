@@ -5450,15 +5450,10 @@ $('#pt').onclick=(e)=>{
           </div>
         </div>
         <div style="height:12px"></div>
-                <div class="card">
-          <div class="card h" style="border:none;box-shadow:none">
-            <div>
-              <h3 class="ct" style="font-size:15px">Anteprima righe export SAL</h3>
-              <p class="sub">Questa tabella prepara il tracciato che useremo per l’Excel per beneficiario.</p>
-            </div>
-            <div class="row">
+                            <div class="row">
               <span class="badge">${detailRows.length} righe</span>
               <button class="btn pri" id="salExportCsvBtn" ${detailRows.length ? '' : 'disabled'}>⬇ Export CSV</button>
+              <button class="btn" id="salExportXlsBtn" ${detailRows.length ? '' : 'disabled'}>⬇ Export XLS</button>
             </div>
           </div>
           <div class="table-wrap" style="max-height:48vh">
@@ -5546,38 +5541,38 @@ $('#pt').onclick=(e)=>{
         note: r.notes || ''
       }));
 
+      const currentBen=beneficiaries.find(x=>x.id==bid);
+      const safeBen=(currentBen?.ragione_sociale || 'beneficiario')
+        .replace(/[\\/:*?"<>|]+/g,' ')
+        .replace(/\s+/g,' ')
+        .trim();
+
+      const headers=[
+        'INVESTIMENTO',
+        'TABELLA',
+        'CATEGORIA',
+        'UBICAZIONE',
+        'N. CONTRATTO',
+        'DATA CONTRATTO',
+        'N. FATTURA',
+        'DATA FATTURA',
+        'IMPONIBILE FATTURA',
+        'IVA FATTURA',
+        'CASSA FATTURA',
+        'RITENUTA ACCONTO FATTURA',
+        'TOTALE',
+        'DATA BONIFICO',
+        'IMPORTO BONIFICO',
+        'DICITURA PNRR FATTURA',
+        'CUP FATTURA',
+        'DICITURA PNRR CONTRATTO',
+        'CUP CONTRATTO',
+        'NOTE'
+      ];
+
       const exportBtn=$('#salExportCsvBtn');
       if(exportBtn){
         exportBtn.onclick=()=>{
-          const currentBen=beneficiaries.find(x=>x.id==bid);
-          const safeBen=(currentBen?.ragione_sociale || 'beneficiario')
-            .replace(/[\\/:*?"<>|]+/g,' ')
-            .replace(/\s+/g,' ')
-            .trim();
-
-          const headers=[
-            'INVESTIMENTO',
-            'TABELLA',
-            'CATEGORIA',
-            'UBICAZIONE',
-            'N. CONTRATTO',
-            'DATA CONTRATTO',
-            'N. FATTURA',
-            'DATA FATTURA',
-            'IMPONIBILE FATTURA',
-            'IVA FATTURA',
-            'CASSA FATTURA',
-            'RITENUTA ACCONTO FATTURA',
-            'TOTALE',
-            'DATA BONIFICO',
-            'IMPORTO BONIFICO',
-            'DICITURA PNRR FATTURA',
-            'CUP FATTURA',
-            'DICITURA PNRR CONTRATTO',
-            'CUP CONTRATTO',
-            'NOTE'
-          ];
-
           const lines=[
             headers.map(csvEscape).join(';'),
             ...exportRows.map(r=>[
@@ -5615,11 +5610,65 @@ $('#pt').onclick=(e)=>{
           URL.revokeObjectURL(url);
         };
       }
-    }
 
-    $('#sal_ben').onchange=paintSAL;
-    paintSAL();
-  }
+      const xlsBtn=$('#salExportXlsBtn');
+      if(xlsBtn){
+        xlsBtn.onclick=()=>{
+          const headerHtml=headers.map(h=>`<th>${esc(h)}</th>`).join('');
+          const rowsHtml=exportRows.map(r=>`
+            <tr>
+              <td>${esc(r.investimento)}</td>
+              <td>${esc(r.tabella)}</td>
+              <td>${esc(r.categoria)}</td>
+              <td>${esc(r.ubicazione)}</td>
+              <td>${esc(r.n_contratto)}</td>
+              <td>${esc(r.data_contratto)}</td>
+              <td>${esc(r.n_fattura)}</td>
+              <td>${esc(r.data_fattura)}</td>
+              <td>${esc(r.imponibile_fattura)}</td>
+              <td>${esc(r.iva_fattura)}</td>
+              <td>${esc(r.cassa_fattura)}</td>
+              <td>${esc(r.ritenuta_acconto_fattura)}</td>
+              <td>${esc(r.totale)}</td>
+              <td>${esc(r.data_bonifico)}</td>
+              <td>${esc(r.importo_bonifico)}</td>
+              <td>${esc(r.dicitura_pnrr_fattura)}</td>
+              <td>${esc(r.cup_fattura)}</td>
+              <td>${esc(r.dicitura_pnrr_contratto)}</td>
+              <td>${esc(r.cup_contratto)}</td>
+              <td>${esc(r.note)}</td>
+            </tr>
+          `).join('');
+
+          const html=`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px}
+th,td{border:1px solid #999;padding:6px;vertical-align:top}
+th{background:#e9eef7;font-weight:700}
+</style>
+</head>
+<body>
+<table>
+  <thead><tr>${headerHtml}</tr></thead>
+  <tbody>${rowsHtml}</tbody>
+</table>
+</body>
+</html>`;
+
+          const blob=new Blob(["\uFEFF"+html],{type:'application/vnd.ms-excel;charset=utf-8;'});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a');
+          a.href=url;
+          a.download=`SAL_${safeBen}.xls`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        };
+      }
 
   function renderDossier(){
     view.innerHTML=`
