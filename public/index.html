@@ -5444,7 +5444,71 @@ $('#pt').onclick=(e)=>{
                         : `<div style="margin-top:6px;color:var(--muted);font-size:12px">—</div>`}
                     </td>
                   </tr>
-                `).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento disponibile per questo beneficiario.</td></tr>`}
+                `                `).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun investimento disponibile per questo beneficiario.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+        <div class="card">
+          <div class="card h" style="border:none;box-shadow:none">
+            <div>
+              <h3 class="ct" style="font-size:15px">Anteprima righe export SAL</h3>
+              <p class="sub">Questa tabella prepara il tracciato che useremo per l’Excel per beneficiario.</p>
+            </div>
+            <span class="badge">${detailRows.length} righe</span>
+          </div>
+          <div class="table-wrap" style="max-height:48vh">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Investimento</th>
+                  <th>Tabella</th>
+                  <th>Categoria</th>
+                  <th>Ubicazione</th>
+                  <th>N. contratto</th>
+                  <th>Data contratto</th>
+                  <th>N. fattura</th>
+                  <th>Data fattura</th>
+                  <th>Imponibile fattura</th>
+                  <th>IVA fattura</th>
+                  <th>Cassa fattura</th>
+                  <th>Ritenuta fattura</th>
+                  <th>Totale</th>
+                  <th>Data bonifico</th>
+                  <th>Importo bonifico</th>
+                  <th>Dicitura PNRR fattura</th>
+                  <th>CUP fattura</th>
+                  <th>Dicitura PNRR contratto</th>
+                  <th>CUP contratto</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${detailRows.map(r=>`
+                  <tr>
+                    <td><b>${esc(r.investment_title||'')}</b></td>
+                    <td>${esc(r.table_code||'')}</td>
+                    <td>${esc(r.category_code||'')}</td>
+                    <td>${esc(r.location_text||'')}</td>
+                    <td>${esc(r.contract_number||'')}</td>
+                    <td>${esc(r.contract_date||'')}</td>
+                    <td>${esc(r.invoice_number||'')}</td>
+                    <td>${esc(r.invoice_date||'')}</td>
+                    <td>${eur(r.invoice_net_amount||0)}</td>
+                    <td>${eur(r.invoice_vat_amount||0)}</td>
+                    <td>${esc(r.invoice_cash_amount||'')}</td>
+                    <td>${eur(r.invoice_withholding||0)}</td>
+                    <td>${eur(r.invoice_total_amount||0)}</td>
+                    <td>${esc(r.payment_date||'')}</td>
+                    <td>${eur(r.payment_amount||0)}</td>
+                    <td style="max-width:260px;white-space:normal">${esc(r.invoice_pnrr_text||'')}</td>
+                    <td>${esc(r.invoice_cup||'')}</td>
+                    <td style="max-width:260px;white-space:normal">${esc(r.contract_pnrr_text||'')}</td>
+                    <td>${esc(r.contract_cup||'')}</td>
+                    <td style="max-width:260px;white-space:normal">${esc(r.notes||'')}</td>
+                  </tr>
+                `).join('') || `<tr><td colspan="20" style="color:var(--muted)">Nessuna riga di dettaglio disponibile per questo beneficiario.</td></tr>`}
               </tbody>
             </table>
           </div>
