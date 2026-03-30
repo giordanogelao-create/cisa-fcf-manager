@@ -2573,7 +2573,8 @@
         <input id="i_title" class="input" value="${esc(i?.title||'')}">
       </div>
 
-      <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc(i?.approved_amount??'')}"></div>
+            <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc(i?.approved_amount??'')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="i_iva" class="input" value="${esc(i?.vat_amount ?? i?.vat ?? i?.iva ?? '')}"></div>
       <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc(i?.grant_amount??'')}"></div>
       <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc(i?.loan_amount??'')}"></div>
       <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc(i?.own_funds??'')}" disabled></div>
