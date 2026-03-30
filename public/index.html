@@ -5275,10 +5275,15 @@ $('#pt').onclick=(e)=>{
 
             const paymentLines=invoicePayments.length ? invoicePayments : [null];
 
-            paymentLines.forEach(p=>{
+                        paymentLines.forEach(p=>{
               detailRows.push({
                 investment_id: inv.id,
                 investment_title: inv.title || '',
+                investment_imponibile: num(inv?.approved_amount),
+                investment_iva: '',
+                investment_totale: num(inv?.approved_amount),
+                investment_contributi: num(inv?.grant_amount),
+                investment_finanziamento_agevolato: num(inv?.loan_amount),
                 table_code: normalizeTableCode(inv.table_code),
                 category_code: inv.category_code || '',
                 location_text: [
@@ -5312,6 +5317,11 @@ $('#pt').onclick=(e)=>{
           detailRows.push({
             investment_id: inv.id,
             investment_title: inv.title || '',
+            investment_imponibile: num(inv?.approved_amount),
+            investment_iva: '',
+            investment_totale: num(inv?.approved_amount),
+            investment_contributi: num(inv?.grant_amount),
+            investment_finanziamento_agevolato: num(inv?.loan_amount),
             table_code: normalizeTableCode(inv.table_code),
             category_code: inv.category_code || '',
             location_text: [
