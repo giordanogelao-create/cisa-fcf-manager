@@ -1590,7 +1590,10 @@
       return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
     });
 
+        const invVat=(x)=>num(x?.vat_amount ?? x?.vat ?? x?.iva);
+
     const totA=visibleInv.reduce((a,x)=>a+num(x.approved_amount),0);
+    const totI=visibleInv.reduce((a,x)=>a+invVat(x),0);
     const totG=visibleInv.reduce((a,x)=>a+num(x.grant_amount),0);
     const totL=visibleInv.reduce((a,x)=>a+num(x.loan_amount),0);
     const totO=visibleInv.reduce((a,x)=>a+num(x.own_funds),0);
@@ -1598,7 +1601,8 @@
     const byTable=['1A','2A','3A','4A','5A'].map(t=>({
       t,
       n:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).length,
-      sum:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).reduce((a,x)=>a+num(x.approved_amount),0)
+      sum:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).reduce((a,x)=>a+num(x.approved_amount),0),
+      iva:visibleInv.filter(x=>normalizeTableCode(x.table_code)===t).reduce((a,x)=>a+invVat(x),0)
     }));
 
     const summaryRows = [];
@@ -1607,6 +1611,7 @@
       for(const c of cats){
         const items = visibleInv.filter(x => normalizeTableCode(x.table_code)===t && String(x.category_code || '').trim()===c.code);
         const approved = items.reduce((s,x)=>s+num(x.approved_amount),0);
+        const iva = items.reduce((s,x)=>s+invVat(x),0);
         const grant = items.reduce((s,x)=>s+num(x.grant_amount),0);
         const loan = items.reduce((s,x)=>s+num(x.loan_amount),0);
         const own = items.reduce((s,x)=>s+num(x.own_funds),0);
@@ -1628,7 +1633,7 @@
           catLabel:c.label,
           n:items.length,
           realized,
-          approved, grant, loan, own,
+          approved, iva, grant, loan, own,
           tagStr
         });
       }
