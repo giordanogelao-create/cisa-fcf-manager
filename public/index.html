@@ -5230,9 +5230,31 @@ $('#pt').onclick=(e)=>{
           return false;
         });
 
+                const invInvoiceNumbersNorm=new Set(
+          invInvoices
+            .map(i=>normalizeForMatch(i.invoice_number||''))
+            .filter(Boolean)
+        );
+
         const invDocs=documents.filter(d=>{
           const note=String(d.note||'');
-          return note.includes(`invoice_id: ${invInvoices[0]?.id || '__none__'}`) || false;
+          const filename=String(d.filename||'');
+          const noteNorm=normalizeForMatch(note);
+          const fileNorm=normalizeForMatch(filename);
+
+          if(invInvoices.some(i=>note.includes(`invoice_id: ${i.id}`))) return true;
+
+          if(invInvoiceNumbersNorm.size){
+            for(const invNo of invInvoiceNumbersNorm){
+              if(noteNorm.includes(invNo) || fileNorm.includes(invNo)) return true;
+            }
+          }
+
+          if(d.beneficiary_id===bid && d.doc_type==='FATTURA'){
+            return invInvoices.length===1;
+          }
+
+          return false;
         });
 
         const approved=num(inv.approved_amount);
