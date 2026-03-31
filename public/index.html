@@ -2816,11 +2816,6 @@
         return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
       });
 
-      const total=visibleRows.reduce((a,x)=>a+num(x.approved_amount),0);
-      const grant=visibleRows.reduce((a,x)=>a+num(x.grant_amount),0);
-      const loan=visibleRows.reduce((a,x)=>a+num(x.loan_amount),0);
-      const own=visibleRows.reduce((a,x)=>a+num(x.own_funds),0);
-
             const invVat=(x)=>num(x?.vat_amount ?? x?.vat ?? x?.iva);
 
       const total=visibleRows.reduce((a,x)=>a+num(x.approved_amount),0);
