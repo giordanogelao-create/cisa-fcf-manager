@@ -3728,7 +3728,21 @@ async function invokeAiExtractDocument(payload){
         console.error(aiErr);
       }
 
-      const parsed=extractInvoiceFields(sourceText);
+            let parsed=extractInvoiceFields(sourceText);
+
+      if(aiExtracted?.document_type === 'fattura' && aiExtracted?.fields){
+        const f=aiExtracted.fields;
+        parsed={
+          ...parsed,
+          invoice_number: f.document_number || parsed.invoice_number || '',
+          invoice_date: f.document_date || parsed.invoice_date || '',
+          net_amount: num(f.net_amount ?? parsed.net_amount),
+          vat_amount: num(f.vat_amount ?? parsed.vat_amount),
+          total_amount: num(f.total_amount ?? parsed.total_amount),
+          cup: f.cup || parsed.cup || '',
+          pnrr_text: f.pnrr_text || parsed.pnrr_text || ''
+        };
+      }
 
       const normalizedInvoiceNumber=(parsed.invoice_number || '').trim();
       const suspiciousInvoiceNumber =
