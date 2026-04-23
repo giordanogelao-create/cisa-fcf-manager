@@ -4452,15 +4452,34 @@ $('#ivt').onclick=(e)=>{
     }
   }
 
-  async function importPaymentPdf(file){
+    async function importPaymentPdf(file){
     try{
       $('#p_ai_msg').textContent='Analisi PDF in corso...';
 
       const ctx=await getPaymentImportContext(fid);
       const res=await extractTextFromPdfWithFallback(file);
-      const parsed=extractPaymentFields(res.text);
 
-      const beneficiary=guessBeneficiaryFromText(res.text, ctx.beneficiaries);
+      const filename=file?.name || '';
+      const pdfText=res?.pdfText || '';
+      const ocrText=res?.ocrText || '';
+      const sourceText=[filename, pdfText, ocrText, res?.text || ''].filter(Boolean).join('\n');
+
+      let aiExtracted=null;
+      try{
+        const aiResult=await invokeAiExtractDocument({
+          document_type_hint:'bonifico',
+          filename,
+          raw_text: [res?.pdfTopLeftText || '', pdfText || '', res?.text || ''].filter(Boolean).join('\n\n'),
+          ocr_text: ocrText || ''
+        });
+        aiExtracted=aiResult?.extracted || null;
+      }catch(aiErr){
+        console.error(aiErr);
+      }
+
+      let parsed=extractPaymentFields(sourceText);
+
+      const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
 
       if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
         $('#p_ben').value=beneficiary.id;
