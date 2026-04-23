@@ -3717,10 +3717,10 @@ async function invokeAiExtractDocument(payload){
 
       let aiExtracted=null;
       try{
-        const aiResult=await invokeAiExtractDocument({
+                const aiResult=await invokeAiExtractDocument({
           document_type_hint:'fattura',
           filename,
-          raw_text: pdfText || res?.text || '',
+          raw_text: [res?.pdfTopLeftText || '', pdfText || '', res?.text || ''].filter(Boolean).join('\n\n'),
           ocr_text: ocrText || ''
         });
         aiExtracted=aiResult?.extracted || null;
