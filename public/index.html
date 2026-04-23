@@ -4079,7 +4079,12 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         if(supplierOption) $('#iv_sup').value=supplierOption.value;
       }
 
-      const investment=guessInvestmentFromText(sourceText, ctx.investments);
+            let investment=guessInvestmentFromText(sourceText, ctx.investments);
+
+      if(!investment && aiExtracted?.document_type === 'fattura' && aiExtracted?.fields?.object_description){
+        investment=guessInvestmentFromText(aiExtracted.fields.object_description, ctx.investments);
+      }
+
       if(investment){
         const hasOption=[...$('#iv_inv').options].some(o=>o.value===investment.id);
         if(hasOption) $('#iv_inv').value=investment.id;
