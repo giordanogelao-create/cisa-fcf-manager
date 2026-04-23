@@ -4330,7 +4330,13 @@ $('#ivt').onclick=(e)=>{
 
       <div class="full"><label style="color:var(--muted);font-size:12px">Beneficiario</label><select id="p_ben" class="input">${beneficiaries.map(b=>`<option value="${b.id}" ${b.id===bid?'selected':''}>${esc(b.ragione_sociale)}${b.cup?` • CUP ${esc(b.cup)}`:''}</option>`).join('')}</select></div>
 
-      <div class="full"><label style="color:var(--muted);font-size:12px">Fattura</label><select id="p_invSel" class="input"></select></div>
+            <div class="full">
+        <label style="color:var(--muted);font-size:12px">Fattura principale di riferimento</label>
+        <select id="p_invSel" class="input"></select>
+        <div style="margin-top:6px;color:var(--muted);font-size:12px">
+          Per ora il bonifico gestisce una sola fattura principale. Nel prossimo step aggiungeremo il supporto a un bonifico associato a più fatture.
+        </div>
+      </div>
 
       <div><label style="color:var(--muted);font-size:12px">Numero fattura</label><input id="p_invNum" class="input" value="${esc(prefill?.invoice_number || pay?.invoice_number || '')}"></div>
       <div><label style="color:var(--muted);font-size:12px">Data bonifico</label><input id="p_date" type="date" class="input" value="${esc(prefill?.payment_date || pay?.payment_date || today())}"></div>
