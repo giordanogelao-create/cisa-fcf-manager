@@ -3447,12 +3447,13 @@
 
               const title=String(r.title || r.description || '').replace(/\s{2,}/g,' ').trim();
 
-              return {
+                            return {
                 beneficiary_id: bid,
                 table_code: tableCode,
                 category_code: categoryCode,
                 title,
                 approved_amount: approved,
+                vat_amount: num(r.vat),
                 grant_amount: grant,
                 loan_amount: loan,
                 own_funds: own,
