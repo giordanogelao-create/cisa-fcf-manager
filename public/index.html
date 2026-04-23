@@ -3464,7 +3464,8 @@
                   comune: String(r.comune || '').trim(),
                   provincia: String(r.provincia || '').trim(),
                   foglio: String(r.foglio || '').trim(),
-                  particella: String(r.particella || '').trim()
+                  particella: String(r.particella || '').trim(),
+                  vat_amount: num(r.vat)
                 }
               };
             })
