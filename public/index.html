@@ -2816,7 +2816,7 @@
         return ['1A','2A','3A','4A','5A'].includes(tableCode) && title && category;
       });
 
-            const invVat=(x)=>num(x?.vat_amount ?? x?.vat ?? x?.iva);
+             const invVat=(x)=>num(x?.vat_amount ?? x?.vat ?? x?.iva ?? x?.location?.vat_amount);
 
       const total=visibleRows.reduce((a,x)=>a+num(x.approved_amount),0);
       const iva=visibleRows.reduce((a,x)=>a+invVat(x),0);
