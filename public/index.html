@@ -4445,8 +4445,10 @@ $('#ivt').onclick=(e)=>{
           $('#p_kind').value='Acconto';
         }
       }
-    }else{
-      if($('#p_sup')) $('#p_sup').value='';
+       }else{
+      if($('#p_sup') && !$('#p_sup').value){
+        $('#p_sup').value='';
+      }
       if($('#p_iban') && !$('#p_iban').value.trim()){
         const preferredAccount=currentPaymentAccounts.find(a=>a.dedicated) || currentPaymentAccounts[0] || null;
         if(preferredAccount?.iban) $('#p_iban').value=preferredAccount.iban;
