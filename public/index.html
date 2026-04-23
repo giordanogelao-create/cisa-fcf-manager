@@ -4479,15 +4479,21 @@ $('#ivt').onclick=(e)=>{
 
             let parsed=extractPaymentFields(sourceText);
 
-      if(aiExtracted?.document_type === 'bonifico' && aiExtracted?.fields){
+            if(aiExtracted?.document_type === 'bonifico' && aiExtracted?.fields){
         const f=aiExtracted.fields;
+        const aiObjectDescription=String(f.object_description || '').trim();
+        const aiInvoiceNumber=firstMatch(aiObjectDescription,[
+          /\b(?:fattura|fatt\.?|ft)\s*(?:n\.?|nr\.?|numero)?\s*([A-Z0-9]+(?:[\/\-_][A-Z0-9]+)+|[A-Z0-9]{2,})\b/i,
+          /\b([A-Z0-9]+(?:[\/\-_][A-Z0-9]+)+)\b/i
+        ]);
+
         parsed={
           ...parsed,
           payment_date: f.document_date || parsed.payment_date || '',
           amount: num(f.total_amount ?? f.net_amount ?? parsed.amount),
           bank: f.notes || parsed.bank || '',
           cro: f.document_number || parsed.cro || '',
-          invoice_number: f.object_description || parsed.invoice_number || '',
+          invoice_number: aiInvoiceNumber || parsed.invoice_number || '',
           cup: f.cup || parsed.cup || '',
           pnrr_text: f.pnrr_text || parsed.pnrr_text || ''
         };
