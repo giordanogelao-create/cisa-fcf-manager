@@ -3857,11 +3857,8 @@ async function invokeAiExtractDocument(payload){
         /\bragione\s+sociale\s+([^\n]+)/i
       ]) || '';
 
-      if(!extractedSupplierName){
-        // fallback disabilitato:
-        // se P.IVA / CF sono stati letti dal blocco cliente, il tax-anchor riporta
-        // inevitabilmente alla denominazione del beneficiario (es. COVALPA).
-        // Il nome fornitore deve arrivare solo dal blocco Cedente/prestatore.
+            if(!extractedSupplierName && aiExtracted?.document_type === 'fattura' && aiExtracted?.fields?.supplier){
+        extractedSupplierName=String(aiExtracted.fields.supplier).trim();
       }
 
       if(!extractedSupplierName){
