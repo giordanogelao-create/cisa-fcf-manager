@@ -4610,9 +4610,11 @@ $('#ivt').onclick=(e)=>{
       if(parsed.cup) $('#p_cup').value=parsed.cup;
             if(parsed.pnrr_text) $('#p_pnrr').value=parsed.pnrr_text;
 
-      if(aiExtracted?.document_type === 'bonifico' && aiExtracted?.fields?.supplier && $('#p_sup')){
-        const aiSupplierName=normalizeForMatch(aiExtracted.fields.supplier);
-        const supplierOption=[...$('#p_sup').options].find(o=>{
+            if(aiExtracted?.document_type === 'bonifico' && aiExtracted?.fields?.supplier && $('#p_sup')){
+        const rawAiSupplierName=String(aiExtracted.fields.supplier || '').trim();
+        const aiSupplierName=normalizeForMatch(rawAiSupplierName);
+
+        let supplierOption=[...$('#p_sup').options].find(o=>{
           const label=normalizeForMatch(o.textContent || '');
           return aiSupplierName && label && (
             label===aiSupplierName ||
@@ -4620,6 +4622,24 @@ $('#ivt').onclick=(e)=>{
             aiSupplierName.includes(label)
           );
         });
+
+        if(!supplierOption && rawAiSupplierName && $('#p_ben').value){
+          try{
+            const created=await upsertSupplierForBeneficiary({
+              beneficiaryId: $('#p_ben').value,
+              name: rawAiSupplierName,
+              note: 'Creato/aggiornato automaticamente da import bonifico PDF'
+            });
+
+            if(created){
+              await fillInvoices();
+              supplierOption=[...$('#p_sup').options].find(o=>String(o.value)===String(created.id));
+            }
+          }catch(err){
+            console.error(err);
+          }
+        }
+
         if(supplierOption) $('#p_sup').value=supplierOption.value;
       }
 
