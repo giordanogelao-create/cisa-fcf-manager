@@ -3781,7 +3781,20 @@ async function invokeAiExtractDocument(payload){
         parsed.total_amount=Number((parsed.net_amount + (parsed.vat_amount || 0)).toFixed(2));
       }
 
-      const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
+            let beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
+
+      if(!beneficiary && aiExtracted?.document_type === 'fattura' && aiExtracted?.fields?.beneficiary){
+        const aiBeneficiaryName=normalizeForMatch(aiExtracted.fields.beneficiary);
+        beneficiary=(ctx.beneficiaries || []).find(b=>{
+          const dbName=normalizeForMatch(b.ragione_sociale || '');
+          return aiBeneficiaryName && dbName && (
+            dbName===aiBeneficiaryName ||
+            dbName.includes(aiBeneficiaryName) ||
+            aiBeneficiaryName.includes(dbName)
+          );
+        }) || null;
+      }
+
       if(beneficiary && beneficiaries.some(b=>b.id===beneficiary.id)){
         $('#iv_ben').value=beneficiary.id;
       }
