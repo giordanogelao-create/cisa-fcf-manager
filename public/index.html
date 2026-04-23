@@ -4601,14 +4601,16 @@ if(initialFile) importPaymentPdf(initialFile);
 
 $('#pc').onclick=closeM;
   $('#ps').onclick=async()=>{
-  const payload={
+    const payload={
     filiera_id: fid,
     beneficiary_id: $('#p_ben').value,
+    supplier_id: $('#p_sup').value || null,
     invoice_id: $('#p_invSel').value || null,
     invoice_number: $('#p_invNum').value.trim(),
     payment_date: $('#p_date').value,
     amount: num($('#p_amt').value),
     bank: $('#p_bank').value.trim(),
+    iban: $('#p_iban').value.trim(),
     kind: $('#p_kind').value,
     cro: $('#p_cro').value.trim(),
     pnrr_text: $('#p_pnrr').value.trim(),
