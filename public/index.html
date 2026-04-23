@@ -2514,10 +2514,22 @@ async function upsertSupplierForBeneficiary({
                     const text=await readSupplierImportText(file);
           const fields=parseSupplierFromText(text, file.name);
 
-          let aiExtracted=null;
+                    let aiExtracted=null;
           try{
+            const supplierDocHint=(()=>{
+              const lowName=String(file.name || '').toLowerCase();
+              const lowText=String(text || '').toLowerCase();
+
+              if(/fattura|ft\.|fpr|fpa/.test(lowName) || /\bfattura\b|\bnumero documento\b|\bcedente\/prestatore\b/.test(lowText)) return 'fattura';
+              if(/preventiv|offerta/.test(lowName) || /\bpreventivo\b|\bofferta\b/.test(lowText)) return 'preventivo';
+              if(/contratt|ordine|ddt/.test(lowName) || /\bcontratto\b|\bordine\b|\bddt\b/.test(lowText)) return 'contratto';
+              if(/atto|compravendita|notar/.test(lowName) || /\batto\b|\bcompravendita\b|\bnotaio\b/.test(lowText)) return 'atto_acquisto_immobile';
+
+              return 'altro';
+            })();
+
             const aiResult=await invokeAiExtractDocument({
-              document_type_hint:'altro',
+              document_type_hint:supplierDocHint,
               filename:file.name,
               raw_text:text || '',
               ocr_text:''
