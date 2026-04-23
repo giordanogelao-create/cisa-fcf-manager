@@ -1224,6 +1224,80 @@ async function invokeAiExtractDocument(payload){
   return data;
 }
 
+async function upsertSupplierForBeneficiary({
+  beneficiaryId,
+  name='',
+  piva='',
+  cf='',
+  pec='',
+  email='',
+  address='',
+  phone='',
+  note=''
+}){
+  const cleanName=String(name || '').trim();
+  const cleanPiva=String(piva || '').trim();
+  const cleanCf=String(cf || '').trim();
+  const cleanPec=String(pec || '').trim();
+  const cleanEmail=String(email || '').trim();
+  const cleanAddress=String(address || '').trim();
+  const cleanPhone=String(phone || '').trim();
+  const cleanNote=String(note || '').trim();
+
+  if(!beneficiaryId) return null;
+  if(!cleanName && !cleanPiva && !cleanCf) return null;
+
+  const q=await sb
+    .from('suppliers')
+    .select('*')
+    .eq('beneficiary_id', beneficiaryId)
+    .order('created_at', { ascending:false });
+
+  if(q.error) throw q.error;
+
+  const existing=(q.data || []).find(s=>{
+    if(cleanPiva && s.piva && normalizeText(s.piva)===normalizeText(cleanPiva)) return true;
+    if(cleanCf && s.cf && normalizeForMatch(s.cf)===normalizeForMatch(cleanCf)) return true;
+    if(cleanName && s.name && normalizeForMatch(s.name)===normalizeForMatch(cleanName)) return true;
+    return false;
+  }) || null;
+
+  const payload={
+    beneficiary_id: beneficiaryId,
+    name: cleanName || existing?.name || '',
+    piva: cleanPiva || existing?.piva || '',
+    cf: cleanCf || existing?.cf || '',
+    pec: cleanPec || existing?.pec || '',
+    email: cleanEmail || existing?.email || '',
+    address: cleanAddress || existing?.address || '',
+    phone: cleanPhone || existing?.phone || '',
+    note: cleanNote || existing?.note || ''
+  };
+
+  if(existing){
+    const upd=await sb
+      .from('suppliers')
+      .update(payload)
+      .eq('id', existing.id)
+      .select('*')
+      .single();
+
+    if(upd.error) throw upd.error;
+    return upd.data;
+  }
+
+  if(!payload.name) return null;
+
+  const ins=await sb
+    .from('suppliers')
+    .insert(payload)
+    .select('*')
+    .single();
+
+  if(ins.error) throw ins.error;
+  return ins.data;
+}
+
   const ACTIVE_FILIERA_KEY='fcf_active_filiera_full';
   const TAGS=['022','029','047','047bis','010','010bis'];
   const TABLES={
