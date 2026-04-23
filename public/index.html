@@ -1375,8 +1375,7 @@ async function invokeAiExtractDocument(payload){
     if(!(num(p.amount)>0)) missing.push('Importo');
     if(!p.bank) missing.push('Banca');
     if(!p.kind) missing.push('Acconto/Saldo');
-    if(!p.invoice_number) missing.push('N. fattura');
-    if(!p.invoice_id) missing.push('Fattura collegata');
+        if(!p.invoice_number && !p.invoice_id) missing.push('Fattura collegata / N. fattura');
     if(!p.pnrr_text) missing.push('Dicitura PNRR');
     if(!p.cup) missing.push('CUP');
     await replaceIssue(p.filiera_id,'BONIFICO',p.id,'BONIFICO',missing.length?`Mancano: ${missing.join(', ')}`:'');
