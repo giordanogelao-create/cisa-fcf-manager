@@ -4230,7 +4230,7 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         const supplierId=String(supplier.id);
         const hasOption=[...$('#iv_sup').options].some(o=>String(o.value)===supplierId);
         if(hasOption) $('#iv_sup').value=supplierId;
-      }else if(normalizedSupplierName){
+            }else if(normalizedSupplierName){
         const supplierOption=[...$('#iv_sup').options].find(o=>{
           const label=normalizeForMatch(o.textContent || '');
           return label && (
@@ -4239,7 +4239,34 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
             normalizedSupplierName.includes(label)
           );
         });
-        if(supplierOption) $('#iv_sup').value=supplierOption.value;
+
+        if(supplierOption){
+          $('#iv_sup').value=supplierOption.value;
+
+          try{
+            const enrichedSupplier=await upsertSupplierForBeneficiary({
+              beneficiaryId: currentBid,
+              name: extractedSupplierName,
+              piva: extractedSupplierPiva,
+              cf: extractedSupplierCf,
+              pec: extractedSupplierPec,
+              email: extractedSupplierEmail,
+              address: extractedSupplierAddress,
+              phone: '',
+              note: 'Aggiornato automaticamente da import fattura PDF'
+            });
+
+            if(enrichedSupplier){
+              supplier=enrichedSupplier;
+              await fillRelations();
+              const supplierId=String(enrichedSupplier.id);
+              const hasOption=[...$('#iv_sup').options].some(o=>String(o.value)===supplierId);
+              if(hasOption) $('#iv_sup').value=supplierId;
+            }
+          }catch(err){
+            console.error(err);
+          }
+        }
       }
 
             let investment=guessInvestmentFromText(sourceText, ctx.investments);
