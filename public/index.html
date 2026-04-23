@@ -4554,9 +4554,9 @@ $('#ivt').onclick=(e)=>{
         $('#p_ben').value
       );
 
-      if(guessedInvoice && [...$('#p_invSel').options].some(o=>o.value===guessedInvoice.id)){
+            if(guessedInvoice && [...$('#p_invSel').options].some(o=>o.value===guessedInvoice.id)){
         $('#p_invSel').value=guessedInvoice.id;
-        syncFieldsFromSelectedInvoice(false);
+        syncFieldsFromSelectedInvoice(true);
       }else{
         syncFieldsFromSelectedInvoice(false);
       }
