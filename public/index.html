@@ -2540,7 +2540,10 @@ async function upsertSupplierForBeneficiary({
                   ${r.ok ? 'Estrazione completata' : `Analisi incompleta${r.error ? ` • ${esc(r.error)}` : ''}`}
                 </div>
               </div>
-              <span class="badge">${r.ok ? 'Preview dati' : 'Verifica manuale'}</span>
+                            <div class="row" style="gap:8px">
+                <span class="badge">${r.ok ? 'Preview dati' : 'Verifica manuale'}</span>
+                <button type="button" class="btn pri sup-save-btn" data-file="${esc(r.fileName)}">Salva in anagrafica</button>
+              </div>
             </div>
 
             <div style="height:10px"></div>
