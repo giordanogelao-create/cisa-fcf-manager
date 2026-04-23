@@ -2540,10 +2540,44 @@ async function upsertSupplierForBeneficiary({
                   ${r.ok ? 'Estrazione completata' : `Analisi incompleta${r.error ? ` • ${esc(r.error)}` : ''}`}
                 </div>
               </div>
-                            <div class="row" style="gap:8px">
-                <span class="badge">${r.ok ? 'Preview dati' : 'Verifica manuale'}</span>
-                <button type="button" class="btn pri sup-save-btn" data-file="${esc(r.fileName)}">Salva in anagrafica</button>
-              </div>
+                      if($('#supImportPreview')){
+        $$('.sup-save-btn', $('#supImportPreview')).forEach(btn=>{
+          btn.onclick=async()=>{
+            const card=btn.closest('.card');
+            if(!card) return;
+
+            const beneficiaryId=$('#selSupBen')?.value || '';
+            if(!beneficiaryId) return toast('Seleziona prima un beneficiario', true);
+
+            try{
+              const saved=await upsertSupplierForBeneficiary({
+                beneficiaryId,
+                name: $('.sup-prev-name', card)?.value.trim() || '',
+                piva: $('.sup-prev-piva', card)?.value.trim() || '',
+                cf: $('.sup-prev-cf', card)?.value.trim() || '',
+                pec: $('.sup-prev-pec', card)?.value.trim() || '',
+                email: $('.sup-prev-email', card)?.value.trim() || '',
+                address: $('.sup-prev-address', card)?.value.trim() || '',
+                phone: $('.sup-prev-phone', card)?.value.trim() || '',
+                note: 'Creato/aggiornato da preview import fornitore'
+              });
+
+              if(!saved) return toast('Dati insufficienti per salvare il fornitore', true);
+
+              toast('Fornitore salvato in anagrafica');
+              await paint();
+            }catch(err){
+              console.error(err);
+              toast('Errore salvataggio fornitore', true, err?.message || 'Errore sconosciuto');
+            }
+          };
+        });
+      }
+
+      if($('#supFiles')){
+        $('#supFiles').value='';
+      }
+    };
             </div>
 
             <div style="height:10px"></div>
