@@ -3701,7 +3701,7 @@ async function invokeAiExtractDocument(payload){
     });
   }
 
-    async function importInvoicePdf(file){
+      async function importInvoicePdf(file){
     try{
       $('#iv_ai_msg').textContent='Analisi PDF in corso...';
 
@@ -3714,6 +3714,19 @@ async function invokeAiExtractDocument(payload){
       const ocrText=res?.ocrText || '';
       const sourceText=[filename, pdfText, ocrText, res?.text || ''].filter(Boolean).join('\n');
       const textLines=normalizeTextKeepLines(sourceText);
+
+      let aiExtracted=null;
+      try{
+        const aiResult=await invokeAiExtractDocument({
+          document_type_hint:'fattura',
+          filename,
+          raw_text: pdfText || res?.text || '',
+          ocr_text: ocrText || ''
+        });
+        aiExtracted=aiResult?.extracted || null;
+      }catch(aiErr){
+        console.error(aiErr);
+      }
 
       const parsed=extractInvoiceFields(sourceText);
 
