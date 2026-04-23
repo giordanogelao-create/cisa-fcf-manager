@@ -1204,9 +1204,26 @@
     note: note || ''
   }).select().single();
 
-  if(ins.error) throw ins.error;
+   if(ins.error) throw ins.error;
   return ins.data;
 }
+
+async function invokeAiExtractDocument(payload){
+  const { data, error } = await sb.functions.invoke('ai-extract-document', {
+    body: payload
+  });
+
+  if(error){
+    throw new Error(error.message || 'Errore invocazione ai-extract-document');
+  }
+
+  if(!data?.ok){
+    throw new Error(data?.error || 'Risposta AI non valida');
+  }
+
+  return data;
+}
+
   const ACTIVE_FILIERA_KEY='fcf_active_filiera_full';
   const TAGS=['022','029','047','047bis','010','010bis'];
   const TABLES={
