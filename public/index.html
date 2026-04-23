@@ -5322,8 +5322,27 @@ $('#pt').onclick=(e)=>{
           if(f.document_date && $('#cp_doc_date') && !$('#cp_doc_date').value){
             $('#cp_doc_date').value=String(f.document_date).trim();
           }
-          if(f.supplier && $('#cp_supplier') && !$('#cp_supplier').value.trim()){
-            $('#cp_supplier').value=String(f.supplier).trim();
+                    if(f.supplier){
+            const contractSupplierName=String(f.supplier).trim();
+
+            if($('#cp_supplier') && !$('#cp_supplier').value.trim()){
+              $('#cp_supplier').value=contractSupplierName;
+            }
+
+            if(contractSupplierName && benSel?.value){
+              try{
+                await upsertSupplierForBeneficiary({
+                  beneficiaryId: benSel.value,
+                  name: contractSupplierName,
+                  note: [
+                    'Creato/aggiornato automaticamente da import contratto/preventivo PDF',
+                    aiExtracted?.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : ''
+                  ].filter(Boolean).join(' • ')
+                });
+              }catch(err){
+                console.error(err);
+              }
+            }
           }
           if(f.beneficiary && $('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
             $('#cp_beneficiary_name').value=String(f.beneficiary).trim();
