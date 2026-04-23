@@ -4208,7 +4208,24 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         });
       }
 
-      if(supplier?.id){
+            if(supplier?.id){
+        try{
+          const enrichedSupplier=await upsertSupplierForBeneficiary({
+            beneficiaryId: currentBid,
+            name: supplier.name || extractedSupplierName,
+            piva: extractedSupplierPiva,
+            cf: extractedSupplierCf,
+            pec: extractedSupplierPec,
+            email: extractedSupplierEmail,
+            address: extractedSupplierAddress,
+            phone: supplier.phone || '',
+            note: supplier.note || 'Aggiornato automaticamente da import fattura PDF'
+          });
+          if(enrichedSupplier) supplier=enrichedSupplier;
+        }catch(err){
+          console.error(err);
+        }
+
         await fillRelations();
         const supplierId=String(supplier.id);
         const hasOption=[...$('#iv_sup').options].some(o=>String(o.value)===supplierId);
