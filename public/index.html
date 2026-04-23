@@ -2539,11 +2539,14 @@ async function upsertSupplierForBeneficiary({
             console.error(aiErr);
           }
 
-          if(aiExtracted?.fields){
+                    if(aiExtracted?.fields){
             fields.name = fields.name || String(aiExtracted.fields.supplier || '').trim();
             fields.raw_excerpt = [
+              aiExtracted.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : '',
+              typeof aiExtracted.confidence === 'number' ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%` : '',
               fields.raw_excerpt || '',
-              aiExtracted.summary ? `AI: ${aiExtracted.summary}` : ''
+              aiExtracted.summary ? `AI: ${aiExtracted.summary}` : '',
+              Array.isArray(aiExtracted.warnings) && aiExtracted.warnings.length ? `AI warning: ${aiExtracted.warnings.join(' | ')}` : ''
             ].filter(Boolean).join('\n\n').slice(0,700);
           }
 
