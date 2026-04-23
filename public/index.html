@@ -5280,10 +5280,78 @@ $('#pt').onclick=(e)=>{
       const isPdf=/\.pdf$/i.test(file.name||'') || file.type==='application/pdf';
       if(!isPdf) return;
 
-      paintFiles(list,'in analisi');
+            paintFiles(list,'in analisi');
       try{
         const res=await extractTextFromPdfWithFallback(file);
-        fillContractPreviewFromText(res?.text || '');
+        const contractSourceText=normalizeTextKeepLines([
+          res?.pdfTopLeftText || '',
+          res?.pdfText || '',
+          res?.ocrText || '',
+          res?.text || ''
+        ].filter(Boolean).join('\n\n'));
+
+        fillContractPreviewFromText(contractSourceText);
+
+        let aiExtracted=null;
+        try{
+          const selectedDocType=$('#cp_doc_type')?.value || '';
+          const contractDocHint=
+            /preventivo|offerta/i.test(selectedDocType) ? 'preventivo' :
+            /contratto|ordine|ddt/i.test(selectedDocType) ? 'contratto' :
+            /compravendita|atto notarile/i.test(selectedDocType) ? 'atto_acquisto_immobile' :
+            'altro';
+
+          const aiResult=await invokeAiExtractDocument({
+            document_type_hint: contractDocHint,
+            filename: file.name || '',
+            raw_text: contractSourceText,
+            ocr_text: res?.ocrText || ''
+          });
+
+          aiExtracted=aiResult?.extracted || null;
+        }catch(aiErr){
+          console.error(aiErr);
+        }
+
+        if(aiExtracted?.fields){
+          const f=aiExtracted.fields;
+
+          if(f.document_number && $('#cp_doc_no') && !$('#cp_doc_no').value.trim()){
+            $('#cp_doc_no').value=String(f.document_number).trim();
+          }
+          if(f.document_date && $('#cp_doc_date') && !$('#cp_doc_date').value){
+            $('#cp_doc_date').value=String(f.document_date).trim();
+          }
+          if(f.supplier && $('#cp_supplier') && !$('#cp_supplier').value.trim()){
+            $('#cp_supplier').value=String(f.supplier).trim();
+          }
+          if(f.beneficiary && $('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
+            $('#cp_beneficiary_name').value=String(f.beneficiary).trim();
+          }
+          if(f.object_description && $('#cp_object') && !$('#cp_object').value.trim()){
+            $('#cp_object').value=String(f.object_description).trim();
+          }
+          if((f.net_amount || f.net_amount===0) && $('#cp_taxable') && !$('#cp_taxable').value.trim()){
+            $('#cp_taxable').value=formatMoneyPreview(f.net_amount);
+          }
+          if((f.vat_amount || f.vat_amount===0) && $('#cp_vat') && !$('#cp_vat').value.trim()){
+            $('#cp_vat').value=formatMoneyPreview(f.vat_amount);
+          }
+          if((f.total_amount || f.total_amount===0) && $('#cp_total') && !$('#cp_total').value.trim()){
+            $('#cp_total').value=formatMoneyPreview(f.total_amount);
+          }
+          if(f.cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
+            $('#cp_cup').value=String(f.cup).trim();
+          }
+          if($('#cp_note') && !$('#cp_note').value.trim()){
+            $('#cp_note').value=[
+              'Dati precompilati automaticamente da PDF/OCR. Verificare prima del salvataggio.',
+              aiExtracted.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : '',
+              typeof aiExtracted.confidence === 'number' ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%` : ''
+            ].filter(Boolean).join(' • ');
+          }
+        }
+
         paintFiles(list,`analizzato con ${res?.usedOcr?'OCR':'testo PDF'}`);
       }catch(err){
         console.error(err);
