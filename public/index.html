@@ -2708,13 +2708,12 @@
   $('#ic').onclick=closeM;
 
   $('#is').onclick=async()=>{
-        const payload={
+           const payload={
       beneficiary_id: $('#i_ben').value,
       table_code: $('#i_tab').value,
       category_code: $('#i_cat').value,
       title: $('#i_title').value.trim(),
       approved_amount: num($('#i_amt').value),
-      iva: num($('#i_iva').value),
       grant_amount: num($('#i_grant').value),
       loan_amount: num($('#i_loan').value),
       own_funds: Math.max(0,num($('#i_amt').value)-num($('#i_grant').value)-num($('#i_loan').value)),
