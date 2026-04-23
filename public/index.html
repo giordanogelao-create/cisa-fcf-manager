@@ -2511,8 +2511,29 @@ async function upsertSupplierForBeneficiary({
 
       for(const file of validFiles){
         try{
-          const text=await readSupplierImportText(file);
+                    const text=await readSupplierImportText(file);
           const fields=parseSupplierFromText(text, file.name);
+
+          let aiExtracted=null;
+          try{
+            const aiResult=await invokeAiExtractDocument({
+              document_type_hint:'altro',
+              filename:file.name,
+              raw_text:text || '',
+              ocr_text:''
+            });
+            aiExtracted=aiResult?.extracted || null;
+          }catch(aiErr){
+            console.error(aiErr);
+          }
+
+          if(aiExtracted?.fields){
+            fields.name = fields.name || String(aiExtracted.fields.supplier || '').trim();
+            fields.raw_excerpt = [
+              fields.raw_excerpt || '',
+              aiExtracted.summary ? `AI: ${aiExtracted.summary}` : ''
+            ].filter(Boolean).join('\n\n').slice(0,700);
+          }
 
           results.push({
             fileName:file.name,
