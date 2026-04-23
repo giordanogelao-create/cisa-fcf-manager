@@ -4092,12 +4092,22 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
 
       calcTotal();
 
-            const supplierMsg = supplier
+              const supplierMsg = supplier
         ? `Fornitore selezionato: ${supplier.name || extractedSupplierName || 'riconosciuto'}`
         : 'Fornitore NON selezionato';
 
+      const aiDocType = aiExtracted?.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : '';
+      const aiConfidence = typeof aiExtracted?.confidence === 'number'
+        ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%`
+        : '';
+      const aiWarnings = Array.isArray(aiExtracted?.warnings) && aiExtracted.warnings.length
+        ? `AI warning: ${aiExtracted.warnings.join(' | ')}`
+        : '';
+
       $('#iv_ai_msg').textContent = [
         `Analisi ${res?.usedOcr ? 'con OCR' : 'da testo PDF'}`,
+        aiDocType,
+        aiConfidence,
         `Beneficiario ID: ${currentBid || 'VUOTO'}`,
         `Fornitore estratto: ${extractedSupplierName || 'VUOTO'}`,
         `P.IVA estratta: ${extractedSupplierPiva || 'VUOTA'}`,
@@ -4105,8 +4115,9 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         `Fornitori già presenti per beneficiario: ${currentSuppliers.length}`,
         `Auto-creazione consentita: ${canAutoCreateSupplier ? 'SI' : 'NO'}`,
         `Opzioni menu fornitore: ${$('#iv_sup').options.length}`,
-        supplierMsg
-      ].join(' • ');
+        supplierMsg,
+        aiWarnings
+      ].filter(Boolean).join(' • ');
     }catch(err){
       console.error(err);
       $('#iv_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
