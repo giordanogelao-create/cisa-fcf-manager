@@ -3442,11 +3442,9 @@
                 ]) || rawTableCode
               ).toUpperCase();
 
-              const rawCategory=String(r.category || '').trim();
-              const categoryCode=rawCategory.replace(/\s+/g,' ').trim();
-
+                            const rawCategory=String(r.category || '').trim();
               const title=String(r.title || r.description || '').replace(/\s{2,}/g,' ').trim();
-
+              const categoryCode=resolveCategoryCode(tableCode, rawCategory, title);
                               return {
                 beneficiary_id: bid,
                 table_code: tableCode,
