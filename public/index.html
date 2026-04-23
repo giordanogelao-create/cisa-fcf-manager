@@ -5347,8 +5347,21 @@ $('#pt').onclick=(e)=>{
           if(f.beneficiary && $('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
             $('#cp_beneficiary_name').value=String(f.beneficiary).trim();
           }
-          if(f.object_description && $('#cp_object') && !$('#cp_object').value.trim()){
-            $('#cp_object').value=String(f.object_description).trim();
+                   if(f.object_description){
+            const contractObjectDescription=String(f.object_description).trim();
+
+            if($('#cp_object') && !$('#cp_object').value.trim()){
+              $('#cp_object').value=contractObjectDescription;
+            }
+
+            const contractInvestment=guessInvestmentFromText(
+              contractObjectDescription,
+              (investments || []).filter(i=>String(i.beneficiary_id || '')===String(benSel?.value || ''))
+            );
+
+            if(contractInvestment && invSel && [...invSel.options].some(o=>String(o.value)===String(contractInvestment.id))){
+              invSel.value=contractInvestment.id;
+            }
           }
           if((f.net_amount || f.net_amount===0) && $('#cp_taxable') && !$('#cp_taxable').value.trim()){
             $('#cp_taxable').value=formatMoneyPreview(f.net_amount);
