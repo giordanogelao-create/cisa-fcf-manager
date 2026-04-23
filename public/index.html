@@ -4549,9 +4549,26 @@ $('#ivt').onclick=(e)=>{
         syncFieldsFromSelectedInvoice(false);
       }
 
-      $('#p_cup').value=parsed.cup || '';
+            $('#p_cup').value=parsed.cup || '';
 
-      $('#p_ai_msg').textContent=`Documento analizzato ${res.usedOcr?'con OCR':'da testo PDF'}. Verifica i campi prima di salvare.`;
+      const aiDocType = aiExtracted?.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : '';
+      const aiConfidence = typeof aiExtracted?.confidence === 'number'
+        ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%`
+        : '';
+      const aiWarnings = Array.isArray(aiExtracted?.warnings) && aiExtracted.warnings.length
+        ? `AI warning: ${aiExtracted.warnings.join(' | ')}`
+        : '';
+
+      $('#p_ai_msg').textContent = [
+        `Analisi ${res?.usedOcr ? 'con OCR' : 'da testo PDF'}`,
+        aiDocType,
+        aiConfidence,
+        `Beneficiario ID: ${$('#p_ben').value || 'VUOTO'}`,
+        `N. fattura estratto: ${parsed.invoice_number || 'VUOTO'}`,
+        `Importo estratto: ${parsed.amount ? parsed.amount.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '0,00'}`,
+        `CRO/TRN estratto: ${parsed.cro || 'VUOTO'}`,
+        aiWarnings
+      ].filter(Boolean).join(' • ');
     }catch(err){
   console.error(err);
   $('#p_ai_msg').textContent=`Analisi PDF non riuscita: ${err?.message || 'Errore sconosciuto'}`;
