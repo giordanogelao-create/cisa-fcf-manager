@@ -2579,11 +2579,11 @@
         <input id="i_title" class="input" value="${esc(i?.title||'')}">
       </div>
 
-             <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc((i?.approved_amount ?? '') !== '' ? Number(i.approved_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="i_iva" class="input" value="${esc(((i?.vat_amount ?? i?.vat ?? i?.iva ?? i?.location?.vat_amount ?? '') !== '') ? Number(i?.vat_amount ?? i?.vat ?? i?.iva ?? i?.location?.vat_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc((i?.grant_amount ?? '') !== '' ? Number(i.grant_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc((i?.loan_amount ?? '') !== '' ? Number(i.loan_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
-      <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc((i?.own_funds ?? '') !== '' ? Number(i.own_funds).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}" disabled></div>
+            <div><label style="color:var(--muted);font-size:12px">Importo approvato</label><input id="i_amt" class="input" value="${esc((i?.approved_amount ?? '') !== '' ? num(i.approved_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">IVA</label><input id="i_iva" class="input" value="${esc(((i?.vat_amount ?? i?.vat ?? i?.iva ?? i?.location?.vat_amount ?? '') !== '') ? num(i?.vat_amount ?? i?.vat ?? i?.iva ?? i?.location?.vat_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Contributo</label><input id="i_grant" class="input" value="${esc((i?.grant_amount ?? '') !== '' ? num(i.grant_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Finanz. agevolato</label><input id="i_loan" class="input" value="${esc((i?.loan_amount ?? '') !== '' ? num(i.loan_amount).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}"></div>
+      <div><label style="color:var(--muted);font-size:12px">Mezzi propri</label><input id="i_own" class="input" value="${esc((i?.own_funds ?? '') !== '' ? num(i.own_funds).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '')}" disabled></div>
 
       <div><label style="color:var(--muted);font-size:12px">TAG</label>
         <select id="i_tag" class="input">${TAGS.map(t=>`<option ${t===(i?.tag||TAGS[0])?'selected':''}>${t}</option>`).join('')}</select>
