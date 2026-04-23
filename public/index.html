@@ -4477,7 +4477,21 @@ $('#ivt').onclick=(e)=>{
         console.error(aiErr);
       }
 
-      let parsed=extractPaymentFields(sourceText);
+            let parsed=extractPaymentFields(sourceText);
+
+      if(aiExtracted?.document_type === 'bonifico' && aiExtracted?.fields){
+        const f=aiExtracted.fields;
+        parsed={
+          ...parsed,
+          payment_date: f.document_date || parsed.payment_date || '',
+          amount: num(f.total_amount ?? f.net_amount ?? parsed.amount),
+          bank: f.notes || parsed.bank || '',
+          cro: f.document_number || parsed.cro || '',
+          invoice_number: f.object_description || parsed.invoice_number || '',
+          cup: f.cup || parsed.cup || '',
+          pnrr_text: f.pnrr_text || parsed.pnrr_text || ''
+        };
+      }
 
       const beneficiary=guessBeneficiaryFromText(sourceText, ctx.beneficiaries);
 
