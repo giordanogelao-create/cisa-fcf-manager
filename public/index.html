@@ -4093,30 +4093,29 @@ if(currentBid && (extractedSupplierPiva || extractedSupplierCf)){
         normalizedSupplierName.length >= 6 &&
         !supplierMatchesBeneficiary &&
         !/^(?:cliente|committente|cessionario|beneficiario|destinatario|fornitore)$/i.test(extractedSupplierName);
-      if(!supplier && canAutoCreateSupplier){
-        const payload={
-          beneficiary_id: currentBid,
-          name: extractedSupplierName,
-          piva: extractedSupplierPiva,
-          cf: extractedSupplierCf,
-          pec: extractedSupplierPec,
-          email: extractedSupplierEmail,
-          address: extractedSupplierAddress,
-          phone: '',
-          note: 'Creato automaticamente da import fattura PDF'
-        };
+            if(!supplier && canAutoCreateSupplier){
+        try{
+          const created=await upsertSupplierForBeneficiary({
+            beneficiaryId: currentBid,
+            name: extractedSupplierName,
+            piva: extractedSupplierPiva,
+            cf: extractedSupplierCf,
+            pec: extractedSupplierPec,
+            email: extractedSupplierEmail,
+            address: extractedSupplierAddress,
+            phone: '',
+            note: 'Creato automaticamente da import fattura PDF'
+          });
 
-        const created=await sb.from('suppliers').insert(payload).select('*').single();
-
-        if(created.error){
-          console.error(created.error);
-          $('#iv_ai_msg').textContent=`Fornitore estratto ma non salvato: ${created.error.message}`;
-        }else if(created.data){
-          supplier=created.data;
-          await fillRelations();
+          if(created){
+            supplier=created;
+            await fillRelations();
+          }
+        }catch(err){
+          console.error(err);
+          $('#iv_ai_msg').textContent=`Fornitore estratto ma non salvato: ${err?.message || 'Errore creazione/aggiornamento fornitore'}`;
         }
       }
-
       if(parsed.invoice_number) $('#iv_num').value=parsed.invoice_number;
       if(parsed.invoice_date) $('#iv_date').value=parsed.invoice_date;
       if(parsed.pnrr_text) $('#iv_pnrr').value=parsed.pnrr_text;
