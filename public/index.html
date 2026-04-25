@@ -5597,7 +5597,7 @@ $('#pt').onclick=(e)=>{
     if(!beneficiaries.length){ view.innerHTML=routeError('Document Center','Crea prima almeno un beneficiario.'); return; }
     const benMap={}; beneficiaries.forEach(b=>benMap[b.id]=b);
 
-    view.innerHTML=`
+        view.innerHTML=`
       <div class="card h">
         <div><h2 class="ct">Document Center</h2><p class="sub">Upload su Supabase Storage + classificazione metadati.</p></div>
         <div class="row">
@@ -5611,6 +5611,30 @@ $('#pt').onclick=(e)=>{
         <div id="drop" class="drop">
           Trascina qui i documenti. Verranno caricati nel bucket <b>documents</b>.
           <div style="margin-top:8px;color:var(--muted)">Puoi poi classificarli per tipo, tabella, categoria, CUP e dicitura PNRR.</div>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="card" style="padding:14px">
+        <div class="form">
+          <div>
+            <label style="color:var(--muted);font-size:12px">Tabella</label>
+            <select id="d_tab_filter" class="input">
+              <option value="">Tutte</option>
+              ${['1A','2A','3A','4A','5A'].map(x=>`<option value="${x}">${x}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="color:var(--muted);font-size:12px">Categoria</label>
+            <input id="d_cat_filter" class="input" placeholder="Es. 1, 2, A-a, B-a">
+          </div>
+          <div>
+            <label style="color:var(--muted);font-size:12px">Fornitore</label>
+            <input id="d_supplier_filter" class="input" placeholder="Nome fornitore">
+          </div>
+          <div>
+            <label style="color:var(--muted);font-size:12px">Cartella logica</label>
+            <input id="d_folder_filter" class="input" placeholder="Es. FATTURE, BONIFICI, CONTRATTI">
+          </div>
         </div>
       </div>
       <div style="height:12px"></div>
