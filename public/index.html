@@ -4409,12 +4409,28 @@ $('#ivc').onclick=closeM;
     toast(missing.length?'Fattura salvata con errori':'Fattura creata',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
   }
 
-  if(importedPdfFile){
+   if(importedPdfFile){
     try{
+      const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(payload.beneficiary_id)) || null;
+      const selectedSupplier=[...($('#iv_sup')?.options || [])].find(o=>String(o.value)===String(payload.supplier_id || ''));
+      const selectedInvestmentText=$('#iv_inv')?.selectedOptions?.[0]?.textContent || '';
+      const selectedInvestment=(await sb
+        .from('investments')
+        .select('id,title,table_code,category_code')
+        .eq('id', payload.investment_id || '')
+        .maybeSingle()
+      ).data || null;
+
       await saveImportedPdfToDocuments({
         file: importedPdfFile,
         filieraId: fid,
         beneficiaryId: payload.beneficiary_id,
+        beneficiaryLabel: selectedBeneficiary?.ragione_sociale || '',
+        tableCode: selectedInvestment?.table_code || '',
+        categoryCode: selectedInvestment?.category_code || '',
+        investmentTitle: selectedInvestment?.title || selectedInvestmentText || '',
+        supplierName: selectedSupplier?.textContent || '',
+        folderName: 'FATTURE',
         docType: 'FATTURA',
         cup: payload.cup,
         pnrrText: payload.pnrr_text,
@@ -4425,7 +4441,6 @@ $('#ivc').onclick=closeM;
       toast('PDF letto ma non archiviato', true, err.message || 'Errore upload documents');
     }
   }
-
   closeM();
   render();
 };
