@@ -4925,12 +4925,33 @@ $('#pc').onclick=closeM;
     toast(missing.length?'Bonifico salvato con errori':'Bonifico creato',missing.length,missing.length?`Mancano: ${missing.join(', ')}`:'');
   }
 
-  if(importedPdfFile){
+    if(importedPdfFile){
     try{
+      const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(payload.beneficiary_id)) || null;
+      const selectedSupplier=[...($('#p_sup')?.options || [])].find(o=>String(o.value)===String(payload.supplier_id || '')) || null;
+      const selectedInvoice=(await sb
+        .from('invoices')
+        .select('id,investment_id,invoice_number')
+        .eq('id', payload.invoice_id || '')
+        .maybeSingle()
+      ).data || null;
+      const selectedInvestment=(await sb
+        .from('investments')
+        .select('id,title,table_code,category_code')
+        .eq('id', selectedInvoice?.investment_id || '')
+        .maybeSingle()
+      ).data || null;
+
       await saveImportedPdfToDocuments({
         file: importedPdfFile,
         filieraId: fid,
         beneficiaryId: payload.beneficiary_id,
+        beneficiaryLabel: selectedBeneficiary?.ragione_sociale || '',
+        tableCode: selectedInvestment?.table_code || '',
+        categoryCode: selectedInvestment?.category_code || '',
+        investmentTitle: selectedInvestment?.title || '',
+        supplierName: selectedSupplier?.textContent || '',
+        folderName: 'BONIFICI',
         docType: 'BONIFICO',
         cup: payload.cup,
         pnrrText: payload.pnrr_text,
