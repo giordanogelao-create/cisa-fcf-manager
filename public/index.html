@@ -5769,11 +5769,11 @@ $('#pt').onclick=(e)=>{
       };
     }
 
-    async function addFiles(files){
+     async function addFiles(files){
       const bid=$('#d_ben_sel').value;
+      const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(bid)) || null;
+
       for(const file of files){
-        const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
-        const path=`${fid}/${bid}/${Date.now()}_${safe}`;
         const low=file.name.toLowerCase();
         let docType='ALTRO';
         if(low.includes('fatt')) docType='FATTURA';
@@ -5781,32 +5781,35 @@ $('#pt').onclick=(e)=>{
         else if(low.includes('contr')) docType='CONTRATTO';
         else if(low.includes('prevent')) docType='PREVENTIVO';
 
-        const up=await sb.storage.from('documents').upload(path,file,{upsert:false,contentType:file.type||undefined});
-        if(up.error){
-          toast('Upload fallito',true,up.error.message);
+        try{
+          const saved=await saveImportedPdfToDocuments({
+            file,
+            filieraId: fid,
+            beneficiaryId: bid,
+            beneficiaryLabel: selectedBeneficiary?.ragione_sociale || '',
+            tableCode: '',
+            categoryCode: '',
+            investmentTitle: '',
+            supplierName: '',
+            folderName: 'DA_CLASSIFICARE',
+            docType,
+            cup: '',
+            pnrrText: '',
+            note: 'Caricamento manuale da Document Center'
+          });
+
+          if(!saved){
+            toast('Errore metadati',true,'Documento non salvato');
+          }
+        }catch(err){
+          toast('Upload fallito',true,err?.message || 'Errore sconosciuto');
           continue;
         }
-
-        const ins=await sb.from('documents').insert({
-          filiera_id: fid,
-          beneficiary_id: bid,
-          filename: file.name,
-          storage_path: path,
-          mime: file.type||'',
-          size: file.size||null,
-          doc_type: docType,
-          table_code: null,
-          category_code: null,
-          cup: '',
-          pnrr_ok: false,
-          note: ''
-        });
-        if(ins.error) toast('Errore metadati',true,ins.error.message);
       }
+
       toast('Upload completato');
       loadRows();
     }
-
         $('#d_ben_sel').onchange=loadRows;
     if($('#d_tab_filter')) $('#d_tab_filter').onchange=loadRows;
     if($('#d_cat_filter')) $('#d_cat_filter').oninput=loadRows;
