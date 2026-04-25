@@ -5850,13 +5850,67 @@ $('#pt').onclick=(e)=>{
           await fillDocumentSupplierOptions($('#dc_supplier')?.value || '');
         }
 
+                function defaultFolderFromDocType(rawType){
+          const t=String(rawType || '').toUpperCase().trim();
+          if(t==='FATTURA') return 'FATTURE';
+          if(t==='BONIFICO') return 'BONIFICI';
+          if(t==='CONTRATTO') return 'CONTRATTI';
+          if(t==='PREVENTIVO') return 'PREVENTIVI';
+          if(t==='LIBERATORIA') return 'LIBERATORIE';
+          if(t==='REL_TECNICA') return 'RELAZIONI_TECNICHE';
+          if(t==='DSAN_MEZZI_PROPRI') return 'DSAN_MEZZI_PROPRI';
+          return 'ALTRI_DOCUMENTI';
+        }
+
+        function maybeSyncFolderFromDocType(){
+          const folderSel=$('#dc_folder');
+          const docTypeSel=$('#dc_type');
+          if(!folderSel || !docTypeSel) return;
+
+          const suggested=defaultFolderFromDocType(docTypeSel.value);
+          const current=String(folderSel.value || '').trim();
+
+          if(!current || current==='DA_CLASSIFICARE' || current==='ALTRI_DOCUMENTI'){
+            folderSel.value=suggested;
+          }
+        }
+
+        function syncTableCategoryFromInvestment(){
+          const invSel=$('#dc_inv_title');
+          if(!invSel) return;
+
+          const opt=invSel.selectedOptions?.[0];
+          const txt=String(opt?.textContent || '');
+          const m=txt.match(/^([0-9A-Z]+)-([A-Za-z0-9._-]+)\s+•\s+/);
+
+          if(!m) return;
+
+          const tableCode=m[1];
+          const categoryCode=m[2];
+
+          if($('#dc_tab')) $('#dc_tab').value=tableCode;
+          fillCats(tableCode, categoryCode);
+          if($('#dc_cat')) $('#dc_cat').value=categoryCode;
+        }
+
         fillCats(d.table_code,d.category_code);
         $('#dc_tab').onchange=()=>fillCats($('#dc_tab').value,'');
+
         $('#dc_ben').onchange=async()=>{
           await syncDocumentClassificationSelects();
         };
 
+        $('#dc_type').onchange=()=>{
+          maybeSyncFolderFromDocType();
+        };
+
+        $('#dc_inv_title').onchange=()=>{
+          syncTableCategoryFromInvestment();
+        };
+
         await syncDocumentClassificationSelects();
+        maybeSyncFolderFromDocType();
+        syncTableCategoryFromInvestment();
 
         $('#dcc').onclick=closeM;
         $('#dcs').onclick=async()=>{
