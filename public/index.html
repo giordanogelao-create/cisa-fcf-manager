@@ -5647,10 +5647,36 @@ $('#pt').onclick=(e)=>{
         </div>
       </div>`;
 
-    async function loadRows(){
+        async function loadRows(){
       const bid=$('#d_ben_sel').value;
-      const {data}=await sb.from('documents').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false});
-      const rows=data||[];
+      const tabFilter=($('#d_tab_filter')?.value || '').trim().toUpperCase();
+      const catFilter=($('#d_cat_filter')?.value || '').trim().toLowerCase();
+      const supplierFilter=normalizeForMatch($('#d_supplier_filter')?.value || '');
+      const folderFilter=normalizeForMatch($('#d_folder_filter')?.value || '');
+
+      const {data}=await sb
+        .from('documents')
+        .select('*')
+        .eq('filiera_id',fid)
+        .eq('beneficiary_id',bid)
+        .order('created_at',{ascending:false});
+
+      const allRows=data||[];
+
+      const rows=allRows.filter(d=>{
+        const pathParts=String(d.storage_path || '').split('/').filter(Boolean);
+        const pathTable=String(pathParts[2] || d.table_code || '').trim().toUpperCase();
+        const pathCategory=String(pathParts[3] || d.category_code || '').trim().toLowerCase();
+        const pathSupplier=normalizeForMatch(pathParts[5] || '');
+        const pathFolder=normalizeForMatch(pathParts[6] || '');
+
+        if(tabFilter && pathTable!==tabFilter) return false;
+        if(catFilter && pathCategory!==catFilter) return false;
+        if(supplierFilter && !pathSupplier.includes(supplierFilter)) return false;
+        if(folderFilter && !pathFolder.includes(folderFilter)) return false;
+
+        return true;
+      });
             $('#dt tbody').innerHTML=rows.map(d=>{
         const pathParts=String(d.storage_path || '').split('/').filter(Boolean);
         const pathTable=pathParts[2] || d.table_code || '—';
