@@ -5627,16 +5627,33 @@ $('#pt').onclick=(e)=>{
       const bid=$('#d_ben_sel').value;
       const {data}=await sb.from('documents').select('*').eq('filiera_id',fid).eq('beneficiary_id',bid).order('created_at',{ascending:false});
       const rows=data||[];
-      $('#dt tbody').innerHTML=rows.map(d=>`<tr data-id="${d.id}" style="cursor:pointer">
-        <td><b>${esc(d.filename)}</b><div style="color:var(--muted);font-size:12px;margin-top:4px">${new Date(d.created_at).toLocaleString('it-IT')}</div></td>
-        <td>${esc(benMap[d.beneficiary_id]?.ragione_sociale||'')}</td>
-        <td><span class="badge">${esc(d.doc_type||'—')}</span></td>
-        <td>${esc(d.table_code||'—')}</td>
-        <td>${esc(d.category_code||'—')}</td>
-        <td><span class="badge">${esc(d.cup||'')}</span></td>
-        <td>${d.pnrr_ok?'OK':'—'}</td>
-        <td style="text-align:right"><button class="btn danger" data-del="${d.id}" type="button">🗑</button></td>
-      </tr>`).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun documento.</td></tr>`;
+            $('#dt tbody').innerHTML=rows.map(d=>{
+        const pathParts=String(d.storage_path || '').split('/').filter(Boolean);
+        const pathTable=pathParts[2] || d.table_code || '—';
+        const pathCategory=pathParts[3] || d.category_code || '—';
+        const pathInvestment=pathParts[4] || '—';
+        const pathSupplier=pathParts[5] || '—';
+        const pathFolder=pathParts[6] || '—';
+
+        return `<tr data-id="${d.id}" style="cursor:pointer">
+          <td>
+            <b>${esc(d.filename)}</b>
+            <div style="color:var(--muted);font-size:12px;margin-top:4px">${new Date(d.created_at).toLocaleString('it-IT')}</div>
+            <div style="color:var(--muted);font-size:12px;margin-top:6px;line-height:1.45">
+              <div><b>Investimento:</b> ${esc(pathInvestment)}</div>
+              <div><b>Fornitore:</b> ${esc(pathSupplier)}</div>
+              <div><b>Cartella:</b> ${esc(pathFolder)}</div>
+            </div>
+          </td>
+          <td>${esc(benMap[d.beneficiary_id]?.ragione_sociale||'')}</td>
+          <td><span class="badge">${esc(d.doc_type||'—')}</span></td>
+          <td>${esc(pathTable || '—')}</td>
+          <td>${esc(pathCategory || '—')}</td>
+          <td><span class="badge">${esc(d.cup||'')}</span></td>
+          <td>${d.pnrr_ok?'OK':'—'}</td>
+          <td style="text-align:right"><button class="btn danger" data-del="${d.id}" type="button">🗑</button></td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="8" style="color:var(--muted)">Nessun documento.</td></tr>`;
 
       $('#dt').onclick=async(e)=>{
         const del=e.target.closest('button[data-del]');
