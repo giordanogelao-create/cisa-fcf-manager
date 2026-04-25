@@ -5384,8 +5384,11 @@ $('#pt').onclick=(e)=>{
           if((f.total_amount || f.total_amount===0) && $('#cp_total') && !$('#cp_total').value.trim()){
             $('#cp_total').value=formatMoneyPreview(f.total_amount);
           }
-          if(f.cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
+                    if(f.cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
             $('#cp_cup').value=String(f.cup).trim();
+          }
+          if(f.cig && $('#cp_cig') && !$('#cp_cig').value.trim()){
+            $('#cp_cig').value=String(f.cig).trim();
           }
           if($('#cp_note') && !$('#cp_note').value.trim()){
             $('#cp_note').value=[
