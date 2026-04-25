@@ -5764,28 +5764,17 @@ $('#pt').onclick=(e)=>{
             return out || fallback;
           };
 
-          const folderNameFromDocType=(rawType)=>{
-            const t=String(rawType || '').toUpperCase().trim();
-            if(t==='FATTURA') return 'FATTURE';
-            if(t==='BONIFICO') return 'BONIFICI';
-            if(t==='CONTRATTO') return 'CONTRATTI';
-            if(t==='PREVENTIVO') return 'PREVENTIVI';
-            if(t==='LIBERATORIA') return 'LIBERATORIE';
-            if(t==='REL_TECNICA') return 'RELAZIONI_TECNICHE';
-            if(t==='DSAN_MEZZI_PROPRI') return 'DSAN_MEZZI_PROPRI';
-            return 'ALTRI_DOCUMENTI';
-          };
-
           const selectedBeneficiaryId=$('#dc_ben').value;
           const selectedDocType=$('#dc_type').value;
           const selectedTableCode=$('#dc_tab').value || '';
           const selectedCategoryCode=$('#dc_cat').value || '';
+          const selectedInvestmentTitle=$('#dc_inv_title')?.value.trim() || '';
+          const selectedSupplierName=$('#dc_supplier')?.value.trim() || '';
+          const selectedFolderName=$('#dc_folder')?.value.trim() || '';
           const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(selectedBeneficiaryId)) || null;
 
           const oldPath=String(d.storage_path || '').trim();
           const oldParts=oldPath.split('/').filter(Boolean);
-          const oldInvestmentPart=oldParts[4] || 'SENZA_INVESTIMENTO';
-          const oldSupplierPart=oldParts[5] || 'SENZA_FORNITORE';
           const oldLeaf=oldParts[7] || `${Date.now()}_${String(d.filename || 'documento').replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
 
           const newPath=[
@@ -5793,9 +5782,9 @@ $('#pt').onclick=(e)=>{
             toPathPart(selectedBeneficiary?.ragione_sociale || selectedBeneficiaryId,'BENEFICIARIO'),
             toPathPart(selectedTableCode || 'SENZA_TABELLA','SENZA_TABELLA'),
             toPathPart(selectedCategoryCode || 'SENZA_CATEGORIA','SENZA_CATEGORIA'),
-            oldInvestmentPart,
-            oldSupplierPart,
-            toPathPart(folderNameFromDocType(selectedDocType),'ALTRI_DOCUMENTI'),
+            toPathPart(selectedInvestmentTitle || 'SENZA_INVESTIMENTO','SENZA_INVESTIMENTO'),
+            toPathPart(selectedSupplierName || 'SENZA_FORNITORE','SENZA_FORNITORE'),
+            toPathPart(selectedFolderName || 'ALTRI_DOCUMENTI','ALTRI_DOCUMENTI'),
             oldLeaf
           ].join('/');
 
