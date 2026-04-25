@@ -5749,19 +5749,75 @@ $('#pt').onclick=(e)=>{
         fillCats(d.table_code,d.category_code);
         $('#dc_tab').onchange=()=>fillCats($('#dc_tab').value,'');
 
-        $('#dcc').onclick=closeM;
+                $('#dcc').onclick=closeM;
         $('#dcs').onclick=async()=>{
+          const toPathPart=(value,fallback='ND')=>{
+            const out=String(value || '')
+              .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+              .replace(/[^a-zA-Z0-9._-]+/g,'_')
+              .replace(/^_+|_+$/g,'')
+              .replace(/_{2,}/g,'_')
+              .trim();
+            return out || fallback;
+          };
+
+          const folderNameFromDocType=(rawType)=>{
+            const t=String(rawType || '').toUpperCase().trim();
+            if(t==='FATTURA') return 'FATTURE';
+            if(t==='BONIFICO') return 'BONIFICI';
+            if(t==='CONTRATTO') return 'CONTRATTI';
+            if(t==='PREVENTIVO') return 'PREVENTIVI';
+            if(t==='LIBERATORIA') return 'LIBERATORIE';
+            if(t==='REL_TECNICA') return 'RELAZIONI_TECNICHE';
+            if(t==='DSAN_MEZZI_PROPRI') return 'DSAN_MEZZI_PROPRI';
+            return 'ALTRI_DOCUMENTI';
+          };
+
+          const selectedBeneficiaryId=$('#dc_ben').value;
+          const selectedDocType=$('#dc_type').value;
+          const selectedTableCode=$('#dc_tab').value || '';
+          const selectedCategoryCode=$('#dc_cat').value || '';
+          const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(selectedBeneficiaryId)) || null;
+
+          const oldPath=String(d.storage_path || '').trim();
+          const oldParts=oldPath.split('/').filter(Boolean);
+          const oldInvestmentPart=oldParts[4] || 'SENZA_INVESTIMENTO';
+          const oldSupplierPart=oldParts[5] || 'SENZA_FORNITORE';
+          const oldLeaf=oldParts[7] || `${Date.now()}_${String(d.filename || 'documento').replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
+
+          const newPath=[
+            toPathPart(fid,'FILIERA'),
+            toPathPart(selectedBeneficiary?.ragione_sociale || selectedBeneficiaryId,'BENEFICIARIO'),
+            toPathPart(selectedTableCode || 'SENZA_TABELLA','SENZA_TABELLA'),
+            toPathPart(selectedCategoryCode || 'SENZA_CATEGORIA','SENZA_CATEGORIA'),
+            oldInvestmentPart,
+            oldSupplierPart,
+            toPathPart(folderNameFromDocType(selectedDocType),'ALTRI_DOCUMENTI'),
+            oldLeaf
+          ].join('/');
+
           const payload={
-            beneficiary_id: $('#dc_ben').value,
-            doc_type: $('#dc_type').value,
-            table_code: $('#dc_tab').value || null,
-            category_code: $('#dc_cat').value || null,
+            beneficiary_id: selectedBeneficiaryId,
+            doc_type: selectedDocType,
+            table_code: selectedTableCode || null,
+            category_code: selectedCategoryCode || null,
             cup: $('#dc_cup').value.trim(),
             pnrr_ok: $('#dc_pnrr').value==='true',
-            note: $('#dc_note').value.trim()
+            note: $('#dc_note').value.trim(),
+            storage_path: newPath
           };
+
+          if(oldPath && newPath !== oldPath){
+            const cp=await sb.storage.from('documents').copy(oldPath,newPath);
+            if(cp.error) return toast('Errore salvataggio',true,cp.error.message);
+
+            const rm=await sb.storage.from('documents').remove([oldPath]);
+            if(rm.error) console.error(rm.error);
+          }
+
           const {error}=await sb.from('documents').update(payload).eq('id',d.id);
           if(error) return toast('Errore salvataggio',true,error.message);
+
           toast('Documento aggiornato');
           closeM();
           loadRows();
