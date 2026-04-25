@@ -5394,7 +5394,10 @@ $('#pt').onclick=(e)=>{
             $('#cp_note').value=[
               'Dati precompilati automaticamente da PDF/OCR. Verificare prima del salvataggio.',
               aiExtracted.document_type ? `AI tipo documento: ${aiExtracted.document_type}` : '',
-              typeof aiExtracted.confidence === 'number' ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%` : ''
+              typeof aiExtracted.confidence === 'number' ? `AI confidenza: ${Math.round(aiExtracted.confidence * 100)}%` : '',
+              Array.isArray(aiExtracted?.warnings) && aiExtracted.warnings.length
+                ? `AI warning: ${aiExtracted.warnings.join(' | ')}`
+                : ''
             ].filter(Boolean).join(' • ');
           }
         }
