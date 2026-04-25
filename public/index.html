@@ -5723,7 +5723,7 @@ $('#pt').onclick=(e)=>{
         const d=rows.find(x=>x.id===tr.dataset.id);
         if(!d) return;
 
-        openM(
+                openM(
           'Classifica documento',
           `<div class="form">
             <div class="full"><label style="color:var(--muted);font-size:12px">File</label><input class="input" disabled value="${esc(d.filename)}"></div>
@@ -5731,6 +5731,9 @@ $('#pt').onclick=(e)=>{
             <div><label style="color:var(--muted);font-size:12px">Tipo documento</label><select id="dc_type" class="input">${['FATTURA','BONIFICO','CONTRATTO','PREVENTIVO','REL_TECNICA','LIBERATORIA','DSAN_MEZZI_PROPRI','ALTRO'].map(x=>`<option ${x===d.doc_type?'selected':''}>${x}</option>`).join('')}</select></div>
             <div><label style="color:var(--muted);font-size:12px">Tabella</label><select id="dc_tab" class="input">${['','1A','2A','3A','4A','5A'].map(x=>`<option value="${x}" ${x===d.table_code?'selected':''}>${x||'—'}</option>`).join('')}</select></div>
             <div><label style="color:var(--muted);font-size:12px">Categoria</label><select id="dc_cat" class="input"></select></div>
+            <div><label style="color:var(--muted);font-size:12px">Investimento</label><input id="dc_inv_title" class="input" value="${esc((String(d.storage_path||'').split('/').filter(Boolean)[4]) || '')}" placeholder="Titolo investimento"></div>
+            <div><label style="color:var(--muted);font-size:12px">Fornitore</label><input id="dc_supplier" class="input" value="${esc((String(d.storage_path||'').split('/').filter(Boolean)[5]) || '')}" placeholder="Ragione sociale fornitore"></div>
+            <div><label style="color:var(--muted);font-size:12px">Cartella logica</label><input id="dc_folder" class="input" value="${esc((String(d.storage_path||'').split('/').filter(Boolean)[6]) || '')}" placeholder="Es. FATTURE, BONIFICI, CONTRATTI"></div>
             <div><label style="color:var(--muted);font-size:12px">CUP</label><input id="dc_cup" class="input" value="${esc(d.cup||'')}"></div>
             <div><label style="color:var(--muted);font-size:12px">PNRR presente?</label><select id="dc_pnrr" class="input"><option value="false" ${!d.pnrr_ok?'selected':''}>No</option><option value="true" ${d.pnrr_ok?'selected':''}>Sì</option></select></div>
             <div class="full"><label style="color:var(--muted);font-size:12px">Note</label><textarea id="dc_note" class="input">${esc(d.note||'')}</textarea></div>
