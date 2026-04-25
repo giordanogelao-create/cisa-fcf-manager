@@ -5807,7 +5807,11 @@ $('#pt').onclick=(e)=>{
       loadRows();
     }
 
-    $('#d_ben_sel').onchange=loadRows;
+        $('#d_ben_sel').onchange=loadRows;
+    if($('#d_tab_filter')) $('#d_tab_filter').onchange=loadRows;
+    if($('#d_cat_filter')) $('#d_cat_filter').oninput=loadRows;
+    if($('#d_supplier_filter')) $('#d_supplier_filter').oninput=loadRows;
+    if($('#d_folder_filter')) $('#d_folder_filter').oninput=loadRows;
     $('#up').onchange=(e)=>addFiles(Array.from(e.target.files||[]));
 
     const drop=$('#drop');
