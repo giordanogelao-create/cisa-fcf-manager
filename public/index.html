@@ -1173,12 +1173,41 @@
   docType,
   cup='',
   pnrrText='',
-  note=''
+  note='',
+  beneficiaryLabel='',
+  tableCode='',
+  categoryCode='',
+  investmentTitle='',
+  supplierName='',
+  folderName=''
 }){
   if(!file || !filieraId || !beneficiaryId) return null;
 
-  const safe=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
-  const path=`${filieraId}/${beneficiaryId}/${Date.now()}_${safe}`;
+  const toPathPart=(value,fallback='ND')=>{
+    const out=String(value || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-zA-Z0-9._-]+/g,'_')
+      .replace(/^_+|_+$/g,'')
+      .replace(/_{2,}/g,'_')
+      .trim();
+    return out || fallback;
+  };
+
+  const safeFile=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');
+  const folderPart=toPathPart(folderName || docType || 'ALTRI','ALTRI');
+
+  const pathParts=[
+    toPathPart(filieraId,'FILIERA'),
+    toPathPart(beneficiaryLabel || beneficiaryId,'BENEFICIARIO'),
+    toPathPart(tableCode || 'SENZA_TABELLA','SENZA_TABELLA'),
+    toPathPart(categoryCode || 'SENZA_CATEGORIA','SENZA_CATEGORIA'),
+    toPathPart(investmentTitle || 'SENZA_INVESTIMENTO','SENZA_INVESTIMENTO'),
+    toPathPart(supplierName || 'SENZA_FORNITORE','SENZA_FORNITORE'),
+    folderPart,
+    `${Date.now()}_${safeFile}`
+  ];
+
+  const path=pathParts.join('/');
 
   const up=await sb.storage
     .from('documents')
@@ -1189,6 +1218,13 @@
 
   if(up.error) throw up.error;
 
+  const enrichedNote=[
+    note || '',
+    investmentTitle ? `Investimento: ${investmentTitle}` : '',
+    supplierName ? `Fornitore: ${supplierName}` : '',
+    folderName ? `Cartella logica: ${folderName}` : ''
+  ].filter(Boolean).join(' • ');
+
   const ins=await sb.from('documents').insert({
     filiera_id: filieraId,
     beneficiary_id: beneficiaryId,
@@ -1197,14 +1233,14 @@
     mime: file.type || 'application/pdf',
     size: file.size || null,
     doc_type: docType,
-    table_code: null,
-    category_code: null,
+    table_code: tableCode || null,
+    category_code: categoryCode || null,
     cup: cup || '',
     pnrr_ok: !!pnrrText,
-    note: note || ''
+    note: enrichedNote
   }).select().single();
 
-   if(ins.error) throw ins.error;
+  if(ins.error) throw ins.error;
   return ins.data;
 }
 
