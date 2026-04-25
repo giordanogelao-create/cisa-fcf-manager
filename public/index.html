@@ -5187,9 +5187,14 @@ $('#pt').onclick=(e)=>{
             <label style="color:var(--muted);font-size:12px">Note</label>
             <textarea id="cp_note" class="input" placeholder="Note interne o dettagli utili"></textarea>
           </div>
-          <div class="full">
+                    <div class="full">
             <label style="color:var(--muted);font-size:12px">Testo estratto grezzo</label>
             <textarea id="cp_raw_text" class="input" placeholder="Qui finirà il testo estratto da PDF/OCR oppure incollato manualmente"></textarea>
+          </div>
+          <div class="full">
+            <div class="row" style="justify-content:flex-end;gap:10px;margin-top:4px">
+              <button class="btn pri" id="cp_save_doc">Salva documento nel Document Center</button>
+            </div>
           </div>
         </div>
       </div>
