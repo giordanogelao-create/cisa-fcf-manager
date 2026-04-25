@@ -5486,6 +5486,72 @@ $('#pt').onclick=(e)=>{
       }
     };
 
+        const contractFolderNameFromType=(rawType)=>{
+      const t=String(rawType || '').toLowerCase().trim();
+      if(/preventivo|offerta/.test(t)) return 'PREVENTIVI';
+      if(/contratto/.test(t)) return 'CONTRATTI';
+      if(/ordine/.test(t)) return 'ORDINI_ACQUISTO';
+      if(/\bddt\b/.test(t)) return 'DDT';
+      if(/titolo autorizzativo/.test(t)) return 'TITOLI_AUTORIZZATIVI';
+      if(/compravendita|atto notarile/.test(t)) return 'ATTI_IMMOBILIARI';
+      if(/agibilita/.test(t)) return 'CERTIFICATI_AGIBILITA';
+      if(/perizia/.test(t)) return 'PERIZIE_STIMA';
+      return 'ALTRI_DOCUMENTI';
+    };
+
+    $('#cp_save_doc').onclick=async()=>{
+      const files=[...(fileInput.files || [])];
+      if(!files.length) return toast('Seleziona prima almeno un documento', true);
+
+      const beneficiaryId=benSel.value || '';
+      if(!beneficiaryId) return toast('Seleziona prima un beneficiario', true);
+
+      const selectedBeneficiary=beneficiaries.find(b=>String(b.id)===String(beneficiaryId)) || null;
+      const selectedInvestment=investments.find(i=>String(i.id)===String(invSel.value || '')) || null;
+
+      const docTypeRaw=$('#cp_doc_type')?.value || 'Altro documento collegato';
+      const docNo=$('#cp_doc_no')?.value.trim() || '';
+      const docDate=$('#cp_doc_date')?.value || '';
+      const supplierName=$('#cp_supplier')?.value.trim() || '';
+      const cup=$('#cp_cup')?.value.trim() || '';
+      const note=$('#cp_note')?.value.trim() || '';
+
+      let savedCount=0;
+
+      for(const file of files){
+        try{
+          await saveImportedPdfToDocuments({
+            file,
+            filieraId: fid,
+            beneficiaryId,
+            beneficiaryLabel: selectedBeneficiary?.ragione_sociale || '',
+            tableCode: selectedInvestment?.table_code || '',
+            categoryCode: selectedInvestment?.category_code || '',
+            investmentTitle: selectedInvestment?.title || '',
+            supplierName,
+            folderName: contractFolderNameFromType(docTypeRaw),
+            docType: String(docTypeRaw || '').toUpperCase().replace(/[^A-Z0-9]+/g,'_'),
+            cup,
+            pnrrText: note,
+            note: [
+              'Import automatico da sezione Contratti e preventivi',
+              docNo ? `n. ${docNo}` : '',
+              docDate ? `data ${docDate}` : '',
+              supplierName ? `fornitore ${supplierName}` : ''
+            ].filter(Boolean).join(' • ')
+          });
+          savedCount+=1;
+        }catch(err){
+          console.error(err);
+          toast(`Errore archiviazione ${file.name}`, true, err?.message || 'Errore sconosciuto');
+        }
+      }
+
+      if(savedCount){
+        toast(`${savedCount} documento/i archiviato/i nel Document Center`);
+      }
+    };
+
     $('#cp_doc_type').onchange=()=>{
       if(fileInput.files?.length) paintFiles(fileInput.files,'già caricato');
     };
