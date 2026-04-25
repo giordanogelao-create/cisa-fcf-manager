@@ -5760,7 +5760,7 @@ $('#pt').onclick=(e)=>{
           </div>`,
           `<button class="btn" id="dcc">Annulla</button><button class="btn pri" id="dcs">Salva</button>`
         );
-        function fillCats(tab, selected){
+                function fillCats(tab, selected){
           const cats=TABLES[tab]||[];
           $('#dc_cat').innerHTML=[''].concat(cats.map(c=>c.code)).map(code=>{
             if(!code) return `<option value="">—</option>`;
@@ -5768,10 +5768,97 @@ $('#pt').onclick=(e)=>{
             return `<option value="${c.code}" ${c.code===selected?'selected':''}>${esc(c.code)} • ${esc(c.label)}</option>`;
           }).join('');
         }
+
+        async function fillDocumentInvestmentOptions(selectedValue=''){
+          const beneficiaryId=$('#dc_ben')?.value || '';
+          const currentPathInvestment=(String(d.storage_path||'').split('/').filter(Boolean)[4]) || '';
+          const preferredValue=selectedValue || currentPathInvestment || '';
+
+          if(!beneficiaryId || !$('#dc_inv_title')){
+            if($('#dc_inv_title')) $('#dc_inv_title').innerHTML='<option value="">SENZA_INVESTIMENTO</option>';
+            return;
+          }
+
+          const q=await sb
+            .from('investments')
+            .select('id,title,table_code,category_code')
+            .eq('beneficiary_id', beneficiaryId)
+            .order('created_at',{ascending:false});
+
+          const rows=(q.data || []).filter(x=>String(x.title || '').trim());
+
+          const options=[];
+          options.push(`<option value="">SENZA_INVESTIMENTO</option>`);
+
+          const labels=rows.map(x=>{
+            const label=`${x.table_code || '—'}-${x.category_code || '—'} • ${x.title || ''}`.trim();
+            return {
+              value:String(x.title || '').trim(),
+              label
+            };
+          });
+
+          const exists=labels.some(x=>x.value===preferredValue);
+          if(preferredValue && !exists){
+            options.push(`<option value="${esc(preferredValue)}" selected>${esc(preferredValue)} • valore attuale</option>`);
+          }
+
+          labels.forEach(x=>{
+            options.push(`<option value="${esc(x.value)}" ${x.value===preferredValue?'selected':''}>${esc(x.label)}</option>`);
+          });
+
+          $('#dc_inv_title').innerHTML=options.join('');
+        }
+
+        async function fillDocumentSupplierOptions(selectedValue=''){
+          const beneficiaryId=$('#dc_ben')?.value || '';
+          const currentPathSupplier=(String(d.storage_path||'').split('/').filter(Boolean)[5]) || '';
+          const preferredValue=selectedValue || currentPathSupplier || '';
+
+          if(!beneficiaryId || !$('#dc_supplier')){
+            if($('#dc_supplier')) $('#dc_supplier').innerHTML='<option value="">SENZA_FORNITORE</option>';
+            return;
+          }
+
+          const q=await sb
+            .from('suppliers')
+            .select('id,name')
+            .eq('beneficiary_id', beneficiaryId)
+            .order('name');
+
+          const rows=(q.data || []).filter(x=>String(x.name || '').trim());
+
+          const options=[];
+          options.push(`<option value="">SENZA_FORNITORE</option>`);
+
+          const labels=rows.map(x=>String(x.name || '').trim());
+          const exists=labels.some(x=>x===preferredValue);
+
+          if(preferredValue && !exists){
+            options.push(`<option value="${esc(preferredValue)}" selected>${esc(preferredValue)} • valore attuale</option>`);
+          }
+
+          labels.forEach(name=>{
+            options.push(`<option value="${esc(name)}" ${name===preferredValue?'selected':''}>${esc(name)}</option>`);
+          });
+
+          $('#dc_supplier').innerHTML=options.join('');
+        }
+
+        async function syncDocumentClassificationSelects(){
+          await fillDocumentInvestmentOptions($('#dc_inv_title')?.value || '');
+          await fillDocumentSupplierOptions($('#dc_supplier')?.value || '');
+        }
+
         fillCats(d.table_code,d.category_code);
         $('#dc_tab').onchange=()=>fillCats($('#dc_tab').value,'');
+        $('#dc_ben').onchange=async()=>{
+          await syncDocumentClassificationSelects();
+        };
 
-                $('#dcc').onclick=closeM;
+        await syncDocumentClassificationSelects();
+
+        $('#dcc').onclick=closeM;
         $('#dcs').onclick=async()=>{
           const toPathPart=(value,fallback='ND')=>{
             const out=String(value || '')
