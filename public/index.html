@@ -5845,11 +5845,6 @@ $('#pt').onclick=(e)=>{
           $('#dc_supplier').innerHTML=options.join('');
         }
 
-        async function syncDocumentClassificationSelects(){
-          await fillDocumentInvestmentOptions($('#dc_inv_title')?.value || '');
-          await fillDocumentSupplierOptions($('#dc_supplier')?.value || '');
-        }
-
                 function defaultFolderFromDocType(rawType){
           const t=String(rawType || '').toUpperCase().trim();
           if(t==='FATTURA') return 'FATTURE';
@@ -5875,6 +5870,17 @@ $('#pt').onclick=(e)=>{
           }
         }
 
+        function maybeSyncCupFromBeneficiary(force=false){
+          const benId=$('#dc_ben')?.value || '';
+          const ben=beneficiaries.find(b=>String(b.id)===String(benId)) || null;
+          const cupInput=$('#dc_cup');
+          if(!cupInput || !ben?.cup) return;
+
+          if(force || !String(cupInput.value || '').trim()){
+            cupInput.value=ben.cup;
+          }
+        }
+
         function syncTableCategoryFromInvestment(){
           const invSel=$('#dc_inv_title');
           if(!invSel) return;
@@ -5893,11 +5899,36 @@ $('#pt').onclick=(e)=>{
           if($('#dc_cat')) $('#dc_cat').value=categoryCode;
         }
 
+        function autoPickSingleRealOption(sel){
+          if(!sel) return;
+          const realOptions=[...sel.options].filter(o=>String(o.value || '').trim()!=='');
+          if(!sel.value && realOptions.length===1){
+            sel.value=realOptions[0].value;
+          }
+        }
+
+        async function syncDocumentClassificationSelects({beneficiaryChanged=false}={}){
+          const invValue=beneficiaryChanged ? '' : ($('#dc_inv_title')?.value || '');
+          const supValue=beneficiaryChanged ? '' : ($('#dc_supplier')?.value || '');
+
+          await fillDocumentInvestmentOptions(invValue);
+          await fillDocumentSupplierOptions(supValue);
+
+          if(beneficiaryChanged){
+            autoPickSingleRealOption($('#dc_inv_title'));
+            autoPickSingleRealOption($('#dc_supplier'));
+            maybeSyncCupFromBeneficiary(true);
+          }
+
+          syncTableCategoryFromInvestment();
+          maybeSyncFolderFromDocType();
+        }
+
         fillCats(d.table_code,d.category_code);
         $('#dc_tab').onchange=()=>fillCats($('#dc_tab').value,'');
 
         $('#dc_ben').onchange=async()=>{
-          await syncDocumentClassificationSelects();
+          await syncDocumentClassificationSelects({beneficiaryChanged:true});
         };
 
         $('#dc_type').onchange=()=>{
@@ -5909,6 +5940,7 @@ $('#pt').onclick=(e)=>{
         };
 
         await syncDocumentClassificationSelects();
+        maybeSyncCupFromBeneficiary();
         maybeSyncFolderFromDocType();
         syncTableCategoryFromInvestment();
 
