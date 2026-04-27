@@ -5910,9 +5910,10 @@ $('#pt').onclick=(e)=>{
 
         return true;
       });
-                      if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
+            if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
       bindDocumentTreeFilters();
       renderActiveDocumentFiltersSummary();
+      bindActiveDocumentFilterChips();
 
       $('#dt tbody').innerHTML=rows.map(d=>{
         const pathParts=String(d.storage_path || '').split('/').filter(Boolean);
