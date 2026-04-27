@@ -5742,7 +5742,7 @@ $('#pt').onclick=(e)=>{
                 const supplierHtml=Object.keys(supplierNode).map(folderKey=>{
                   const docs=supplierNode[folderKey] || [];
 
-                                      const filesHtml=docs.map(doc=>`
+                                       const filesHtml=docs.map(doc=>`
                     <div style="margin:4px 0 4px 14px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                       <span>📄</span>
                       <span
@@ -5758,6 +5758,14 @@ $('#pt').onclick=(e)=>{
                         title="Apri file"
                         style="cursor:pointer;background:none"
                       >Apri</button>
+                      <button
+                        type="button"
+                        class="badge bad docTreeDeleteBtn"
+                        data-doc-id="${esc(doc.id || '')}"
+                        data-storage-path="${esc(doc.storage_path || '')}"
+                        title="Elimina documento"
+                        style="cursor:pointer;background:none"
+                      >Elimina</button>
                     </div>
                   `).join('');
 
