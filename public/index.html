@@ -5936,8 +5936,9 @@ $('#pt').onclick=(e)=>{
 
         return true;
       });
-             if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
+            if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
       bindDocumentTreeFilters();
+      bindDocumentTreeFileClicks();
       renderActiveDocumentFiltersSummary();
       renderDocumentCounterSummary(rows.length, allRows.length);
       bindActiveDocumentFilterChips();
