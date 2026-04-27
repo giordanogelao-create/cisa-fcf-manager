@@ -5683,11 +5683,11 @@ $('#pt').onclick=(e)=>{
       return tree;
     }
 
-    function renderTreeNode(label, content, level=0, open=false){
+        function renderTreeNode(label, content, level=0, open=false, attrs=''){
       const pad=level * 14;
       return `
         <details ${open?'open':''} style="margin-left:${pad}px">
-          <summary style="cursor:pointer;list-style:none;padding:6px 0;color:var(--text)">
+          <summary ${attrs} style="cursor:pointer;list-style:none;padding:6px 0;color:var(--text)">
             ${label}
           </summary>
           <div style="margin-top:4px">${content}</div>
@@ -5726,23 +5726,71 @@ $('#pt').onclick=(e)=>{
                     </div>
                   `).join('');
 
-                  return renderTreeNode(`📁 ${esc(folderKey)} (${docs.length})`, filesHtml, 0, false);
+                  return renderTreeNode(
+                    `📁 ${esc(folderKey)} (${docs.length})`,
+                    filesHtml,
+                    0,
+                    false,
+                    `class="docTreeNode" data-folder="${esc(folderKey)}" data-supplier="${esc(supplierKey)}" data-category="${esc(catKey)}" data-table="${esc(tableKey)}"`
+                  );
                 }).join('');
 
-                return renderTreeNode(`🏢 ${esc(supplierKey)}`, supplierHtml, 0, false);
+                return renderTreeNode(
+                  `🏢 ${esc(supplierKey)}`,
+                  supplierHtml,
+                  0,
+                  false,
+                  `class="docTreeNode" data-supplier="${esc(supplierKey)}" data-category="${esc(catKey)}" data-table="${esc(tableKey)}"`
+                );
               }).join('');
 
               return renderTreeNode(`🧩 ${esc(invKey)}`, invHtml, 0, false);
             }).join('');
 
-            return renderTreeNode(`🏷️ ${esc(catKey)}`, catHtml, 0, false);
+            return renderTreeNode(
+              `🏷️ ${esc(catKey)}`,
+              catHtml,
+              0,
+              false,
+              `class="docTreeNode" data-category="${esc(catKey)}" data-table="${esc(tableKey)}"`
+            );
           }).join('');
 
-          return renderTreeNode(`📚 ${esc(tableKey)}`, tableHtml, 0, false);
+          return renderTreeNode(
+            `📚 ${esc(tableKey)}`,
+            tableHtml,
+            0,
+            false,
+            `class="docTreeNode" data-table="${esc(tableKey)}"`
+          );
         }).join('');
 
         return renderTreeNode(`👤 ${esc(benKey)}`, benHtml, 0, bi===0);
       }).join('');
+    }
+
+    function bindDocumentTreeFilters(){
+      const tree=$('#docTree');
+      if(!tree) return;
+
+      tree.onclick=(e)=>{
+        const node=e.target.closest('.docTreeNode');
+        if(!node) return;
+
+        const table=node.dataset.table || '';
+        const category=node.dataset.category || '';
+        const supplier=node.dataset.supplier || '';
+        const folder=node.dataset.folder || '';
+
+        if($('#d_tab_filter')) $('#d_tab_filter').value=table;
+        if($('#d_cat_filter')) $('#d_cat_filter').value=category;
+        if($('#d_supplier_filter')) $('#d_supplier_filter').value=supplier;
+        if($('#d_folder_filter')) $('#d_folder_filter').value=folder;
+
+        loadRows();
+        e.preventDefault();
+        e.stopPropagation();
+      };
     }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
