@@ -5830,6 +5830,30 @@ $('#pt').onclick=(e)=>{
 
       syncActiveTreeNode();
     }
+        function renderActiveDocumentFiltersSummary(){
+      const chips=[];
+
+      const table=$('#d_tab_filter')?.value || '';
+      const category=($('#d_cat_filter')?.value || '').trim();
+      const supplier=($('#d_supplier_filter')?.value || '').trim();
+      const folder=($('#d_folder_filter')?.value || '').trim();
+
+      if(table) chips.push(`Tabella: ${esc(table)}`);
+      if(category) chips.push(`Categoria: ${esc(category)}`);
+      if(supplier) chips.push(`Fornitore: ${esc(supplier)}`);
+      if(folder) chips.push(`Cartella: ${esc(folder)}`);
+
+      if(!$('#d_active_filters')) return;
+
+      if(!chips.length){
+        $('#d_active_filters').innerHTML=`<span class="badge">Nessun filtro attivo</span>`;
+        return;
+      }
+
+      $('#d_active_filters').innerHTML=chips
+        .map(x=>`<span class="badge good">${x}</span>`)
+        .join('');
+    }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
       const tabFilter=($('#d_tab_filter')?.value || '').trim().toUpperCase();
