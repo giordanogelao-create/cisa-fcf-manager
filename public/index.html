@@ -5742,9 +5742,14 @@ $('#pt').onclick=(e)=>{
                 const supplierHtml=Object.keys(supplierNode).map(folderKey=>{
                   const docs=supplierNode[folderKey] || [];
 
-                  const filesHtml=docs.map(doc=>`
+                                    const filesHtml=docs.map(doc=>`
                     <div style="margin:4px 0 4px 14px;color:var(--muted)">
-                      📄 <span style="color:var(--text)">${esc(doc.filename || '')}</span>
+                      📄 <span
+                        class="docTreeFile"
+                        data-doc-id="${esc(doc.id || '')}"
+                        style="color:var(--text)"
+                        title="Apri classificazione documento"
+                      >${esc(doc.filename || '')}</span>
                     </div>
                   `).join('');
 
