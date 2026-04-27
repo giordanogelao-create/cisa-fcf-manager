@@ -5637,13 +5637,25 @@ $('#pt').onclick=(e)=>{
           </div>
         </div>
       </div>
-      <div style="height:12px"></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table class="table" id="dt">
-            <thead><tr><th>File</th><th>Beneficiario</th><th>Tipo</th><th>Tabella</th><th>Categoria</th><th>CUP</th><th>PNRR</th><th>Azioni</th></tr></thead>
-            <tbody></tbody>
-          </table>
+            <div style="height:12px"></div>
+      <div class="grid" style="grid-template-columns:320px 1fr;align-items:start">
+        <div class="card" style="padding:14px">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <h3 class="ct" style="font-size:15px">Struttura cartelle</h3>
+              <div class="sub" style="margin-top:4px">Vista gerarchica dei documenti archiviati.</div>
+            </div>
+          </div>
+          <div id="docTree" style="font-size:13px"></div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table" id="dt">
+              <thead><tr><th>File</th><th>Beneficiario</th><th>Tipo</th><th>Tabella</th><th>Categoria</th><th>CUP</th><th>PNRR</th><th>Azioni</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>`;
 
