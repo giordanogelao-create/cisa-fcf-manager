@@ -5881,6 +5881,17 @@ $('#pt').onclick=(e)=>{
         loadRows();
       };
     }
+        function renderDocumentCounterSummary(visibleCount,totalCount){
+      if(!$('#d_doc_counter')) return;
+
+      const visible=Number(visibleCount || 0);
+      const total=Number(totalCount || 0);
+
+      $('#d_doc_counter').textContent =
+        visible===total
+          ? `${visible} documenti`
+          : `${visible} di ${total} documenti`;
+    }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
       const tabFilter=($('#d_tab_filter')?.value || '').trim().toUpperCase();
