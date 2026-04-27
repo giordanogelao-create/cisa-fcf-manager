@@ -5753,6 +5753,13 @@ $('#pt').onclick=(e)=>{
                       >${esc(doc.filename || '')}</span>
                       <button
                         type="button"
+                        class="badge docTreeFile"
+                        data-doc-id="${esc(doc.id || '')}"
+                        title="Classifica documento"
+                        style="cursor:pointer;background:none"
+                      >Classifica</button>
+                      <button
+                        type="button"
                         class="badge docTreeOpenBtn"
                         data-storage-path="${esc(doc.storage_path || '')}"
                         title="Apri file"
@@ -5768,7 +5775,6 @@ $('#pt').onclick=(e)=>{
                       >Elimina</button>
                     </div>
                   `).join('');
-
                   return renderTreeNode(
                     `📁 ${esc(folderKey)} (${docs.length})`,
                     filesHtml,
