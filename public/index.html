@@ -5780,9 +5780,32 @@ $('#pt').onclick=(e)=>{
       }).join('');
     }
 
-    function bindDocumentTreeFilters(){
+        function bindDocumentTreeFilters(){
       const tree=$('#docTree');
       if(!tree) return;
+
+      const syncActiveTreeNode=()=>{
+        const currentTable=$('#d_tab_filter')?.value || '';
+        const currentCategory=$('#d_cat_filter')?.value || '';
+        const currentSupplier=$('#d_supplier_filter')?.value || '';
+        const currentFolder=$('#d_folder_filter')?.value || '';
+
+        $$('.docTreeNode', tree).forEach(node=>{
+          const sameTable=(node.dataset.table || '')===currentTable;
+          const sameCategory=(node.dataset.category || '')===currentCategory;
+          const sameSupplier=(node.dataset.supplier || '')===currentSupplier;
+          const sameFolder=(node.dataset.folder || '')===currentFolder;
+
+          const isActive=
+            sameTable &&
+            sameCategory &&
+            sameSupplier &&
+            sameFolder &&
+            (currentTable || currentCategory || currentSupplier || currentFolder);
+
+          node.classList.toggle('active', !!isActive);
+        });
+      };
 
       tree.onclick=(e)=>{
         const node=e.target.closest('.docTreeNode');
@@ -5798,10 +5821,13 @@ $('#pt').onclick=(e)=>{
         if($('#d_supplier_filter')) $('#d_supplier_filter').value=supplier;
         if($('#d_folder_filter')) $('#d_folder_filter').value=folder;
 
+        syncActiveTreeNode();
         loadRows();
         e.preventDefault();
         e.stopPropagation();
       };
+
+      syncActiveTreeNode();
     }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
