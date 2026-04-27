@@ -153,7 +153,14 @@
     .toast .t b{display:block;font-size:13px}
     .toast .t small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
     .drop{border:1px dashed rgba(159,176,211,.55);border-radius:14px;padding:18px;background:rgba(13,27,58,.35)}
-    .drop.drag{border-color:rgba(110,168,255,.7);background:rgba(110,168,255,.08)}
+        .drop.drag{border-color:rgba(110,168,255,.7);background:rgba(110,168,255,.08)}
+    .docTreeNode.active{
+      background:rgba(110,168,255,.14);
+      border:1px solid rgba(110,168,255,.35);
+      border-radius:10px;
+      padding:4px 8px;
+      display:inline-block;
+    }
     code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     @media (max-width:1080px){
       .shell{grid-template-columns:1fr}
