@@ -5845,6 +5845,25 @@ $('#pt').onclick=(e)=>{
 
       syncActiveTreeNode();
     }
+        function bindDocumentTreeFileClicks(){
+      const tree=$('#docTree');
+      if(!tree) return;
+
+      tree.querySelectorAll('.docTreeFile').forEach(el=>{
+        el.onclick=(e)=>{
+          const docId=el.dataset.docId || '';
+          if(!docId) return;
+
+          const tableRow=$(`#dt tr[data-id="${docId}"]`);
+          if(tableRow){
+            tableRow.click();
+          }
+
+          e.preventDefault();
+          e.stopPropagation();
+        };
+      });
+    }
            function renderActiveDocumentFiltersSummary(){
       const chips=[];
 
