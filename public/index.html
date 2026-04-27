@@ -5658,7 +5658,92 @@ $('#pt').onclick=(e)=>{
           </div>
         </div>
       </div>`;
+    function buildDocumentTree(rows){
+      const tree={};
 
+      rows.forEach(d=>{
+        const parts=String(d.storage_path || '').split('/').filter(Boolean);
+        const ben=parts[1] || 'BENEFICIARIO';
+        const table=parts[2] || 'SENZA_TABELLA';
+        const category=parts[3] || 'SENZA_CATEGORIA';
+        const investment=parts[4] || 'SENZA_INVESTIMENTO';
+        const supplier=parts[5] || 'SENZA_FORNITORE';
+        const folder=parts[6] || 'ALTRI_DOCUMENTI';
+
+        tree[ben] ??= {};
+        tree[ben][table] ??= {};
+        tree[ben][table][category] ??= {};
+        tree[ben][table][category][investment] ??= {};
+        tree[ben][table][category][investment][supplier] ??= {};
+        tree[ben][table][category][investment][supplier][folder] ??= [];
+
+        tree[ben][table][category][investment][supplier][folder].push(d);
+      });
+
+      return tree;
+    }
+
+    function renderTreeNode(label, content, level=0, open=false){
+      const pad=level * 14;
+      return `
+        <details ${open?'open':''} style="margin-left:${pad}px">
+          <summary style="cursor:pointer;list-style:none;padding:6px 0;color:var(--text)">
+            ${label}
+          </summary>
+          <div style="margin-top:4px">${content}</div>
+        </details>
+      `;
+    }
+
+    function renderDocumentTreeHtml(rows){
+      const tree=buildDocumentTree(rows);
+      const benKeys=Object.keys(tree);
+
+      if(!benKeys.length){
+        return `<div style="color:var(--muted)">Nessun documento da mostrare.</div>`;
+      }
+
+      return benKeys.map((benKey,bi)=>{
+        const benNode=tree[benKey];
+        const benHtml=Object.keys(benNode).map(tableKey=>{
+          const tableNode=benNode[tableKey];
+
+          const tableHtml=Object.keys(tableNode).map(catKey=>{
+            const catNode=tableNode[catKey];
+
+            const catHtml=Object.keys(catNode).map(invKey=>{
+              const invNode=catNode[invKey];
+
+              const invHtml=Object.keys(invNode).map(supplierKey=>{
+                const supplierNode=invNode[supplierKey];
+
+                const supplierHtml=Object.keys(supplierNode).map(folderKey=>{
+                  const docs=supplierNode[folderKey] || [];
+
+                  const filesHtml=docs.map(doc=>`
+                    <div style="margin:4px 0 4px 14px;color:var(--muted)">
+                      📄 <span style="color:var(--text)">${esc(doc.filename || '')}</span>
+                    </div>
+                  `).join('');
+
+                  return renderTreeNode(`📁 ${esc(folderKey)} (${docs.length})`, filesHtml, 0, false);
+                }).join('');
+
+                return renderTreeNode(`🏢 ${esc(supplierKey)}`, supplierHtml, 0, false);
+              }).join('');
+
+              return renderTreeNode(`🧩 ${esc(invKey)}`, invHtml, 0, false);
+            }).join('');
+
+            return renderTreeNode(`🏷️ ${esc(catKey)}`, catHtml, 0, false);
+          }).join('');
+
+          return renderTreeNode(`📚 ${esc(tableKey)}`, tableHtml, 0, false);
+        }).join('');
+
+        return renderTreeNode(`👤 ${esc(benKey)}`, benHtml, 0, bi===0);
+      }).join('');
+    }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
       const tabFilter=($('#d_tab_filter')?.value || '').trim().toUpperCase();
