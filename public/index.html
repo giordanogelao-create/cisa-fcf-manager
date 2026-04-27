@@ -5911,9 +5911,10 @@ $('#pt').onclick=(e)=>{
 
         return true;
       });
-            if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
+             if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
       bindDocumentTreeFilters();
       renderActiveDocumentFiltersSummary();
+      renderDocumentCounterSummary(rows.length, allRows.length);
       bindActiveDocumentFilterChips();
 
       $('#dt tbody').innerHTML=rows.map(d=>{
