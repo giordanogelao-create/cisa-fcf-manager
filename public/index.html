@@ -5904,6 +5904,44 @@ $('#pt').onclick=(e)=>{
         };
       });
     }
+        async function deleteDocumentFromTree(docId, storagePath){
+      const id=String(docId || '').trim();
+      const path=String(storagePath || '').trim();
+      if(!id) return;
+
+      if(!confirm('Vuoi eliminare questo documento dal Document Center?')) return;
+
+      if(path){
+        const rm=await sb.storage.from('documents').remove([path]);
+        if(rm.error){
+          return toast('Errore eliminazione file', true, rm.error.message);
+        }
+      }
+
+      const del=await sb.from('documents').delete().eq('id', id);
+      if(del.error){
+        return toast('Errore eliminazione record', true, del.error.message);
+      }
+
+      toast('Documento eliminato');
+      loadRows();
+    }
+
+    function bindDocumentTreeDeleteButtons(){
+      const tree=$('#docTree');
+      if(!tree) return;
+
+      tree.querySelectorAll('.docTreeDeleteBtn').forEach(btn=>{
+        btn.onclick=async(e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          await deleteDocumentFromTree(
+            btn.dataset.docId || '',
+            btn.dataset.storagePath || ''
+          );
+        };
+      });
+    }
            function renderActiveDocumentFiltersSummary(){
       const chips=[];
 
