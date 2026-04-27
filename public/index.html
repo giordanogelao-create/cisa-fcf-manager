@@ -5823,6 +5823,7 @@ $('#pt').onclick=(e)=>{
         return true;
       });
                 if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
+                bindDocumentTreeFilters();
             $('#dt tbody').innerHTML=rows.map(d=>{
         const pathParts=String(d.storage_path || '').split('/').filter(Boolean);
         const pathTable=pathParts[2] || d.table_code || '—';
