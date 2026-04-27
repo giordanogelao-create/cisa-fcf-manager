@@ -5830,7 +5830,7 @@ $('#pt').onclick=(e)=>{
 
       syncActiveTreeNode();
     }
-        function renderActiveDocumentFiltersSummary(){
+           function renderActiveDocumentFiltersSummary(){
       const chips=[];
 
       const table=$('#d_tab_filter')?.value || '';
@@ -5838,10 +5838,10 @@ $('#pt').onclick=(e)=>{
       const supplier=($('#d_supplier_filter')?.value || '').trim();
       const folder=($('#d_folder_filter')?.value || '').trim();
 
-      if(table) chips.push(`Tabella: ${esc(table)}`);
-      if(category) chips.push(`Categoria: ${esc(category)}`);
-      if(supplier) chips.push(`Fornitore: ${esc(supplier)}`);
-      if(folder) chips.push(`Cartella: ${esc(folder)}`);
+      if(table) chips.push({ key:'table', label:`Tabella: ${table}` });
+      if(category) chips.push({ key:'category', label:`Categoria: ${category}` });
+      if(supplier) chips.push({ key:'supplier', label:`Fornitore: ${supplier}` });
+      if(folder) chips.push({ key:'folder', label:`Cartella: ${folder}` });
 
       if(!$('#d_active_filters')) return;
 
@@ -5850,9 +5850,35 @@ $('#pt').onclick=(e)=>{
         return;
       }
 
-      $('#d_active_filters').innerHTML=chips
-        .map(x=>`<span class="badge good">${x}</span>`)
-        .join('');
+      $('#d_active_filters').innerHTML=chips.map(chip=>`
+        <button
+          type="button"
+          class="badge good d-filter-chip"
+          data-filter-key="${chip.key}"
+          style="cursor:pointer;background:none"
+          title="Rimuovi questo filtro"
+        >${esc(chip.label)} ✕</button>
+      `).join('');
+    }
+
+    function bindActiveDocumentFilterChips(){
+      const wrap=$('#d_active_filters');
+      if(!wrap) return;
+
+      wrap.onclick=(e)=>{
+        const chip=e.target.closest('.d-filter-chip');
+        if(!chip) return;
+
+        const key=chip.dataset.filterKey || '';
+
+        if(key==='table' && $('#d_tab_filter')) $('#d_tab_filter').value='';
+        if(key==='category' && $('#d_cat_filter')) $('#d_cat_filter').value='';
+        if(key==='supplier' && $('#d_supplier_filter')) $('#d_supplier_filter').value='';
+        if(key==='folder' && $('#d_folder_filter')) $('#d_folder_filter').value='';
+
+        $$('.docTreeNode.active').forEach(node=>node.classList.remove('active'));
+        loadRows();
+      };
     }
         async function loadRows(){
       const bid=$('#d_ben_sel').value;
