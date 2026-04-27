@@ -5872,6 +5872,30 @@ $('#pt').onclick=(e)=>{
         };
       });
     }
+        async function openDocumentFromTree(storagePath){
+      const path=String(storagePath || '').trim();
+      if(!path) return;
+
+      const {data,error}=await sb.storage.from('documents').createSignedUrl(path, 300);
+      if(error || !data?.signedUrl){
+        return toast('Errore apertura file', true, error?.message || 'URL non disponibile');
+      }
+
+      window.open(data.signedUrl, '_blank', 'noopener');
+    }
+
+    function bindDocumentTreeOpenButtons(){
+      const tree=$('#docTree');
+      if(!tree) return;
+
+      tree.querySelectorAll('.docTreeOpenBtn').forEach(btn=>{
+        btn.onclick=async(e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          await openDocumentFromTree(btn.dataset.storagePath || '');
+        };
+      });
+    }
            function renderActiveDocumentFiltersSummary(){
       const chips=[];
 
