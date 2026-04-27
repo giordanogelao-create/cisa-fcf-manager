@@ -6242,10 +6242,11 @@ $('#pt').onclick=(e)=>{
 
     if($('#d_reset_filters')){
       $('#d_reset_filters').onclick=()=>{
-        if($('#d_tab_filter')) $('#d_tab_filter').value='';
+                if($('#d_tab_filter')) $('#d_tab_filter').value='';
         if($('#d_cat_filter')) $('#d_cat_filter').value='';
         if($('#d_supplier_filter')) $('#d_supplier_filter').value='';
         if($('#d_folder_filter')) $('#d_folder_filter').value='';
+        $$('.docTreeNode.active').forEach(node=>node.classList.remove('active'));
         loadRows();
       };
     }
