@@ -5742,14 +5742,22 @@ $('#pt').onclick=(e)=>{
                 const supplierHtml=Object.keys(supplierNode).map(folderKey=>{
                   const docs=supplierNode[folderKey] || [];
 
-                                    const filesHtml=docs.map(doc=>`
-                    <div style="margin:4px 0 4px 14px;color:var(--muted)">
-                      📄 <span
+                                      const filesHtml=docs.map(doc=>`
+                    <div style="margin:4px 0 4px 14px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span>📄</span>
+                      <span
                         class="docTreeFile"
                         data-doc-id="${esc(doc.id || '')}"
                         style="color:var(--text)"
                         title="Apri classificazione documento"
                       >${esc(doc.filename || '')}</span>
+                      <button
+                        type="button"
+                        class="badge docTreeOpenBtn"
+                        data-storage-path="${esc(doc.storage_path || '')}"
+                        title="Apri file"
+                        style="cursor:pointer;background:none"
+                      >Apri</button>
                     </div>
                   `).join('');
 
