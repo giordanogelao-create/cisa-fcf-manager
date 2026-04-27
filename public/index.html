@@ -6036,8 +6036,8 @@ $('#pt').onclick=(e)=>{
             if($('#docTree')) $('#docTree').innerHTML=renderDocumentTreeHtml(rows);
       bindDocumentTreeFilters();
       bindDocumentTreeFileClicks();
-          bindDocumentTreeOpenButtons();
       bindDocumentTreeOpenButtons();
+      bindDocumentTreeDeleteButtons();
       renderActiveDocumentFiltersSummary();
       renderDocumentCounterSummary(rows.length, allRows.length);
       bindActiveDocumentFilterChips();
