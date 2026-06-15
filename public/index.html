@@ -5525,7 +5525,41 @@ $('#pt').onclick=(e)=>{
       const isPdf=/\.pdf$/i.test(file.name||'') || file.type==='application/pdf';
       if(!isPdf) return;
 
-            paintFiles(list,'in analisi');
+              const resetContractPreview=()=>{
+          [
+            '#cp_doc_no',
+            '#cp_doc_date',
+            '#cp_supplier',
+            '#cp_supplier_tax_id',
+            '#cp_object',
+            '#cp_taxable',
+            '#cp_vat',
+            '#cp_total',
+            '#cp_cup',
+            '#cp_cig',
+            '#cp_site',
+            '#cp_deadline',
+            '#cp_signature',
+            '#cp_note',
+            '#cp_raw_text'
+          ].forEach(selector=>{
+            const el=$(selector);
+            if(el) el.value='';
+          });
+
+          if($('#cp_beneficiary_name')){
+            $('#cp_beneficiary_name').value=String(
+              benSel.options[benSel.selectedIndex]?.text || ''
+            ).split('•')[0].trim();
+          }
+
+          if(invSel && [...invSel.options].some(o=>!o.value)){
+            invSel.value='';
+          }
+        };
+
+        resetContractPreview();
+        paintFiles(list,'in analisi');
       try{
         const res=await extractTextFromPdfWithFallback(file);
         const contractSourceText=normalizeTextKeepLines([
