@@ -1261,16 +1261,51 @@
 }
 
 async function invokeAiExtractDocument(payload){
-  const { data, error } = await sb.functions.invoke('ai-extract-document', {
-    body: payload
+  const currentSession = session || (await sb.auth.getSession())?.data?.session || null;
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-extract-document`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${currentSession?.access_token || SUPABASE_KEY}`
+    },
+    body: JSON.stringify(payload || {})
   });
 
-  if(error){
-    throw new Error(error.message || 'Errore invocazione ai-extract-document');
+  const responseText = await res.text();
+
+  let data = null;
+  try{
+    data = responseText ? JSON.parse(responseText) : null;
+  }catch(_){
+    data = null;
+  }
+
+  if(!res.ok){
+    console.error('Errore ai-extract-document', {
+      status: res.status,
+      statusText: res.statusText,
+      responseText,
+      payload
+    });
+
+    throw new Error(
+      `Edge Function ai-extract-document errore ${res.status}: ${
+        data?.error || data?.message || responseText || res.statusText || 'errore sconosciuto'
+      }`
+    );
   }
 
   if(!data?.ok){
-    throw new Error(data?.error || 'Risposta AI non valida');
+    console.error('Risposta AI non valida', {
+      status: res.status,
+      responseText,
+      data,
+      payload
+    });
+
+    throw new Error(data?.error || data?.message || 'Risposta AI non valida');
   }
 
   return data;
