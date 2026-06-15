@@ -5138,18 +5138,18 @@ $('#pt').onclick=(e)=>{
         </div>
         <div id="cp_preview" style="margin-top:10px;color:var(--muted);font-size:13px">Nessun documento caricato.</div>
       </div>
-      <div style="height:12px"></div>
+            <div style="height:12px"></div>
       <div class="card" style="padding:14px">
         <div class="h" style="border:none;box-shadow:none;padding:0;margin-bottom:10px">
           <div>
-            <h3 class="ct" style="font-size:15px">Preview dati estratti / compilazione manuale</h3>
-            <p class="sub">Campi minimi modificabili prima del salvataggio del documento collegato.</p>
+            <h3 class="ct" style="font-size:15px">Preview dati essenziali del documento</h3>
+            <p class="sub">Verifica solo i campi realmente utili per classificare e archiviare il giustificativo di impegno.</p>
           </div>
         </div>
         <div class="row" style="gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:180px">
+          <div style="width:180px">
             <label style="color:var(--muted);font-size:12px">Numero documento</label>
-            <input id="cp_doc_no" class="input" placeholder="Es. 15/2026">
+            <input id="cp_doc_no" class="input" placeholder="Es. 25">
           </div>
           <div style="width:180px">
             <label style="color:var(--muted);font-size:12px">Data documento</label>
@@ -5159,54 +5159,36 @@ $('#pt').onclick=(e)=>{
             <label style="color:var(--muted);font-size:12px">Fornitore</label>
             <input id="cp_supplier" class="input" placeholder="Ragione sociale fornitore">
           </div>
-          <div style="flex:1;min-width:240px">
-            <label style="color:var(--muted);font-size:12px">Beneficiario</label>
-            <input id="cp_beneficiary_name" class="input" placeholder="Ragione sociale beneficiario">
+          <div style="width:220px">
+            <label style="color:var(--muted);font-size:12px">P.IVA / C.F. fornitore</label>
+            <input id="cp_supplier_tax_id" class="input" placeholder="P.IVA o Codice fiscale">
           </div>
           <div class="full">
             <label style="color:var(--muted);font-size:12px">Oggetto / descrizione</label>
-            <input id="cp_object" class="input" placeholder="Oggetto del contratto, preventivo o documento collegato">
+            <input id="cp_object" class="input" placeholder="Oggetto del contratto, preventivo, ODA, lettera di incarico o altro documento">
           </div>
-          <div style="width:160px">
+          <div style="width:170px">
             <label style="color:var(--muted);font-size:12px">Imponibile</label>
             <input id="cp_taxable" class="input" inputmode="decimal" placeholder="0,00">
           </div>
-          <div style="width:160px">
+          <div style="width:170px">
             <label style="color:var(--muted);font-size:12px">IVA</label>
             <input id="cp_vat" class="input" inputmode="decimal" placeholder="0,00">
           </div>
-          <div style="width:160px">
+          <div style="width:170px">
             <label style="color:var(--muted);font-size:12px">Totale</label>
             <input id="cp_total" class="input" inputmode="decimal" placeholder="0,00">
           </div>
-          <div style="width:170px">
-            <label style="color:var(--muted);font-size:12px">CUP</label>
-            <input id="cp_cup" class="input" placeholder="CUP">
-          </div>
-          <div style="width:170px">
-            <label style="color:var(--muted);font-size:12px">CIG</label>
-            <input id="cp_cig" class="input" placeholder="CIG">
-          </div>
-          <div style="flex:1;min-width:220px">
-            <label style="color:var(--muted);font-size:12px">Ubicazione / sede / immobile</label>
-            <input id="cp_site" class="input" placeholder="Ubicazione o sede">
-          </div>
-          <div style="width:180px">
-            <label style="color:var(--muted);font-size:12px">Durata / scadenza</label>
-            <input id="cp_deadline" class="input" placeholder="Es. 31/12/2026">
-          </div>
-          <div style="width:180px">
-            <label style="color:var(--muted);font-size:12px">Firma / sottoscrizione</label>
-            <input id="cp_signature" class="input" placeholder="Presente / assente / firmato da">
-          </div>
-          <div class="full">
-            <label style="color:var(--muted);font-size:12px">Note</label>
-            <textarea id="cp_note" class="input" placeholder="Note interne o dettagli utili"></textarea>
-          </div>
-                    <div class="full">
-            <label style="color:var(--muted);font-size:12px">Testo estratto grezzo</label>
-            <textarea id="cp_raw_text" class="input" placeholder="Qui finirà il testo estratto da PDF/OCR oppure incollato manualmente"></textarea>
-          </div>
+
+          <input id="cp_beneficiary_name" type="hidden">
+          <input id="cp_cup" type="hidden">
+          <input id="cp_cig" type="hidden">
+          <input id="cp_site" type="hidden">
+          <input id="cp_deadline" type="hidden">
+          <input id="cp_signature" type="hidden">
+          <textarea id="cp_note" style="display:none"></textarea>
+          <textarea id="cp_raw_text" style="display:none"></textarea>
+
           <div class="full">
             <div class="row" style="justify-content:flex-end;gap:10px;margin-top:4px">
               <button class="btn pri" id="cp_save_doc">Salva documento nel Document Center</button>
