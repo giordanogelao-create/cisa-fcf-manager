@@ -5091,7 +5091,16 @@ $('#pt').onclick=(e)=>{
     const beneficiaries=benQ.data||[];
     if(!beneficiaries.length){ view.innerHTML=routeError('Contratti e preventivi','Crea prima almeno un beneficiario.'); return; }
 
-            const invQ=await sb.from('investments').select('id,beneficiary_id,title,table_code,category_code,location').eq('filiera_id',fid).order('created_at',{ascending:false});
+        const beneficiaryIds=beneficiaries.map(b=>b.id);
+
+    const invQ=beneficiaryIds.length
+      ? await sb
+          .from('investments')
+          .select('id,beneficiary_id,title,table_code,category_code,location')
+          .in('beneficiary_id', beneficiaryIds)
+          .order('created_at',{ascending:false})
+      : {data:[]};
+
     const investments=invQ.data||[];
 
     const investmentLabel=(i)=>{
