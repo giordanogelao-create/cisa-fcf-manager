@@ -5273,7 +5273,7 @@ $('#pt').onclick=(e)=>{
 
     const normalizeCmp=(s)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 
-    const fillContractPreviewFromText=(text)=>{
+        const fillContractPreviewFromText=(text)=>{
       const raw=normalizeTextKeepLines(text||'');
       const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
       const benLabel=(benSel.options[benSel.selectedIndex]?.text || '').split('•')[0].trim();
@@ -5292,9 +5292,11 @@ $('#pt').onclick=(e)=>{
       if(autoType && $('#cp_doc_type')) $('#cp_doc_type').value=autoType;
 
       const docNo=firstMatch(raw,[
+        /\bTipo\s+Documento\s+N\.\s+Data[^\n]*\n\s*(?:Preventivo|Offerta|Contratto)\s+([A-Z0-9\/._-]{1,20})\s+\d{2}[\/.\-]\d{2}[\/.\-]\d{4}\b/i,
+        /\b(?:Preventivo|Offerta|Contratto)\s+n\.?\s*([A-Z0-9\/._-]{1,20})\b/i,
         /\bOrder Number\b\s*([A-Z0-9\/._-]{3,})/i,
         /\bOrder Confirmation\b\s*([A-Z0-9\/._-]{3,})\s+\d{2}[\/.\-]\d{2}[\/.\-]\d{4}/i,
-        /\b(?:Numero documento|N\.?\s*documento|Document No\.?)\b\s*[:\-]?\s*([A-Z0-9\/._-]{3,})/i,
+        /\b(?:Numero documento|N\.?\s*documento|Document No\.?)\b\s*[:\-]?\s*([A-Z0-9\/._-]{1,20})/i,
         /\bCustomer Reference\b\s*([A-Z0-9\/._-]{3,})/i
       ]);
       if(docNo && $('#cp_doc_no') && !$('#cp_doc_no').value.trim()){
@@ -5302,6 +5304,7 @@ $('#pt').onclick=(e)=>{
       }
 
       const docDateRaw=firstMatch(raw,[
+        /\bTipo\s+Documento\s+N\.\s+Data[^\n]*\n\s*(?:Preventivo|Offerta|Contratto)\s+[A-Z0-9\/._-]{1,20}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
         /\bOrder Confirmation\b\s*[A-Z0-9\/._-]{3,}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
         /\b(?:Document Date|Data documento)\b\s*[:\-]?\s*([0-9\/.\-]{8,10})/i,
         /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
@@ -5310,23 +5313,49 @@ $('#pt').onclick=(e)=>{
         $('#cp_doc_date').value=toIsoDateGuess(docDateRaw) || docDateRaw;
       }
 
-      const supplierLine=lines.find(l=>{
+      const supplierLine=lines.find((l,idx)=>{
         const norm=normalizeCmp(l);
+        if(idx > 8) return false;
         if(!norm || (benNorm && norm.includes(benNorm))) return false;
-        if(/CUSTOMER REFERENCE|ORDER NUMBER|ORDER DATE|SOLUTION NUMBER|LOCAL CONTACT|PROJECT MANAGER|TECHNICAL SALES MANAGER|REGISTERED OFFICE|MANAGING DIRECTOR/i.test(l)) return false;
-        return /\b(?:S\.?\s*R\.?\s*L\.?|S\.?\s*P\.?\s*A\.?|B\.?\s*V\.?|LTD|GMBH|SOCIETA|COOP\.?VA|AGRICOLA)\b/i.test(l);
-      });
+        if(/TIPO DOCUMENTO|COD\.?\s*FISCALE|P\.?\s*IVA|REA|EMAIL|TEL\.?|INTESTATARIO|INDIRIZZO DI SPEDIZIONE/i.test(l)) return false;
+        return /\b(?:S\.?\s*R\.?\s*L\.?|S\.?\s*P\.?\s*A\.?|B\.?\s*V\.?|LTD|GMBH|SOCIETA|COOP\.?VA)\b/i.test(l);
+      }) || lines[0] || '';
       if(supplierLine && $('#cp_supplier') && !$('#cp_supplier').value.trim()){
-        $('#cp_supplier').value=supplierLine;
+        $('#cp_supplier').value=supplierLine.trim();
+      }
+
+      const beneficiaryText=firstMatch(raw,[
+        /\bIntestatario\b\s*\n\s*([^\n]{3,120})/i,
+        /\bSpett\.le\s+([^\n]{3,120})/i
+      ]);
+      if(beneficiaryText && $('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
+        $('#cp_beneficiary_name').value=beneficiaryText.trim();
       }
 
       const objectText=firstMatch(raw,[
-        /\bSolution Number\b[^\n]*\n([^\n]{5,140})/i,
-        /\bObject\b\s*[:\-]?\s*([^\n]{5,140})/i,
-        /\bOggetto\b\s*[:\-]?\s*([^\n]{5,140})/i
+        /\bCod\.\s*Prest\.\s*Descrizione\s+Prestazione[^\n]*\n([\s\S]{20,420}?)\n\s*\d+\s+\d{1,3}(?:[.,]\d{3})*(?:,\d{2}|\.\d{2})\s+\d{1,3}(?:[.,]\d{3})*(?:,\d{2}|\.\d{2})\s+\d{1,2}\b/i,
+        /\bSolution Number\b[^\n]*\n([^\n]{5,220})/i,
+        /\bObject\b\s*[:\-]?\s*([^\n]{5,220})/i,
+        /\bOggetto\b\s*[:\-]?\s*([^\n]{5,220})/i
       ]);
       if(objectText && $('#cp_object') && !$('#cp_object').value.trim()){
-        $('#cp_object').value=objectText.trim();
+        $('#cp_object').value=objectText.replace(/\s+/g,' ').trim();
+      }
+
+      const netRaw=firstMatch(raw,[
+        /\bImponibile\b\s*([0-9][0-9.,]*)/i,
+        /\bTotale\s+imponibile\b\s*([0-9][0-9.,]*)/i
+      ]);
+      if(netRaw && $('#cp_net') && !$('#cp_net').value.trim()){
+        $('#cp_net').value=formatMoneyPreview(netRaw);
+      }
+
+      const vatRaw=firstMatch(raw,[
+        /\bIva\b\s*([0-9][0-9.,]*)/i,
+        /\bIVA\b\s*([0-9][0-9.,]*)/i
+      ]);
+      if(vatRaw && $('#cp_vat') && !$('#cp_vat').value.trim()){
+        $('#cp_vat').value=formatMoneyPreview(vatRaw);
       }
 
       const totalRaw=firstMatch(raw,[
@@ -5338,23 +5367,47 @@ $('#pt').onclick=(e)=>{
       }
 
       const cup=firstMatch(raw,[
+        /\bCUP\b\s*[:\-]?\s*([A-Z0-9]{15})\b/i,
         /\b([A-Z0-9]{15})\b/
       ]);
       if(cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
         $('#cp_cup').value=cup.trim();
       }
 
+      const cig=firstMatch(raw,[
+        /\bCIG\b\s*[:\-]?\s*([A-Z0-9]{8,15})\b/i
+      ]);
+      if(cig && $('#cp_cig') && !$('#cp_cig').value.trim()){
+        $('#cp_cig').value=cig.trim();
+      }
+
+      const siteText=firstMatch(raw,[
+        /\bVia\s+di\s+Pietralata,\s*179[^\n]*/i,
+        /\bUbicazione\b\s*[:\-]?\s*([^\n]{5,160})/i,
+        /\bSede\b\s*[:\-]?\s*([^\n]{5,160})/i,
+        /\bImmobile\b\s*[:\-]?\s*([^\n]{5,160})/i
+      ]);
+      if(siteText && $('#cp_site') && !$('#cp_site').value.trim()){
+        $('#cp_site').value=String(siteText).replace(/\s+/g,' ').trim();
+      }
+
       const deadline=firstMatch(raw,[
+        /\bLe modalità di pagamento sono le seguenti\s*:\s*([^\n.]+)/i,
+        /\bpagamento\s+anticipato\b/i,
         /\bDelivery shall take place\s*([^\n.]+)/i,
         /\bConsegna\b\s*[:\-]?\s*([^\n.]+)/i,
         /\bvalidity\b[\s\S]{0,120}?\bfor\s*([^\n.]+)/i
       ]);
       if(deadline && $('#cp_deadline') && !$('#cp_deadline').value.trim()){
-        $('#cp_deadline').value=deadline.trim();
+        $('#cp_deadline').value=String(deadline).replace(/\s+/g,' ').trim();
       }
 
-      if(/\bSIGNATURES?\b|\bSignature\b/i.test(raw)){
-        if($('#cp_signature') && !$('#cp_signature').value.trim()){
+      if($('#cp_signature') && !$('#cp_signature').value.trim()){
+        if(/\bfirmat[oa]\b|\bsottoscritt[oa]\b/i.test(raw)){
+          $('#cp_signature').value='Firmato / sottoscritto';
+        }else if(/\bCordiali saluti\b/i.test(raw)){
+          $('#cp_signature').value='Da verificare su PDF';
+        }else if(/\bSIGNATURES?\b|\bSignature\b/i.test(raw)){
           $('#cp_signature').value='Da firmare';
         }
       }
