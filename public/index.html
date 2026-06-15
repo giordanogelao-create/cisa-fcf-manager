@@ -5273,139 +5273,175 @@ $('#pt').onclick=(e)=>{
 
     const normalizeCmp=(s)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 
-        const fillContractPreviewFromText=(text)=>{
+              const fillContractPreviewFromText=(text)=>{
       const raw=normalizeTextKeepLines(text||'');
       const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
-      const benLabel=(benSel.options[benSel.selectedIndex]?.text || '').split('•')[0].trim();
+
+      const setIfEmpty=(selector,value,opts={})=>{
+        const el=$(selector);
+        const v=String(value || '').replace(/\s+/g,' ').trim();
+        if(!el || !v) return;
+        if(opts.force || !el.value.trim()) el.value=v;
+      };
+
+      const setDateIfEmpty=(selector,value)=>{
+        const el=$(selector);
+        const iso=toIsoDateGuess(value) || String(value || '').trim();
+        if(el && iso && !el.value) el.value=iso;
+      };
+
+      const selectedBenText=()=>String(benSel.options[benSel.selectedIndex]?.text || '').split('•')[0].trim();
+      let benLabel=selectedBenText();
       const benNorm=normalizeCmp(benLabel);
 
       if($('#cp_raw_text')) $('#cp_raw_text').value=raw;
 
-      if($('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
-        $('#cp_beneficiary_name').value=benLabel;
-      }
+      const headerMatch=raw.match(/\bTipo\s+Documento\s+N\.?\s+Data[^\n]*\n\s*(Preventivo|Offerta|Contratto|Ordine(?:\s+di\s+acquisto)?|DDT)\s+([A-Z0-9\/. _-]{1,30})\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i);
 
-      const autoType=
-        /\b(?:quote|quotation|preventivo|offerta)\b/i.test(raw) ? 'Preventivo' :
-        /\b(?:order confirmation|contract|contratto|agreement)\b/i.test(raw) ? 'Contratto' :
+      const detectedType=headerMatch?.[1] || firstMatch(raw,[
+        /\bTipo\s+Documento\b[^\n]{0,120}\b(Preventivo|Offerta|Contratto|DDT)\b/i,
+        /\b(Preventivo|Offerta|Contratto|DDT)\s+n\.?\s*[A-Z0-9\/. _-]{1,30}\b/i
+      ]);
+
+      const autoType=(/preventivo|offerta/i.test(detectedType || raw)) ? 'Preventivo' :
+        (/ordine/i.test(detectedType || raw)) ? 'Ordine di acquisto' :
+        (/\bddt\b/i.test(detectedType || raw)) ? 'DDT' :
+        (/contratto|agreement|contract/i.test(detectedType || raw)) ? 'Contratto' :
         '';
       if(autoType && $('#cp_doc_type')) $('#cp_doc_type').value=autoType;
 
-      const docNo=firstMatch(raw,[
-        /\bTipo\s+Documento\s+N\.\s+Data[^\n]*\n\s*(?:Preventivo|Offerta|Contratto)\s+([A-Z0-9\/._-]{1,20})\s+\d{2}[\/.\-]\d{2}[\/.\-]\d{4}\b/i,
-        /\b(?:Preventivo|Offerta|Contratto)\s+n\.?\s*([A-Z0-9\/._-]{1,20})\b/i,
-        /\bOrder Number\b\s*([A-Z0-9\/._-]{3,})/i,
-        /\bOrder Confirmation\b\s*([A-Z0-9\/._-]{3,})\s+\d{2}[\/.\-]\d{2}[\/.\-]\d{4}/i,
-        /\b(?:Numero documento|N\.?\s*documento|Document No\.?)\b\s*[:\-]?\s*([A-Z0-9\/._-]{1,20})/i,
-        /\bCustomer Reference\b\s*([A-Z0-9\/._-]{3,})/i
-      ]);
-      if(docNo && $('#cp_doc_no') && !$('#cp_doc_no').value.trim()){
-        $('#cp_doc_no').value=docNo.trim();
-      }
-
-      const docDateRaw=firstMatch(raw,[
-        /\bTipo\s+Documento\s+N\.\s+Data[^\n]*\n\s*(?:Preventivo|Offerta|Contratto)\s+[A-Z0-9\/._-]{1,20}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
-        /\bOrder Confirmation\b\s*[A-Z0-9\/._-]{3,}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})/i,
-        /\b(?:Document Date|Data documento)\b\s*[:\-]?\s*([0-9\/.\-]{8,10})/i,
-        /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
-      ]);
-      if(docDateRaw && $('#cp_doc_date') && !$('#cp_doc_date').value){
-        $('#cp_doc_date').value=toIsoDateGuess(docDateRaw) || docDateRaw;
-      }
-
-      const supplierLine=lines.find((l,idx)=>{
-        const norm=normalizeCmp(l);
-        if(idx > 8) return false;
-        if(!norm || (benNorm && norm.includes(benNorm))) return false;
-        if(/TIPO DOCUMENTO|COD\.?\s*FISCALE|P\.?\s*IVA|REA|EMAIL|TEL\.?|INTESTATARIO|INDIRIZZO DI SPEDIZIONE/i.test(l)) return false;
-        return /\b(?:S\.?\s*R\.?\s*L\.?|S\.?\s*P\.?\s*A\.?|B\.?\s*V\.?|LTD|GMBH|SOCIETA|COOP\.?VA)\b/i.test(l);
-      }) || lines[0] || '';
-      if(supplierLine && $('#cp_supplier') && !$('#cp_supplier').value.trim()){
-        $('#cp_supplier').value=supplierLine.trim();
-      }
-
       const beneficiaryText=firstMatch(raw,[
         /\bIntestatario\b\s*\n\s*([^\n]{3,120})/i,
-        /\bSpett\.le\s+([^\n]{3,120})/i
+        /\bSpett\.le\s+([^\n,]{3,120})/i,
+        /\bCliente\b\s*[:\-]?\s*([^\n]{3,120})/i,
+        /\bCommittente\b\s*[:\-]?\s*([^\n]{3,120})/i
       ]);
-      if(beneficiaryText && $('#cp_beneficiary_name') && !$('#cp_beneficiary_name').value.trim()){
-        $('#cp_beneficiary_name').value=beneficiaryText.trim();
+
+      if(beneficiaryText){
+        const bNorm=normalizeCmp(beneficiaryText);
+        const matchedBen=beneficiaries.find(b=>{
+          const dbNorm=normalizeCmp(b.ragione_sociale || '');
+          return dbNorm && bNorm && (dbNorm===bNorm || dbNorm.includes(bNorm) || bNorm.includes(dbNorm));
+        }) || null;
+
+        if(matchedBen && benSel.value!==matchedBen.id){
+          benSel.value=matchedBen.id;
+          syncInvestments();
+        }
+
+        benLabel=selectedBenText();
       }
+
+      setIfEmpty('#cp_beneficiary_name', beneficiaryText || benLabel, {force: !!beneficiaryText});
+
+      const docNo=headerMatch?.[2] || firstMatch(raw,[
+        /\b(?:Preventivo|Offerta|Contratto|Ordine(?:\s+di\s+acquisto)?|DDT)\s+n\.?\s*([A-Z0-9\/. _-]{1,30})\b/i,
+        /\b(?:Numero\s+documento|N\.?\s*documento|Documento\s+n\.?|Doc\.\s*n\.?|Protocollo)\b\s*[:\-]?\s*([A-Z0-9\/. _-]{1,30})/i,
+        /\bOrder\s+Number\b\s*([A-Z0-9\/. _-]{3,})/i,
+        /\bCustomer\s+Reference\b\s*([A-Z0-9\/. _-]{3,})/i
+      ]);
+      setIfEmpty('#cp_doc_no', docNo);
+
+      const docDateRaw=headerMatch?.[3] || firstMatch(raw,[
+        /\b(?:Data\s+documento|Data\s+preventivo|Data\s+offerta|Data\s+contratto|Del)\b\s*[:\-]?\s*(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\b(?:Preventivo|Offerta|Contratto|Ordine(?:\s+di\s+acquisto)?|DDT)\s+[A-Z0-9\/. _-]{1,30}\s+(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/i,
+        /\b(\d{2}[\/.\-]\d{2}[\/.\-]\d{4})\b/
+      ]);
+      setDateIfEmpty('#cp_doc_date', docDateRaw);
+
+      const supplierPiva=firstMatch(raw,[
+        /\bP\.?\s*IVA\b\s*[:\-]?\s*(?:IT\s*)?(\d{11})\b/i,
+        /\bPartita\s+IVA\b\s*[:\-]?\s*(?:IT\s*)?(\d{11})\b/i
+      ]);
+
+      const supplierCf=firstMatch(raw,[
+        /\bCod\.?\s*Fiscale\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i,
+        /\bC\.?\s*F\.?\b\s*[:\-]?\s*([A-Z0-9]{11,16})\b/i
+      ]);
+
+      const supplierLine=lines.find((l,idx)=>{
+        if(idx > 10) return false;
+        const norm=normalizeCmp(l);
+        if(!norm || (benNorm && norm.includes(benNorm))) return false;
+        if(/TIPO\s+DOCUMENTO|COD\.?\s*FISCALE|P\.?\s*IVA|REA|EMAIL|TEL\.?|INTESTATARIO|INDIRIZZO\s+DI\s+SPEDIZIONE/i.test(l)) return false;
+        return /\b(?:S\.?\s*R\.?\s*L\.?|S\.?\s*P\.?\s*A\.?|S\.AGR\.?|SOCIETA|COOP(?:ERATIVA)?|CONSORZIO|B\.?\s*V\.?|LTD|GMBH)\b/i.test(l);
+      }) || '';
+
+      setIfEmpty('#cp_supplier', supplierLine || firstMatch(raw,[
+        /\bFornitore\b\s*[:\-]?\s*([^\n]{3,120})/i,
+        /\bRagione\s+sociale\b\s*[:\-]?\s*([^\n]{3,120})/i
+      ]));
+
+      const amountLine=(lines.find(l=>/^\d+(?:[,.]\d+)?\s+[0-9][0-9.,]*\s+[0-9][0-9.,]*\s+\d{1,2}\b/.test(l)) || '');
+      const amountMatch=amountLine.match(/^(\d+(?:[,.]\d+)?)\s+([0-9][0-9.,]*)\s+([0-9][0-9.,]*)\s+(\d{1,2})\b/);
+      const quantity=amountMatch?.[1] || '';
+      const unitPrice=amountMatch?.[2] || '';
+      const lineNetAmount=amountMatch?.[3] || '';
+      const vatRate=amountMatch?.[4] || '';
 
       const objectText=firstMatch(raw,[
-        /\bCod\.\s*Prest\.\s*Descrizione\s+Prestazione[^\n]*\n([\s\S]{20,420}?)\n\s*\d+\s+\d{1,3}(?:[.,]\d{3})*(?:,\d{2}|\.\d{2})\s+\d{1,3}(?:[.,]\d{3})*(?:,\d{2}|\.\d{2})\s+\d{1,2}\b/i,
-        /\bSolution Number\b[^\n]*\n([^\n]{5,220})/i,
-        /\bObject\b\s*[:\-]?\s*([^\n]{5,220})/i,
-        /\bOggetto\b\s*[:\-]?\s*([^\n]{5,220})/i
+        /\bCod\.?\s*Prest\.?\s*Descrizione\s+Prestazione[^\n]*\n([\s\S]{20,900}?)(?=\n\s*\d+(?:[,.]\d+)?\s+[0-9][0-9.,]*\s+[0-9][0-9.,]*\s+\d{1,2}\b)/i,
+        /\bDescrizione\s+(?:Prestazione|Fornitura|Servizio)[^\n]*\n([\s\S]{20,700}?)(?=\n\s*(?:Imponibile|Totale|Iva|IVA)\b)/i,
+        /\bOggetto\b\s*[:\-]?\s*([^\n]{5,500})/i,
+        /\bObject\b\s*[:\-]?\s*([^\n]{5,500})/i,
+        /\bDescrizione\b\s*[:\-]?\s*([^\n]{5,500})/i
       ]);
-      if(objectText && $('#cp_object') && !$('#cp_object').value.trim()){
-        $('#cp_object').value=objectText.replace(/\s+/g,' ').trim();
-      }
+      setIfEmpty('#cp_object', objectText);
 
       const netRaw=firstMatch(raw,[
-        /\bImponibile\b\s*([0-9][0-9.,]*)/i,
-        /\bTotale\s+imponibile\b\s*([0-9][0-9.,]*)/i
-      ]);
-      if(netRaw && $('#cp_net') && !$('#cp_net').value.trim()){
-        $('#cp_net').value=formatMoneyPreview(netRaw);
-      }
+        /\bImponibile\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bTotale\s+imponibile\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i
+      ]) || lineNetAmount;
+      setIfEmpty('#cp_taxable', netRaw ? formatMoneyPreview(netRaw) : '');
 
       const vatRaw=firstMatch(raw,[
-        /\bIva\b\s*([0-9][0-9.,]*)/i,
-        /\bIVA\b\s*([0-9][0-9.,]*)/i
+        /\bIva\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bIVA\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bTotale\s+IVA\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i
       ]);
-      if(vatRaw && $('#cp_vat') && !$('#cp_vat').value.trim()){
-        $('#cp_vat').value=formatMoneyPreview(vatRaw);
-      }
+      setIfEmpty('#cp_vat', vatRaw ? formatMoneyPreview(vatRaw) : '');
 
       const totalRaw=firstMatch(raw,[
-        /\bTotal Amount\b\s*([0-9][0-9.,]*)/i,
-        /\bTotale\b\s*[:\-]?\s*([0-9][0-9.,]*)/i
+        /\bTotale\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bTotale\s+documento\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bImporto\s+totale\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i,
+        /\bTotal\s+Amount\b[^\d]{0,20}([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})|[0-9]+(?:[.,][0-9]{2})?)/i
       ]);
-      if(totalRaw && $('#cp_total') && !$('#cp_total').value.trim()){
-        $('#cp_total').value=formatMoneyPreview(totalRaw);
-      }
+      setIfEmpty('#cp_total', totalRaw ? formatMoneyPreview(totalRaw) : '');
 
       const cup=firstMatch(raw,[
-        /\bCUP\b\s*[:\-]?\s*([A-Z0-9]{15})\b/i,
-        /\b([A-Z0-9]{15})\b/
+        /\bCUP\b\s*[:\-]?\s*([A-Z0-9]{15})\b/i
       ]);
-      if(cup && $('#cp_cup') && !$('#cp_cup').value.trim()){
-        $('#cp_cup').value=cup.trim();
-      }
+      setIfEmpty('#cp_cup', cup);
 
       const cig=firstMatch(raw,[
         /\bCIG\b\s*[:\-]?\s*([A-Z0-9]{8,15})\b/i
       ]);
-      if(cig && $('#cp_cig') && !$('#cp_cig').value.trim()){
-        $('#cp_cig').value=cig.trim();
-      }
+      setIfEmpty('#cp_cig', cig);
 
+      const shippingMatch=raw.match(/\bIndirizzo\s+di\s+Spedizione\b\s*\n\s*[^\n]+\n\s*([^\n]{5,160})\n\s*([^\n]{5,160})/i);
       const siteText=firstMatch(raw,[
-        /\bVia\s+di\s+Pietralata,\s*179[^\n]*/i,
         /\bUbicazione\b\s*[:\-]?\s*([^\n]{5,160})/i,
         /\bSede\b\s*[:\-]?\s*([^\n]{5,160})/i,
         /\bImmobile\b\s*[:\-]?\s*([^\n]{5,160})/i
-      ]);
-      if(siteText && $('#cp_site') && !$('#cp_site').value.trim()){
-        $('#cp_site').value=String(siteText).replace(/\s+/g,' ').trim();
-      }
+      ]) || (shippingMatch ? `${shippingMatch[1]} ${shippingMatch[2]}` : '');
+      setIfEmpty('#cp_site', siteText);
 
-      const deadline=firstMatch(raw,[
-        /\bLe modalità di pagamento sono le seguenti\s*:\s*([^\n.]+)/i,
-        /\bpagamento\s+anticipato\b/i,
-        /\bDelivery shall take place\s*([^\n.]+)/i,
-        /\bConsegna\b\s*[:\-]?\s*([^\n.]+)/i,
-        /\bvalidity\b[\s\S]{0,120}?\bfor\s*([^\n.]+)/i
+      const paymentText=firstMatch(raw,[
+        /\bLe\s+modalit[aà]\s+di\s+pagamento\s+sono\s+le\s+seguenti\s*:\s*([\s\S]{3,220}?)(?:\n\s*Cordiali\s+saluti\b|\n\s*Powered\s+by\b|$)/i,
+        /\bModalit[aà]\s+di\s+pagamento\b\s*[:\-]?\s*([^\n]{3,180})/i,
+        /\bPagamento\b\s*[:\-]?\s*([^\n]{3,180})/i,
+        /\b(pagamento\s+anticipato)\b/i
       ]);
-      if(deadline && $('#cp_deadline') && !$('#cp_deadline').value.trim()){
-        $('#cp_deadline').value=String(deadline).replace(/\s+/g,' ').trim();
+
+      if(paymentText && $('#cp_deadline') && !$('#cp_deadline').value.trim()){
+        $('#cp_deadline').value=String(paymentText).replace(/\s+/g,' ').trim();
       }
 
       if($('#cp_signature') && !$('#cp_signature').value.trim()){
         if(/\bfirmat[oa]\b|\bsottoscritt[oa]\b/i.test(raw)){
           $('#cp_signature').value='Firmato / sottoscritto';
-        }else if(/\bCordiali saluti\b/i.test(raw)){
+        }else if(/\bCordiali\s+saluti\b/i.test(raw)){
           $('#cp_signature').value='Da verificare su PDF';
         }else if(/\bSIGNATURES?\b|\bSignature\b/i.test(raw)){
           $('#cp_signature').value='Da firmare';
@@ -5413,7 +5449,17 @@ $('#pt').onclick=(e)=>{
       }
 
       if($('#cp_note') && !$('#cp_note').value.trim()){
-        $('#cp_note').value='Dati precompilati automaticamente da PDF/OCR. Verificare prima del salvataggio.';
+        const noteParts=[
+          'Dati precompilati automaticamente da PDF/OCR. Verificare prima del salvataggio.',
+          supplierPiva ? `P.IVA fornitore: ${supplierPiva}` : '',
+          supplierCf ? `CF fornitore: ${supplierCf}` : '',
+          quantity ? `Quantità: ${quantity}` : '',
+          unitPrice ? `Prezzo unitario: ${formatMoneyPreview(unitPrice)}` : '',
+          vatRate ? `Aliquota IVA: ${vatRate}%` : '',
+          paymentText ? `Modalità pagamento: ${String(paymentText).replace(/\s+/g,' ').trim()}` : ''
+        ].filter(Boolean);
+
+        $('#cp_note').value=noteParts.join(' • ');
       }
     };
 
